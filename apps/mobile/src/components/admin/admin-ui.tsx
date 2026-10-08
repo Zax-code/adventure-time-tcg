@@ -23,12 +23,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LoadingPanel } from "../loading-state";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../keyboard-aware-scroll-props";
 import { KeyboardScreenView } from "../keyboard-screen-view";
-import {
-  getAbilityTypePalette,
-  pickReadableTextColor,
-  type ThemeColors,
-  withAlpha,
-} from "./admin-palette";
+import { getAbilityTypePalette, type ThemeColors } from "./admin-palette";
+import { pickReadableTextColor, withAlpha } from "../theme";
 import { ThemedExpoButton } from "../expo-ui/themed-button";
 import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
 import { useTranslation } from "../../i18n";

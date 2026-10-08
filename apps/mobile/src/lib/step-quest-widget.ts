@@ -5,6 +5,7 @@ import type { QuestsResponse } from "@adventure-time/api-client";
 import { getTranslation } from "../i18n";
 import type { Locale } from "../i18n/types";
 import type { ThemeName } from "../theme/themes";
+import { formatLocalStepDate } from "./local-step-overlay";
 
 export type StepQuestWidgetStatus =
   | "active"
@@ -65,13 +66,6 @@ const widgetSnapshotBridge = NativeModules
 
 const STEP_QUEST_WIDGET_DEEP_LINK =
   "adventure-time://quests?focus=steps";
-
-function formatLocalDate(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function formatNumber(value: number, locale: Locale) {
   try {
@@ -147,7 +141,7 @@ function buildStepQuestWidgetSnapshot(
     target: quest.target,
     reward: quest.reward,
     status,
-    recordedFor: formatLocalDate(new Date()),
+    recordedFor: formatLocalStepDate(new Date()),
     deepLink: STEP_QUEST_WIDGET_DEEP_LINK,
     updatedAt: new Date().toISOString(),
     progressLabel: `${formatNumber(progress, locale)} / ${formatNumber(

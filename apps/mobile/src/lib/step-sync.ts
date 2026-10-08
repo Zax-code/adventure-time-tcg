@@ -93,13 +93,6 @@ type SyncSource =
   | "foreground_pedometer"
   | "background_task";
 
-function formatLocalDate(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function startOfLocalDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 }
@@ -872,7 +865,7 @@ export async function syncDeviceStepsNow({
       }
 
       const now = new Date();
-      const recordedFor = formatLocalDate(now);
+      const recordedFor = formatLocalStepDate(now);
       const previous = lastAppliedDeviceSteps;
       const unchanged =
         !forceServerSync &&

@@ -28,7 +28,7 @@ import { useTranslation } from "../../i18n";
 import type { IoniconName } from "../../lib/ionicons";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
-import { withAlpha } from "./admin-palette";
+import { withAlpha } from "../theme";
 
 type AbilityType = "PASSIVE" | "SKILL" | "ULTIMATE";
 

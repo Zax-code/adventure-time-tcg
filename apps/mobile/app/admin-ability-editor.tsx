@@ -2,7 +2,6 @@ import { ScrollView, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ZodError } from "zod";
 
 import { AbilityEditorForm } from "../src/components/admin/ability-editor-sheet";
 import { AdminBackground } from "../src/components/admin/admin-ui";
@@ -15,26 +14,7 @@ import { apiClient } from "../src/lib/api";
 import { useSessionStore } from "../src/stores/session-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
-
-function formatAbilitiesError(error: unknown, invalidDataLabel: string) {
-  if (error instanceof ZodError) {
-    const details = error.issues
-      .slice(0, 3)
-      .map((issue) => {
-        const path = issue.path.length ? issue.path.join(".") : "response";
-        return `${path}: ${issue.message}`;
-      })
-      .join("; ");
-
-    return invalidDataLabel.replace("{details}", details);
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return null;
-}
+import { formatAbilitiesError } from "../src/components/admin/ability-payload";
 
 export default function AdminAbilityEditorScreen() {
   const router = useRouter();

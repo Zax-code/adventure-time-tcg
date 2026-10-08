@@ -61,7 +61,6 @@ import {
   canOpenPackWithBalance,
   createBurstPattern,
   createLoadingSparkles,
-  delay,
   formatPackAvailabilityDate,
   getHapticForCard,
   getPackArtUrl,

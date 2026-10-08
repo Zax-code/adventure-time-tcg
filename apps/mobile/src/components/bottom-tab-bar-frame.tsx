@@ -12,6 +12,7 @@ import { useThemeStore } from "../stores/theme-store";
 import { BOTTOM_TAB_BAR_OVERLAY_HEIGHT } from "../theme/layout";
 import { THEME_COLORS } from "../theme/themes";
 import { useKeyboardVisibility } from "./keyboard-screen-view";
+import { withAlpha } from "./theme";
 
 export type ThemeColorKey = keyof (typeof THEME_COLORS)["candy"];
 
@@ -137,33 +138,3 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
 });
-
-function withAlpha(color: string, alpha: string) {
-  const opacity = Number.parseInt(alpha, 16) / 255;
-
-  if (color.startsWith("#")) {
-    if (color.length === 7) {
-      return `${color}${alpha}`;
-    }
-
-    if (color.length === 9) {
-      return `${color.slice(0, 7)}${alpha}`;
-    }
-  }
-
-  const match = color.match(/^rgba?\(([^)]+)\)$/);
-  if (!match) {
-    return color;
-  }
-
-  const [r, g, b] = match[1]
-    .split(",")
-    .slice(0, 3)
-    .map((part) => Number.parseFloat(part.trim()));
-
-  if ([r, g, b].some((channel) => Number.isNaN(channel))) {
-    return color;
-  }
-
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-}

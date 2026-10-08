@@ -1,47 +1,19 @@
-import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
-import { runStartupTask } from "../lib/startup-recovery";
 import type { Locale } from "../i18n/types";
+import { createPersistedPreference } from "./persisted-preference";
 
-const LOCALE_STORAGE_KEY = "localeAfterFirstUnlockV1";
-const LEGACY_LOCALE_STORAGE_KEY = "locale";
-const VALID_LOCALES = ["en", "fr"] as const;
-const SECURE_STORE_OPTIONS = {
-  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-} as const;
+const VALID_LOCALES: readonly string[] = ["en", "fr"] satisfies Locale[];
 
-function normalizeLocale(value: string | null | undefined): Locale {
-  return VALID_LOCALES.includes(value as Locale) ? (value as Locale) : "en";
-}
+const localePreference = createPersistedPreference<Locale>({
+  key: "localeAfterFirstUnlockV1",
+  legacyKey: "locale",
+  isValid: (value): value is Locale => VALID_LOCALES.includes(value),
+  defaultValue: "en",
+});
 
-async function readStoredLocale() {
-  return runStartupTask(async () => {
-    const stored = await SecureStore.getItemAsync(LOCALE_STORAGE_KEY);
-    if (stored) {
-      return normalizeLocale(stored);
-    }
-
-    const legacyStored = await SecureStore.getItemAsync(
-      LEGACY_LOCALE_STORAGE_KEY,
-    );
-    const locale = normalizeLocale(legacyStored);
-
-    if (legacyStored) {
-      await SecureStore.setItemAsync(
-        LOCALE_STORAGE_KEY,
-        locale,
-        SECURE_STORE_OPTIONS,
-      );
-    }
-
-    return locale;
-  });
-}
-
-export async function getStoredLocale() {
-  const result = await readStoredLocale();
-  return result.ok ? result.value : "en";
+export function getStoredLocale() {
+  return localePreference.readOrDefault();
 }
 
 interface LocaleState {
@@ -57,22 +29,16 @@ export const useLocaleStore = create<LocaleState>((set) => ({
   hydrated: false,
   hydrationFailure: null,
   async setLocale(locale) {
-    const result = await runStartupTask(() =>
-      SecureStore.setItemAsync(
-        LOCALE_STORAGE_KEY,
-        locale,
-        SECURE_STORE_OPTIONS,
-      ),
-    );
+    const result = await localePreference.write(locale);
     set({
       locale,
       hydrationFailure: result.ok ? null : result.reason,
     });
   },
   async hydrateFromStorage() {
-    const result = await readStoredLocale();
+    const result = await localePreference.read();
     set({
-      locale: result.ok ? result.value : "en",
+      locale: result.ok ? result.value : localePreference.defaultValue,
       hydrated: true,
       hydrationFailure: result.ok ? null : result.reason,
     });

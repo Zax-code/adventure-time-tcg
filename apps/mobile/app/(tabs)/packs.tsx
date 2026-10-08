@@ -47,7 +47,7 @@ import { getPackOpeningArtSource } from "../../src/components/pack-opening-art";
 import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
 import { RARITY_COLORS } from "../../src/components/theme";
 import { useTranslation } from "../../src/i18n";
-import { apiClient } from "../../src/lib/api";
+import { apiClient, wait } from "../../src/lib/api";
 import { prefetchCatalogImages } from "../../src/lib/catalog-images";
 import { prefetchCardImages } from "../../src/lib/card-images";
 import { useSessionStore } from "../../src/stores/session-store";
@@ -93,7 +93,6 @@ import {
   buildCardBackVisualMap,
   canOpenPackWithBalance,
   createLoadingSparkles,
-  delay,
   formatPackAvailabilityDate,
   getHapticForCard,
   getPackArtUrl,
@@ -357,11 +356,11 @@ function usePacksScreenView() {
 
     const apiCallPromise = apiClient.openPack({ packId: pack.id });
 
-    await delay(PACK_OPEN_SHAKE_MS);
+    await wait(PACK_OPEN_SHAKE_MS);
     setPhase("bursting");
     startBurstAnimation();
 
-    await delay(PACK_OPEN_BURST_MS);
+    await wait(PACK_OPEN_BURST_MS);
     setPhase("loading");
 
     try {

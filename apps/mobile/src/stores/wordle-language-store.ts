@@ -1,9 +1,17 @@
-import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
 import type { WordleLocale } from "@adventure-time/api-client";
 
-const WORDLE_LANGUAGES: WordleLocale[] = ["fr", "en"];
+import { createPersistedPreference } from "./persisted-preference";
+
+const WORDLE_LANGUAGES: readonly string[] = ["fr", "en"] satisfies WordleLocale[];
+
+const wordleLanguagePreference = createPersistedPreference<WordleLocale>({
+  key: "wordleLanguageAfterFirstUnlockV1",
+  legacyKey: "wordleLanguage",
+  isValid: (value): value is WordleLocale => WORDLE_LANGUAGES.includes(value),
+  defaultValue: "fr",
+});
 
 interface WordleLanguageState {
   hydrated: boolean;
@@ -17,15 +25,15 @@ export const useWordleLanguageStore = create<WordleLanguageState>((set) => ({
   wordleLanguage: "fr",
   async setWordleLanguage(language) {
     set({ wordleLanguage: language });
-    await SecureStore.setItemAsync("wordleLanguage", language);
+    await wordleLanguagePreference.write(language);
   },
   async hydrateFromStorage() {
-    const stored = await SecureStore.getItemAsync("wordleLanguage");
-    const wordleLanguage =
-      stored && WORDLE_LANGUAGES.includes(stored as WordleLocale)
-        ? (stored as WordleLocale)
-        : "fr";
-
-    set({ hydrated: true, wordleLanguage });
+    const result = await wordleLanguagePreference.read();
+    set({
+      hydrated: true,
+      wordleLanguage: result.ok
+        ? result.value
+        : wordleLanguagePreference.defaultValue,
+    });
   },
 }));

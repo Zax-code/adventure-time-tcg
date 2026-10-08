@@ -1,3 +1,5 @@
+import { ZodError } from "zod";
+
 export const STATUS_NAMES = [
   "Burn",
   "Freeze",
@@ -598,4 +600,24 @@ export function stripStructuredPayloadKeys(payload: Record<string, unknown>): Re
     }
   }
   return extra;
+}
+
+export function formatAbilitiesError(error: unknown, invalidDataLabel: string) {
+  if (error instanceof ZodError) {
+    const details = error.issues
+      .slice(0, 3)
+      .map((issue) => {
+        const path = issue.path.length ? issue.path.join(".") : "response";
+        return `${path}: ${issue.message}`;
+      })
+      .join("; ");
+
+    return invalidDataLabel.replace("{details}", details);
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return null;
 }
