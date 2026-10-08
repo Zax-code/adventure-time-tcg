@@ -254,6 +254,17 @@ rollback() {
   install -o root -g root -m 0644 "$dir/adventure-time-tcg.pod" "$pod_quadlet"
   install -o root -g root -m 0755 "$dir/deploy-adventure-time-tcg" "$deployer"
   install -o root -g root -m 0600 "$dir/api.container.env" "$api_env"
+  # An image deployed after the cutover reads OBJECT_STORAGE_*; point those
+  # names at MinIO too, using the restored legacy values.
+  local scheme=http legacy=$dir/api.container.env
+  [[ $(sed -n 's/^MINIO_USE_SSL=//p' "$legacy") =~ ^(true|1)$ ]] && scheme=https
+  replace_env_block "$api_env" <<EOF
+$(grep -E '^MINIO_[A-Z_]+=' "$legacy")
+OBJECT_STORAGE_URL=$scheme://$(env_value "$legacy" MINIO_ENDPOINT):$(env_value "$legacy" MINIO_PORT)
+OBJECT_STORAGE_BUCKET=$(env_value "$legacy" MINIO_BUCKET)
+OBJECT_STORAGE_ACCESS_KEY=$(env_value "$legacy" MINIO_ACCESS_KEY)
+OBJECT_STORAGE_SECRET_KEY=$(env_value "$legacy" MINIO_SECRET_KEY)
+EOF
   systemctl daemon-reload
   systemctl restart "$api_service"
   wait_ready || die 'API not ready on MinIO after rollback'
@@ -272,13 +283,11 @@ finalize() {
     die 'the running API image does not read OBJECT_STORAGE_*; deploy it first'
   dir=$(new_backup_dir)
   cp -a "$api_env" "$dir/api.container.env"
-  grep -Ev '^MINIO_[A-Z_]+=' "$api_env" | replace_env_block "$api_env.next" 2>/dev/null || true
   local candidate
   candidate=$(mktemp "$api_env.XXXXXX")
   grep -Ev '^MINIO_[A-Z_]+=' "$api_env" >"$candidate"
   chmod 0600 "$candidate"
   mv "$candidate" "$api_env"
-  rm -f -- "$api_env.next"
   log "legacy MINIO_* variables removed (backup in $dir); they take effect at the next API restart"
 }
 
