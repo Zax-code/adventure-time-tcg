@@ -594,9 +594,12 @@ defmodule AdventureTimeApi.Accounts do
 
   def update_password(_user_id, _attrs), do: {:error, :validation, "newPassword is required"}
 
+  @admin_users_limit 500
+
   def list_admin_users do
     User
     |> order_by([user], asc: user.email)
+    |> limit(@admin_users_limit)
     |> Repo.all()
     |> Enum.map(&admin_user_payload/1)
   end
@@ -699,21 +702,29 @@ defmodule AdventureTimeApi.Accounts do
 
   def list_pending_access_requests(actor) do
     with :ok <- ensure_super_admin(actor) do
-      user_emails =
-        User
-        |> select([user], user.email)
+      # Same exact (case-sensitive) email match as before, without loading every
+      # user's email into memory.
+      request_rows =
+        from(request in EmailAccessRequest,
+          as: :request,
+          where: request.status in [:pending, :approved],
+          order_by: [asc: request.inserted_at],
+          select:
+            {request,
+             exists(
+               from(user in User,
+                 where: fragment("?::text", user.email) == parent_as(:request).email,
+                 select: 1
+               )
+             )}
+        )
         |> Repo.all()
-        |> MapSet.new()
-
-      requests =
-        EmailAccessRequest
-        |> where([request], request.status in [:pending, :approved])
-        |> order_by([request], asc: request.inserted_at)
-        |> Repo.all()
-        |> Enum.filter(fn request ->
-          request.status == :pending ||
-            (request.status == :approved && !MapSet.member?(user_emails, request.email))
+        |> Enum.filter(fn {request, has_account} ->
+          request.status == :pending or not has_account
         end)
+
+      requests = Enum.map(request_rows, &elem(&1, 0))
+      account_by_request = Map.new(request_rows, fn {request, has} -> {request.id, has} end)
 
       events_by_email = recent_auth_events_by_email(Enum.map(requests, & &1.email))
       assessments_by_request = AccessAssessment.admin_views(Enum.map(requests, & &1.id))
@@ -725,7 +736,7 @@ defmodule AdventureTimeApi.Accounts do
             "id" => request.id,
             "email" => request.email,
             "status" => Atom.to_string(request.status),
-            "hasAccount" => MapSet.member?(user_emails, request.email),
+            "hasAccount" => Map.fetch!(account_by_request, request.id),
             "createdAt" => request.inserted_at |> DateTime.to_iso8601(),
             "provider" => request.provider,
             "googleName" => request.google_name,

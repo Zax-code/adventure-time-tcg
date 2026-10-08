@@ -523,8 +523,9 @@ export class ApiClient {
     );
   }
 
-  async users() {
-    return this.request("/users", { method: "GET" }, (data) =>
+  async users(query?: string) {
+    const search = query?.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
+    return this.request(`/users${search}`, { method: "GET" }, (data) =>
       usersResponseSchema.parse(data),
     );
   }

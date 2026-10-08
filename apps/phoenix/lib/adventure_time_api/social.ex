@@ -13,11 +13,18 @@ defmodule AdventureTimeApi.Social do
   alias AdventureTimeApi.Social.CardGift
   alias AdventureTimeApi.Workers.ExpirePendingGiftWorker
 
-  def list_giftable_users(%{id: user_id}) do
+  @giftable_users_limit 500
+  @gifts_limit 200
+
+  def list_giftable_users(viewer, query \\ nil)
+
+  def list_giftable_users(%{id: user_id}, query) do
     users =
       User
       |> where([user], user.id != ^user_id and user.access_status == :approved)
+      |> filter_users(query)
       |> order_by([user], asc: user.email)
+      |> limit(@giftable_users_limit)
       |> Repo.all()
       |> Enum.map(&to_user_summary/1)
 
@@ -32,14 +39,41 @@ defmodule AdventureTimeApi.Social do
       |> where([gift], gift.to_user_id == ^user_id or gift.from_user_id == ^user_id)
       |> preload([:from_user, :to_user, card: [:rarity]])
       |> order_by([gift], desc: gift.inserted_at)
+      |> limit(@gifts_limit)
       |> Repo.all()
+
+    # Counted in SQL so it stays exact when the list is capped.
+    pending_count =
+      CardGift
+      |> where([gift], gift.to_user_id == ^user_id and gift.status == :pending)
+      |> Repo.aggregate(:count)
 
     {:ok,
      %{
        gifts: Enum.map(gifts, &to_gift_payload/1),
-       pendingCount: Enum.count(gifts, &(&1.to_user_id == user_id and &1.status == :pending))
+       pendingCount: pending_count
      }}
   end
+
+  defp filter_users(query, search) when is_binary(search) do
+    case String.trim(search) do
+      "" ->
+        query
+
+      term ->
+        pattern = "%" <> escape_like(term) <> "%"
+
+        where(
+          query,
+          [user],
+          ilike(user.display_name, ^pattern) or ilike(fragment("?::text", user.email), ^pattern)
+        )
+    end
+  end
+
+  defp filter_users(query, _search), do: query
+
+  defp escape_like(term), do: String.replace(term, ~r/([\\%_])/, "\\\\\\1")
 
   def send_gift(attrs, %{id: from_user_id}) do
     to_user_id = attrs["toUserId"]

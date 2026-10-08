@@ -117,14 +117,21 @@ defmodule AdventureTimeApi.Quests do
     |> DateTime.to_date()
   end
 
-  def current_reset_date_for_user(user_id) do
-    current_reset_date(reset_timezone_for_user(user_id))
+  # Both accept a loaded %User{} to avoid another lookup.
+  def current_reset_date_for_user(user_or_id) do
+    current_reset_date(reset_timezone_for_user(user_or_id))
   end
+
+  def reset_timezone_for_user(%User{timezone: timezone})
+      when is_binary(timezone) and timezone != "",
+      do: timezone
+
+  def reset_timezone_for_user(%User{}), do: @reset_timezone
 
   def reset_timezone_for_user(user_id) do
     case Repo.get(User, user_id) do
-      %User{} = user when is_binary(user.timezone) and user.timezone != "" -> user.timezone
-      _ -> @reset_timezone
+      %User{} = user -> reset_timezone_for_user(user)
+      nil -> @reset_timezone
     end
   end
 
@@ -233,12 +240,19 @@ defmodule AdventureTimeApi.Quests do
   @doc """
   Sync the steps_10k quest progress from today's step snapshot (if any).
   """
-  def sync_steps_quest(user_id, date \\ nil) do
-    date = date || current_reset_date_for_user(user_id)
+  def sync_steps_quest(user_or_id, date \\ nil)
+
+  def sync_steps_quest(%User{} = user, date), do: sync_steps_quest(user.id, date, user)
+
+  def sync_steps_quest(user_id, date),
+    do: sync_steps_quest(user_id, date, Repo.get(User, user_id))
+
+  defp sync_steps_quest(user_id, date, user) do
+    date = date || current_reset_date_for_user(user || user_id)
     now = now_utc()
 
     preferred_source =
-      case Repo.get(User, user_id) do
+      case user do
         %User{preferred_step_source: source} -> source
         _ -> :device_health
       end
@@ -286,11 +300,12 @@ defmodule AdventureTimeApi.Quests do
   Build the full quest list for the user, materializing quests for today if needed.
   """
   def list_quests_for_user(user_id) do
-    date = current_reset_date_for_user(user_id)
+    user = Repo.get(User, user_id)
+    date = current_reset_date_for_user(user || user_id)
     fitbit_connected = Fitbit.connected?(user_id)
 
     materialize_daily_quests(user_id, date)
-    sync_steps_quest(user_id, date)
+    sync_steps_quest(user || user_id, date)
 
     quests =
       DailyQuest
@@ -406,8 +421,8 @@ defmodule AdventureTimeApi.Quests do
   # ── Perfect Timing ─────────────────────────────────────────────────────────
 
   def perfect_timing_state(user_id) do
-    date = current_reset_date_for_user(user_id)
     timezone = reset_timezone_for_user(user_id)
+    date = current_reset_date(timezone)
     recover_previous_perfect_timing_attempts(user_id, date, timezone)
     materialize_daily_quests(user_id, date)
     result = PerfectTiming.state(user_id, date, timezone)
@@ -416,8 +431,8 @@ defmodule AdventureTimeApi.Quests do
   end
 
   def start_perfect_timing(user_id, date_key, quest_version) do
-    date = current_reset_date_for_user(user_id)
     timezone = reset_timezone_for_user(user_id)
+    date = current_reset_date(timezone)
     materialize_daily_quests(user_id, date)
     PerfectTiming.start(user_id, date, timezone, date_key, quest_version)
   end
@@ -455,8 +470,8 @@ defmodule AdventureTimeApi.Quests do
   end
 
   def continue_perfect_timing(user_id, attempt_id, date_key, quest_version) do
-    date = current_reset_date_for_user(user_id)
     timezone = reset_timezone_for_user(user_id)
+    date = current_reset_date(timezone)
     materialize_daily_quests(user_id, date)
 
     PerfectTiming.discard_result(
@@ -470,8 +485,8 @@ defmodule AdventureTimeApi.Quests do
   end
 
   def keep_perfect_timing(user_id, attempt_id, date_key, quest_version) do
-    date = current_reset_date_for_user(user_id)
     timezone = reset_timezone_for_user(user_id)
+    date = current_reset_date(timezone)
     materialize_daily_quests(user_id, date)
 
     result =

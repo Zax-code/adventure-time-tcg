@@ -24,6 +24,24 @@ defmodule AdventureTimeApiWeb.SocialControllerTest do
            }
   end
 
+  test "GET /users filters by an optional search term", _context do
+    current_user = create_user_with_password("search-current@example.com", "password123")
+    finn = create_user_with_password("finn_100%@example.com", "password123")
+    _jake = create_user_with_password("jake@example.com", "password123")
+    access_token = login_access_token(current_user.email, "password123")
+
+    get_users = fn query ->
+      access_token |> auth_conn() |> get("/users#{query}") |> json_response(200)
+    end
+
+    assert %{"users" => [%{"id" => id}]} = get_users.("?q=FINN")
+    assert id == finn.id
+    assert %{"users" => [%{"id" => ^id}]} = get_users.("?q=100%25")
+    assert %{"users" => []} = get_users.("?q=_00")
+    assert %{"users" => users} = get_users.("?q=")
+    assert length(users) == 2
+  end
+
   test "gift endpoints preserve mobile contract", _context do
     sender = create_user_with_password("sender-http@example.com", "password123")
     recipient = create_user_with_password("recipient-http@example.com", "password123")
