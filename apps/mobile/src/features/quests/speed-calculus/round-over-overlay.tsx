@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
   Easing,
@@ -12,8 +13,6 @@ import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
 import { withAlpha } from "./palette";
-import { reactEffect } from "../../../lib/react-primitives";
-import { asStyle } from "../../../lib/style-object";
 
 type RoundOverOverlayProps = {
   showRoundOver: boolean;
@@ -35,7 +34,7 @@ export function RoundOverOverlay({
 
   // ── Round-over entrance animation ─────────────────────────────────
   const roundOverAnim = useSharedValue(0);
-  reactEffect(() => {
+  useEffect(() => {
     if (showRoundOver) {
       roundOverAnim.value = 0;
       roundOverAnim.value = withTiming(1, {
@@ -130,7 +129,7 @@ export function RoundOverOverlay({
 
           {/* ── Decorative accents ─────────────────────────────── */}
           <View
-            style={asStyle({
+            style={{
               position: "absolute",
               top: -18,
               right: -18,
@@ -140,11 +139,11 @@ export function RoundOverOverlay({
               backgroundColor: tc.secondary,
               opacity: 0.22,
               transform: [{ rotate: "45deg" }],
-            })}
+            }}
             pointerEvents="none"
           />
           <View
-            style={asStyle({
+            style={{
               position: "absolute",
               bottom: -32,
               left: -32,
@@ -153,7 +152,7 @@ export function RoundOverOverlay({
               borderRadius: 50,
               backgroundColor: tc.accent,
               opacity: 0.14,
-            })}
+            }}
             pointerEvents="none"
           />
 

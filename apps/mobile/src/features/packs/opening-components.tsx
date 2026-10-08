@@ -41,7 +41,6 @@ import { getPackOpeningArtSource } from "../../components/pack-opening-art";
 import { getPackOpeningVisualProfile } from "../../components/pack-opening-visuals";
 import { RARITY_COLORS } from "../../components/theme";
 import { useTranslation } from "../../i18n";
-import { asStyle } from "../../lib/style-object";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS, type ThemeName } from "../../theme/themes";
 
@@ -783,14 +782,14 @@ function RevealCardHalo({
     <Animated.View
       pointerEvents="none"
       style={[
-        asStyle({
+        {
           position: "absolute",
           left: 0,
           top: 0,
           width,
           height,
           zIndex: 0,
-        }),
+        },
         haloStyle,
       ]}
     >
@@ -856,19 +855,19 @@ function SparkRevealOverlay({
     <Animated.View
       pointerEvents="none"
       style={[
-        asStyle({
+        {
           position: "absolute",
           top: -18,
           right: -18,
           bottom: -18,
           left: -18,
           zIndex: 24,
-        }),
+        },
         pulseStyle,
       ]}
     >
       <View
-        style={asStyle({
+        style={{
           position: "absolute",
           top: 0,
           right: 0,
@@ -878,11 +877,11 @@ function SparkRevealOverlay({
           borderWidth: 2,
           borderColor: color,
           backgroundColor: withAlpha(color, "16"),
-        })}
+        }}
       />
       <Animated.View
         style={[
-          asStyle({
+          {
             position: "absolute",
             top: height * 0.12,
             bottom: height * 0.12,
@@ -890,7 +889,7 @@ function SparkRevealOverlay({
             width: 22,
             borderRadius: 999,
             backgroundColor: "rgba(255, 255, 255, 0.72)",
-          }),
+          },
           glintStyle,
         ]}
       />
@@ -1405,7 +1404,7 @@ export function CrackedPackPreview({
       <Animated.View
         pointerEvents="none"
         style={[
-          asStyle({
+          {
             position: "absolute",
             left: centerX - Math.max(18, width * 0.065),
             top: 24,
@@ -1413,7 +1412,7 @@ export function CrackedPackPreview({
             height: height - 46,
             borderRadius: 999,
             backgroundColor: "rgba(255, 242, 170, 0.92)",
-          }),
+          },
           seamStyle,
         ]}
       />

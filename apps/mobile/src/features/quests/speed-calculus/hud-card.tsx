@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -11,7 +12,6 @@ import type { SpeedRunState } from "@adventure-time/api-client";
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
-import { reactEffect } from "../../../lib/react-primitives";
 
 type HudCardProps = {
   activeRun: NonNullable<SpeedRunState["activeRun"]> | null;
@@ -55,12 +55,12 @@ export function HudCard({
     !isManuallyPaused &&
     remainingSeconds > 0;
 
-  reactEffect(() => {
+  useEffect(() => {
     cancelAnimation(progressAnim);
     progressAnim.value = activeRunId === null ? 1 : timerProgress;
   }, [activeRunId, maxSeconds, progressAnim]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!timerRunning) {
       cancelAnimation(progressAnim);
       return;

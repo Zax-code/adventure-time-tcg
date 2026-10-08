@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import {
@@ -37,7 +37,6 @@ import {
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
-import { reactEffect } from "../../src/lib/react-primitives";
 
 const styles = StyleSheet.create({
   featuredCardFrame: {
@@ -49,11 +48,11 @@ function DailyClaimCountdown({ timeUntilNextClaim }: { timeUntilNextClaim: numbe
   const queryClient = useQueryClient();
   const [liveTime, setLiveTime] = useState(timeUntilNextClaim);
 
-  reactEffect(() => {
+  useEffect(() => {
     setLiveTime(timeUntilNextClaim);
   }, [timeUntilNextClaim]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (liveTime <= 0) return;
     const id = setInterval(() => {
       setLiveTime((prev) => {
@@ -199,7 +198,7 @@ function useHomeScreenView() {
   const [notificationPromptHidden, setNotificationPromptHidden] =
     useState(false);
 
-  reactEffect(() => {
+  useEffect(() => {
     let cancelled = false;
 
     setNotificationPromptIgnored(false);

@@ -23,7 +23,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LoadingPanel } from "../loading-state";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../keyboard-aware-scroll-props";
 import { KeyboardScreenView } from "../keyboard-screen-view";
-import { asStyle } from "../../lib/style-object";
 import {
   getAbilityTypePalette,
   pickReadableTextColor,
@@ -710,7 +709,7 @@ function getAdminFieldInputStyle(
   tc: ThemeColors,
   multiline: boolean | undefined,
 ) {
-  return asStyle({
+  return {
     backgroundColor: tc.surface,
     borderColor: tc.primaryBorder,
     borderRadius: 16,
@@ -719,8 +718,8 @@ function getAdminFieldInputStyle(
     paddingHorizontal: 14,
     paddingTop: multiline ? 12 : 0,
     paddingBottom: multiline ? 12 : 0,
-    width: "100%",
-  });
+    width: "100%" as const,
+  };
 }
 
 export function AdminField({

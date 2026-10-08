@@ -2,7 +2,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Text, View } from "react-native";
 
 import type { THEME_COLORS } from "../../../theme/themes";
-import { asStyle } from "../../../lib/style-object";
 import type { SpeedCalculusShareResult } from "./share-result";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
@@ -32,7 +31,7 @@ export function SpeedCalculusQuestShareCard({
 }) {
   return (
     <View
-      style={asStyle({
+      style={{
         width: 360,
         backgroundColor: colors.bg,
         borderRadius: 28,
@@ -42,7 +41,7 @@ export function SpeedCalculusQuestShareCard({
         paddingVertical: 28,
         alignItems: "center",
         gap: 18,
-      })}
+      }}
     >
       <LinearGradient
         colors={[colors.primary, colors.primaryDark]}
@@ -106,12 +105,12 @@ export function SpeedCalculusQuestShareCard({
                 />
               </View>
               <View
-                style={asStyle({
+                style={{
                   borderRadius: 999,
                   backgroundColor: colors.primaryTint,
                   paddingHorizontal: 12,
                   paddingVertical: 8,
-                })}
+                }}
               >
                 <Text
                   className="text-center text-[15px] font-nunito-extrabold"
@@ -159,7 +158,7 @@ function ResultMetric({
 }) {
   return (
     <View
-      style={asStyle({
+      style={{
         minWidth: 0,
         flex: 1,
         alignItems: "center",
@@ -170,7 +169,7 @@ function ResultMetric({
         paddingHorizontal: 8,
         paddingVertical: 13,
         gap: 4,
-      })}
+      }}
     >
       <Text
         className="text-center text-[9px] font-nunito-bold uppercase"

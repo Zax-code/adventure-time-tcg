@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -46,8 +46,6 @@ import {
   RecycleIcon } from "../src/components/icons";
 import { ToastBanner } from "../src/components/toast-banner";
 import { getDustSacrificeValue, getDustCraftCost } from "../src/lib/dust";
-import { asStyle } from "../src/lib/style-object";
-import { reactEffect } from "../src/lib/react-primitives";
 
 function estimateCatalogCount(stats: CollectionResponse["stats"]) {
   if (stats.uniqueOwned <= 0 || stats.completionPercentage <= 0) {
@@ -214,7 +212,7 @@ function useCollectionCardDetailScreenView() {
     [waitForDustActionDelay],
   );
 
-  reactEffect(
+  useEffect(
     () => () => {
       dustActionTimeoutsRef.current.forEach(clearTimeout);
       dustActionTimeoutsRef.current = [];
@@ -238,7 +236,7 @@ function useCollectionCardDetailScreenView() {
   const homeQueryKey = useMemo(() => ["home"] as const, []);
   const collectionQueryKey = useMemo(() => ["collection"] as const, []);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!toast) {
       return;
     }
@@ -250,7 +248,7 @@ function useCollectionCardDetailScreenView() {
     return () => clearTimeout(timer);
   }, [toast, toastAnim]);
 
-  reactEffect(() => {
+  useEffect(() => {
     setRecycleExpanded(false);
     setGiftExpanded(false);
     setRecycleQuantity(1);
@@ -599,7 +597,7 @@ function useCollectionCardDetailScreenView() {
                   ].map((metric) => (
                     <View
                       key={metric.label}
-                      style={asStyle({
+                      style={{
                         width: "47.5%",
                         borderRadius: 18,
                         borderWidth: 1,
@@ -607,7 +605,7 @@ function useCollectionCardDetailScreenView() {
                         backgroundColor: metric.backgroundColor,
                         paddingHorizontal: 14,
                         paddingVertical: 12,
-                        gap: 4 })}
+                        gap: 4 }}
                     >
                       <Text
                         style={{
@@ -776,7 +774,7 @@ function useCollectionCardDetailScreenView() {
                         {t("collection.detail.craft")}
                       </Text>
                       <View
-                        style={asStyle({
+                        style={{
                           borderRadius: 999,
                           backgroundColor: tc.surface,
                           paddingHorizontal: 10,
@@ -785,7 +783,7 @@ function useCollectionCardDetailScreenView() {
                           borderColor: tc.secondaryBorder,
                           flexDirection: "row",
                           alignItems: "center",
-                          gap: 4 })}
+                          gap: 4 }}
                       >
                         <Text
                           style={{
@@ -914,7 +912,7 @@ function useCollectionCardDetailScreenView() {
                             gap: 8 }}
                         >
                           <View
-                            style={asStyle({
+                            style={{
                               borderRadius: 999,
                               paddingHorizontal: 10,
                               paddingVertical: 5,
@@ -923,7 +921,7 @@ function useCollectionCardDetailScreenView() {
                               borderColor: tc.successBorder,
                               flexDirection: "row",
                               alignItems: "center",
-                              gap: 4 })}
+                              gap: 4 }}
                           >
                             <Text
                               style={{
@@ -957,7 +955,7 @@ function useCollectionCardDetailScreenView() {
                             gap: 10 }}
                         >
                           <View
-                            style={asStyle({
+                            style={{
                               flex: 1,
                               borderRadius: 16,
                               backgroundColor: tc.surface,
@@ -965,7 +963,7 @@ function useCollectionCardDetailScreenView() {
                               borderColor: tc.successBorder,
                               paddingHorizontal: 14,
                               paddingVertical: 10,
-                              gap: 2 })}
+                              gap: 2 }}
                           >
                             <Text
                               style={{
@@ -985,7 +983,7 @@ function useCollectionCardDetailScreenView() {
                             </Text>
                           </View>
                           <View
-                            style={asStyle({
+                            style={{
                               flex: 1,
                               borderRadius: 16,
                               backgroundColor: tc.surface,
@@ -993,7 +991,7 @@ function useCollectionCardDetailScreenView() {
                               borderColor: tc.successBorder,
                               paddingHorizontal: 14,
                               paddingVertical: 10,
-                              gap: 2 })}
+                              gap: 2 }}
                           >
                             <Text
                               style={{
@@ -1068,7 +1066,7 @@ function useCollectionCardDetailScreenView() {
                                 variant="ghost"
                               />
                               <View
-                                style={asStyle({
+                                style={{
                                   minWidth: 110,
                                   borderRadius: 18,
                                   backgroundColor: tc.successTint,
@@ -1076,7 +1074,7 @@ function useCollectionCardDetailScreenView() {
                                   borderColor: tc.successBorder,
                                   paddingHorizontal: 16,
                                   paddingVertical: 10,
-                                  alignItems: "center" })}
+                                  alignItems: "center" }}
                               >
                                 <Text
                                   style={{
@@ -1235,7 +1233,7 @@ function useCollectionCardDetailScreenView() {
                         >
                           {selectedUser ? (
                             <View
-                              style={asStyle({
+                              style={{
                                 height: 24,
                                 width: 24,
                                 borderRadius: 12,
@@ -1243,7 +1241,7 @@ function useCollectionCardDetailScreenView() {
                                 justifyContent: "center",
                                 backgroundColor: tc.surface,
                                 borderWidth: 1,
-                                borderColor: tc.infoBorder })}
+                                borderColor: tc.infoBorder }}
                             >
                               <CheckIcon size={14} color={tc.infoText} />
                             </View>

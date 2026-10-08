@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Text, View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -12,7 +12,6 @@ import type { SpeedRunState } from "@adventure-time/api-client";
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
-import { reactEffect } from "../../../lib/react-primitives";
 
 type Question = NonNullable<SpeedRunState["activeRun"]>["questions"][number];
 
@@ -37,7 +36,7 @@ export function QuestionZone({
   // ── Pause countdown ring ──────────────────────────────────────────
   const initialPauseRef = useRef<number | null>(null);
   const pauseRingProgress = useSharedValue(0);
-  reactEffect(() => {
+  useEffect(() => {
     if (pauseRemainingSeconds > 0 && initialPauseRef.current === null) {
       initialPauseRef.current = pauseRemainingSeconds;
       pauseRingProgress.value = 0;

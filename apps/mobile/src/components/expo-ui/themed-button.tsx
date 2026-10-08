@@ -33,7 +33,6 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { useThemeStore } from "../../stores/theme-store";
 import { getExpoUIColorScheme, THEME_COLORS } from "../../theme/themes";
-import { asStyle } from "../../lib/style-object";
 
 type ThemedButtonVariant =
   "primary" | "secondary" | "danger" | "ghost" | "warning";
@@ -369,7 +368,7 @@ function FallbackButton({
           colors={appearance.gradientColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={asStyle({
+          style={{
             borderRadius: appearance.borderRadius,
             height: appearance.height,
             paddingVertical: appearance.paddingVertical,
@@ -379,7 +378,7 @@ function FallbackButton({
             justifyContent:
               fallbackLayout === "stretch" ? "flex-start" : "center",
             width: "100%",
-          })}
+          }}
         >
           {content}
         </LinearGradient>

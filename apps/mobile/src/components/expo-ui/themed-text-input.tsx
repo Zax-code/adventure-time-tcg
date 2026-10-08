@@ -1,4 +1,4 @@
-import { type RefObject } from "react";
+import { type RefObject, useEffect } from "react";
 import {
   Host,
   TextInput as ExpoTextInput,
@@ -20,7 +20,6 @@ import {
   getExpoUIColorScheme,
   THEME_COLORS,
   type ThemeName } from "../../theme/themes";
-import { reactEffect } from "../../lib/react-primitives";
 
 type ThemedExpoTextInputProps = Omit<
   ExpoTextInputProps,
@@ -72,7 +71,7 @@ export function ThemedExpoTextInput({
     hasStyledContainer ||
     (typeof props.testID === "string" && props.testID.length > 0);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (textState.value !== value) {
       textState.value = value;
     }

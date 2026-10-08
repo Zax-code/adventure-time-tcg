@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { useIsFocused, useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useState, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -57,7 +57,6 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
-import { reactEffect } from "../../src/lib/react-primitives";
 
 import {
   BackgroundOrbs,
@@ -180,7 +179,7 @@ function usePacksScreenView() {
   );
   const isRevealAnimatingRef = useRef(false);
 
-  reactEffect(() => {
+  useEffect(() => {
     navigation.setOptions({
       tabBarStyle: shouldHideTabBar ? { display: "none" } : undefined,
     });
@@ -192,7 +191,7 @@ function usePacksScreenView() {
     };
   }, [navigation, shouldHideTabBar]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (phase !== "readyToReveal") {
       return;
     }
@@ -231,7 +230,7 @@ function usePacksScreenView() {
     };
   }, [phase, pulseAnim, readyRevealAnim, stackSpreadAnim]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (phase !== "loading") {
       cancelAnimation(loadingIdleAnim);
       loadingIdleAnim.value = 0;
@@ -600,7 +599,7 @@ function usePacksScreenView() {
     ].join(",");
   }, [packsQueryData]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!packsQueryData || !packVisualPrefetchKey) {
       return;
     }
