@@ -1,5 +1,6 @@
 defmodule AdventureTimeApiWeb.PvpControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: false
+  use Oban.Testing, repo: AdventureTimeApi.Repo
 
   import Ecto.Query
 
@@ -531,6 +532,29 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
              |> auth_conn()
              |> get(~p"/pvp/matches/#{match_id}")
              |> json_response(200)
+  end
+
+  test "the timeout worker expires due turns that spectator reads no longer sweep",
+       _context do
+    %{inviter_token: inviter_token, match_id: match_id} =
+      create_accepted_match_fixture("timeout-worker")
+
+    stale =
+      DateTime.utc_now() |> DateTime.add(-25 * 60 * 60, :second) |> DateTime.truncate(:second)
+
+    Match
+    |> where([m], m.id == ^match_id)
+    |> Repo.update_all(set: [turn_started_at: stale])
+
+    spectate = inviter_token |> auth_conn() |> get(~p"/pvp/spectate") |> json_response(200)
+    assert Enum.any?(spectate["matches"], &(&1["id"] == match_id))
+    assert Repo.get!(Match, match_id).status == "in_progress"
+
+    assert :ok = perform_job(AdventureTimeApi.Workers.PvpMatchTimeoutWorker, %{})
+    assert Repo.get!(Match, match_id).status == "completed"
+
+    spectate = inviter_token |> auth_conn() |> get(~p"/pvp/spectate") |> json_response(200)
+    refute Enum.any?(spectate["matches"], &(&1["id"] == match_id))
   end
 
   test "skill and ultimate action routes execute assigned abilities", _context do

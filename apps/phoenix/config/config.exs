@@ -108,6 +108,7 @@ config :adventure_time_api, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"* * * * *", AdventureTimeApi.Workers.LeaderboardLifecycleWorker},
+       {"* * * * *", AdventureTimeApi.Workers.PvpMatchTimeoutWorker},
        {"15 3 * * *", AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker}
      ]}
   ]

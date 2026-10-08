@@ -537,9 +537,15 @@ defmodule AdventureTimeApi.Pvp do
     end
   end
 
-  def list_spectatable do
+  @doc "Expires every past-due PvP turn and pending invite (minute cron)."
+  def expire_due_matches do
+    expire_due_pending_invites(nil)
     expire_due_in_progress_matches(nil)
+    :ok
+  end
 
+  # Due matches are expired by PvpMatchTimeoutWorker every minute.
+  def list_spectatable do
     matches =
       Match
       |> where([m], m.status == "in_progress")
@@ -550,8 +556,6 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   def get_spectate(match_id) do
-    expire_due_pending_invites(nil)
-
     case Repo.get(Match, match_id) do
       nil ->
         {:error, :not_found}
