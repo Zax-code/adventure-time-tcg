@@ -112,9 +112,10 @@ repository's `infra/` tree on the VPS:
 4. `finalize`, after an image that reads `OBJECT_STORAGE_*` is deployed,
    removes the legacy `MINIO_*` variables.
 
-The pod file no longer publishes `9100`/`9101`; that takes effect only at the
-next pod restart, which also restarts PostgreSQL, so do it in a maintenance
-window. The MinIO data under `/srv/adventure-time-tcg/minio` and its nightly
+The pod file no longer publishes `9100`/`9101`; production applied it with a pod
+restart on 2026-10-08. A pod restart also restarts PostgreSQL, so take a verified
+dump first and stop the API, restart the pod, start PostgreSQL, then start the
+API. The MinIO data under `/srv/adventure-time-tcg/minio` and its nightly
 archives remain rollback material until a retention decision deletes them.
 `leaetzak-datastore-backup` (infrastructure repository) must back up Garage on
 `127.0.0.1:3900` with the `garage.container.env` key pair once MinIO is stopped.
