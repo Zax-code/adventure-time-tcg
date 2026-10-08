@@ -11,7 +11,7 @@ tags:
 - assertVisible:
     id: pvp-open-mechanics-button
 - tapOn:
-    id: tab-gifts
+    id: app-header-gifts-button
 - assertVisible:
     id: gifts-filter-all
 - tapOn:
