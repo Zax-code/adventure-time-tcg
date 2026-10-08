@@ -1,6 +1,5 @@
 const questTitles: Record<string, string> = {
   steps_10k: "Walk 10,000 steps",
-  daily_login: "Daily login",
   wordle_daily: "Complete a Wordle",
   wordle_daily_fr: "Complete the French Wordle",
   wordle_daily_en: "Complete the English Wordle",
@@ -12,7 +11,6 @@ const questTitles: Record<string, string> = {
 
 const questDescriptions: Record<string, string> = {
   steps_10k: "Walk 10,000 steps today and sync a supported step source.",
-  daily_login: "Sign in today, then claim the reward when the visit is counted.",
   wordle_daily: "Guess today's five-letter word in six tries.",
   wordle_daily_fr: "Guess today's French five-letter word in six tries.",
   wordle_daily_en: "Guess today's English five-letter word in six tries.",

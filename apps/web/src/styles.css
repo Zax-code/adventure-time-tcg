@@ -1,34 +1,8 @@
-@font-face {
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("@expo-google-fonts/nunito/400Regular/Nunito_400Regular.ttf") format("truetype");
-}
-
-@font-face {
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url("@expo-google-fonts/nunito/600SemiBold/Nunito_600SemiBold.ttf") format("truetype");
-}
-
-@font-face {
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("@expo-google-fonts/nunito/700Bold/Nunito_700Bold.ttf") format("truetype");
-}
-
-@font-face {
-  font-family: "Nunito";
-  font-style: normal;
-  font-weight: 800 900;
-  font-display: swap;
-  src: url("@expo-google-fonts/nunito/800ExtraBold/Nunito_800ExtraBold.ttf") format("truetype");
-}
+/* Nunito as WOFF2 subsets: browsers fetch only the unicode ranges a page uses. */
+@import "@fontsource/nunito/400.css";
+@import "@fontsource/nunito/600.css";
+@import "@fontsource/nunito/700.css";
+@import "@fontsource/nunito/800.css";
 
 :root {
   color-scheme: light;

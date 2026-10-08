@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
@@ -13,7 +13,7 @@ import {
 
 export type CollectionEntry = CollectionResponse["cards"][number];
 
-export function CardTile({
+export const CardTile = memo(function CardTile({
   entry,
   link = true,
   selected = false,
@@ -56,7 +56,7 @@ export function CardTile({
       {content}
     </Link>
   );
-}
+});
 
 export function CardGrid({ children }: { children: ReactNode }) {
   return <div className="card-grid">{children}</div>;

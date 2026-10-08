@@ -15,12 +15,14 @@ import type {
   LoginInput,
 } from "@adventure-time/api-client";
 
+import { queryClient } from "../lib/api";
 import {
   createAppleWebSession,
   createGoogleWebSession,
   createWebSession,
   destroyWebSession,
   getAuthSnapshot,
+  refreshCurrentUser,
   restoreWebSession,
   subscribeToAuth,
   type AuthStatus,
@@ -35,6 +37,7 @@ type AuthContextValue = {
   loginWithApple: (input: AppleAuthInput) => Promise<AuthUser>;
   logout: () => Promise<void>;
   restore: () => Promise<AuthUser | null>;
+  refreshUser: () => Promise<AuthUser | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -54,8 +57,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     (input: AppleAuthInput) => createAppleWebSession(input),
     [],
   );
-  const logout = useCallback(() => destroyWebSession(), []);
+  const logout = useCallback(async () => {
+    try {
+      await destroyWebSession();
+    } finally {
+      // Query keys are not scoped by user; drop the previous account's data.
+      queryClient.clear();
+    }
+  }, []);
   const restore = useCallback(() => restoreWebSession(), []);
+  const refreshUser = useCallback(() => refreshCurrentUser(), []);
 
   useEffect(() => {
     if (auth.status === "restoring") {
@@ -73,8 +84,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       loginWithApple,
       logout,
       restore,
+      refreshUser,
     }),
-    [auth, login, loginWithApple, loginWithGoogle, logout, restore],
+    [auth, login, loginWithApple, loginWithGoogle, logout, refreshUser, restore],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

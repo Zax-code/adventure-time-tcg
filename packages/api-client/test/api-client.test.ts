@@ -72,3 +72,43 @@ describe("ApiClient pending access errors", () => {
     }
   });
 });
+
+describe("ApiClient upload deadlines", () => {
+  it("gives uploads their own, longer deadline than JSON requests", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = ((_input, init) =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(
+          () =>
+            resolve(
+              new Response(JSON.stringify({ imageAssetId: "asset-1" }), {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              }),
+            ),
+          60,
+        );
+        init?.signal?.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(timer);
+            reject(new DOMException("Aborted", "AbortError"));
+          },
+          { once: true },
+        );
+      })) as typeof fetch;
+
+    try {
+      const client = new ApiClient({
+        baseUrl: "https://example.test",
+        requestTimeoutMs: 20,
+        uploadTimeoutMs: 1_000,
+      });
+
+      await assert.rejects(client.quests(), /Request timed out/);
+      await assert.doesNotReject(client.uploadProfileImage(new FormData()));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});

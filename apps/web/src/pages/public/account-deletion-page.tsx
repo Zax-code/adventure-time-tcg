@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 const deletionSteps = [
   {
     title: "Open account settings",
-    body: "Sign in, open Settings, and find Privacy & data near the end of the page.",
+    body: "Sign in, open Settings, and choose the Security section, then Delete account.",
   },
   {
     title: "Choose Delete my account",

@@ -144,6 +144,42 @@ describe("AuthenticatedProfileImage", () => {
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:first");
   });
 
+  it("does not refetch the same image when only the access token rotates", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response(new Blob(["avatar"]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    Object.defineProperties(URL, {
+      createObjectURL: { configurable: true, value: vi.fn(() => "blob:avatar") },
+      revokeObjectURL: { configurable: true, value: vi.fn() },
+    });
+
+    const { rerender } = render(
+      <AuthenticatedProfileImage
+        accessToken="token-1"
+        alt="Profile"
+        fallback={<span>Fallback</span>}
+        imageAssetId="avatar"
+      />,
+    );
+    await screen.findByRole("img", { name: "Profile" });
+
+    rerender(
+      <AuthenticatedProfileImage
+        accessToken="token-2"
+        alt="Profile"
+        fallback={<span>Fallback</span>}
+        imageAssetId="avatar"
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "Profile" })).toHaveAttribute(
+      "src",
+      "blob:avatar",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("revokes undecodable media and restores its fallback", async () => {
     vi.stubGlobal(
       "fetch",

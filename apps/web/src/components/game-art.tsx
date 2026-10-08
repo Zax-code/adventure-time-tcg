@@ -287,6 +287,10 @@ export function AuthenticatedProfileImage({
 }: AuthenticatedProfileImageProps) {
   const [source, setSource] = useState<string | null>(null);
   const objectUrlRef = useRef<AuthenticatedProfileObjectUrl | null>(null);
+  // A rotated access token must not refetch the same image; only its presence matters.
+  const accessTokenRef = useRef(accessToken);
+  accessTokenRef.current = accessToken;
+  const hasAccessToken = Boolean(accessToken);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -294,12 +298,12 @@ export function AuthenticatedProfileImage({
     objectUrlRef.current = null;
     setSource(null);
 
-    if (!imageAssetId || !accessToken) {
+    if (!imageAssetId || !hasAccessToken) {
       return () => controller.abort();
     }
 
     void fetchAuthenticatedProfileObjectUrl({
-      accessToken,
+      accessToken: accessTokenRef.current,
       baseUrl: apiBaseUrl,
       imageAssetId,
       signal: controller.signal,
@@ -324,7 +328,7 @@ export function AuthenticatedProfileImage({
       objectUrlRef.current?.revoke();
       objectUrlRef.current = null;
     };
-  }, [accessToken, apiBaseUrl, imageAssetId]);
+  }, [apiBaseUrl, hasAccessToken, imageAssetId]);
 
   if (!source) {
     return <>{fallback}</>;

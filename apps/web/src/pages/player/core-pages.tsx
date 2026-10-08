@@ -1,5 +1,6 @@
 import {
   type FormEvent,
+  useDeferredValue,
   useMemo,
   useState,
 } from "react";
@@ -75,7 +76,7 @@ function invalidatePlayerData(queryClient: ReturnType<typeof useQueryClient>) {
 }
 
 export function HomePage() {
-  const { restore } = useAuth();
+  const { refreshUser } = useAuth();
   const queryClient = useQueryClient();
   const home = useQuery({ queryKey: ["home"], queryFn: () => webApiClient.home() });
   const daily = useQuery({ queryKey: ["daily-claim"], queryFn: () => webApiClient.getDailyClaimStatus() });
@@ -84,7 +85,7 @@ export function HomePage() {
   const claim = useMutation({
     mutationFn: () => webApiClient.claimDailyReward(),
     onSuccess: async () => {
-      await restore();
+      await refreshUser();
       void queryClient.invalidateQueries({ queryKey: ["daily-claim"] });
       void queryClient.invalidateQueries({ queryKey: ["home"] });
     },
@@ -191,10 +192,12 @@ export function CollectionPage() {
   const [rarity, setRarity] = useState("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("name");
+  // Keep typing responsive: the grid filters against a deferred copy of the search.
+  const deferredSearch = useDeferredValue(search);
 
   const filtered = useMemo(() => {
     const cards = collection.data?.cards ?? [];
-    const normalizedSearch = search.trim().toLowerCase();
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
     return [...cards]
       .filter((entry) => (
         (view === "all" || (view === "owned" ? entry.quantity > 0 : entry.quantity === 0))
@@ -206,7 +209,7 @@ export function CollectionPage() {
         if (sort === "rarity") return (rarityOrder[right.card.rarity.name] ?? 0) - (rarityOrder[left.card.rarity.name] ?? 0);
         return left.card.name.localeCompare(right.card.name);
       });
-  }, [collection.data, rarity, search, sort, view]);
+  }, [collection.data, deferredSearch, rarity, sort, view]);
 
   return (
     <div className="page-stack collection-page">
@@ -249,7 +252,7 @@ export function CollectionPage() {
 }
 
 export function CardDetailPage() {
-  const { restore } = useAuth();
+  const { refreshUser } = useAuth();
   const { cardId = "" } = useParams();
   const queryClient = useQueryClient();
   const collection = useQuery({ queryKey: ["collection"], queryFn: () => webApiClient.collection() });
@@ -260,7 +263,7 @@ export function CardDetailPage() {
     mutationFn: ({ kind, id }: { kind: "craft" | "recycle"; id: string }) => kind === "craft" ? webApiClient.craftCard(id) : webApiClient.recycleCard(id),
     onSuccess: async (result, variables) => {
       setMessage(variables.kind === "craft" ? "Card crafted and added to your collection." : "Duplicate recycled into dust.");
-      await restore();
+      await refreshUser();
       await invalidatePlayerData(queryClient);
       void result;
     },
@@ -319,7 +322,7 @@ export function CardDetailPage() {
 }
 
 export function PacksPage() {
-  const { restore } = useAuth();
+  const { refreshUser } = useAuth();
   const queryClient = useQueryClient();
   const packs = useQuery({ queryKey: ["packs"], queryFn: () => webApiClient.packs() });
   const [opened, setOpened] = useState<OpenPackResponse | null>(null);
@@ -329,7 +332,7 @@ export function PacksPage() {
     onSuccess: async (data) => {
       setOpened(data);
       setMessage(undefined);
-      await restore();
+      await refreshUser();
       await invalidatePlayerData(queryClient);
     },
     onError: (error) => setMessage(readErrorMessage(error)),
@@ -382,19 +385,20 @@ export function PacksPage() {
 type GiftView = "pending" | "received" | "sent" | "all";
 
 export function GiftsPage() {
-  const { restore, user } = useAuth();
+  const { refreshUser, user } = useAuth();
   const queryClient = useQueryClient();
   const gifts = useQuery({ queryKey: ["gifts"], queryFn: () => webApiClient.gifts() });
-  const users = useQuery({ queryKey: ["gift-users"], queryFn: () => webApiClient.users() });
   const collection = useQuery({ queryKey: ["collection"], queryFn: () => webApiClient.collection() });
   const [view, setView] = useState<GiftView>("pending");
   const [composerOpen, setComposerOpen] = useState(false);
+  // The player directory is only needed by the composer.
+  const { data: giftUsers } = useQuery({ queryKey: ["gift-users"], queryFn: () => webApiClient.users(), enabled: composerOpen });
   const [message, setMessage] = useState<string>();
   const [success, setSuccess] = useState(false);
   const process = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "accept" | "reject" }) => webApiClient.processGift({ giftId: id, action }),
     onSuccess: async () => {
-      await restore();
+      await refreshUser();
       await invalidatePlayerData(queryClient);
     },
   });
@@ -404,7 +408,7 @@ export function GiftsPage() {
       setSuccess(true);
       setMessage("Gift sent. It will remain pending until your friend answers.");
       setComposerOpen(false);
-      await restore();
+      await refreshUser();
       await invalidatePlayerData(queryClient);
     },
     onError: (error) => {
@@ -447,7 +451,7 @@ export function GiftsPage() {
       <Dialog description="Only owned cards can be sent. The recipient chooses whether to accept." onClose={() => setComposerOpen(false)} open={composerOpen} title="Send a card">
         <form className="stack-form" onSubmit={submitGift}>
           <Field label="Card"><select defaultValue={new URLSearchParams(location.search).get("card") ?? ""} name="cardId" required><option disabled value="">Choose an owned card</option>{collection.data?.cards.flatMap((entry) => entry.quantity > 0 ? [<option key={entry.cardId} value={entry.cardId}>{entry.card.name} · {entry.quantity} owned</option>] : [])}</select></Field>
-          <Field label="Recipient"><select name="toUserId" required><option disabled value="">Choose a player</option>{users.data?.users.map((user) => <option key={user.id} value={user.id}>{user.displayName || user.email}</option>)}</select></Field>
+          <Field label="Recipient"><select name="toUserId" required><option disabled value="">Choose a player</option>{giftUsers?.users.map((user) => <option key={user.id} value={user.id}>{user.displayName || user.email}</option>)}</select></Field>
           <Field hint="You cannot send more copies than you own." label="Quantity"><input defaultValue="1" min="1" name="quantity" required type="number" /></Field>
           <Field hint="Optional · visible only to the recipient" label="Message"><textarea maxLength={280} name="message" placeholder="A note for this card's next chapter" /></Field>
           <Button busy={send.isPending} type="submit">Send gift</Button>

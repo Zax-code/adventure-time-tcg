@@ -44,7 +44,7 @@ const notificationLabels: Record<keyof NotificationPreferences, { title: string;
 };
 
 export function SettingsPage() {
-  const { logout, restore, user } = useAuth();
+  const { logout, refreshUser, user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [section, setSection] = useState<SettingsSection>("profile");
@@ -60,14 +60,14 @@ export function SettingsPage() {
     onSuccess: async () => {
       setSuccess(true);
       setMessage("Settings saved.");
-      await restore();
+      await refreshUser();
       await queryClient.invalidateQueries({ queryKey: ["health-steps"] });
     },
     onError: (error) => { setSuccess(false); setMessage(readErrorMessage(error)); },
   });
   const upload = useMutation({
     mutationFn: (file: File) => { const data = new FormData(); data.append("file", file); return webApiClient.uploadProfileImage(data); },
-    onSuccess: async () => { setSuccess(true); setMessage("Profile image updated."); await restore(); },
+    onSuccess: async () => { setSuccess(true); setMessage("Profile image updated."); await refreshUser(); },
     onError: (error) => { setSuccess(false); setMessage(readErrorMessage(error)); },
   });
   const fitbitCommand = useMutation({

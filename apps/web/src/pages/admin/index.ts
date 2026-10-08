@@ -1,3 +1,6 @@
+// Loaded with the lazy admin chunk instead of the global stylesheet.
+import "@/styles/admin.css";
+
 export { AdminBalancePage } from "./balance-page";
 export {
   AdminAbilitiesPage,

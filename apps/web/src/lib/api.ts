@@ -134,7 +134,7 @@ function shouldRetryQuery(failureCount: number, error: unknown) {
     return false;
   }
 
-  if (error instanceof WebApiError) {
+  if (error instanceof WebApiError || error instanceof ApiClientError) {
     return error.status === 0 || error.status >= 500;
   }
 
