@@ -73,7 +73,7 @@ import { useSessionStore } from "../src/stores/session-store";
 import { useStepSyncStore } from "../src/stores/step-sync-store";
 import { useLocaleStore } from "../src/stores/locale-store";
 import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
+import { getExpoUIColorScheme, THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -564,7 +564,9 @@ function useRootLayoutView() {
           <BottomSheetProvider>
             <AppOverlayProvider>
               <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
-                <StatusBar style="dark" />
+                <StatusBar
+                  style={getExpoUIColorScheme(themeName) === "dark" ? "light" : "dark"}
+                />
                 {bootstrapPhase === "error" ? (
                   <PageErrorState
                     title={t("common.launch.errorTitle")}

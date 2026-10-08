@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -9,6 +10,7 @@ import {
 import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
 import { useIsFocused, useRouter } from "expo-router";
+import { create } from "zustand";
 import {
   AppState,
   FlatList,
@@ -134,6 +136,38 @@ export default function CollectionScreen() {
   return useCollectionScreenView();
 }
 
+const useVisibleCollectionCards = create<{ ids: ReadonlySet<string> }>(() => ({
+  ids: new Set<string>(),
+}));
+
+const CollectionGridTile = memo(function CollectionGridTile({
+  accessToken,
+  animationsAllowed,
+  entry,
+  index,
+  onOpenCard,
+}: {
+  accessToken: string | null;
+  animationsAllowed: boolean;
+  entry: CollectionEntry;
+  index: number;
+  onOpenCard: (cardId: string) => void;
+}) {
+  const visible = useVisibleCollectionCards((state) => state.ids.has(entry.id));
+  const onPress = useCallback(() => onOpenCard(entry.cardId), [entry.cardId, onOpenCard]);
+
+  return (
+    <CardTile
+      entry={entry}
+      accessToken={accessToken}
+      animationsEnabled={animationsAllowed && visible}
+      muted={entry.quantity === 0}
+      testID={`collection-card-tile-${index}`}
+      onPress={onPress}
+    />
+  );
+});
+
 function useCollectionScreenView() {
   const router = useRouter();
   const screenFocused = useIsFocused();
@@ -162,9 +196,6 @@ function useCollectionScreenView() {
   const [dustSheetIndex, setDustSheetIndex] = useState(0);
   const [appActive, setAppActive] = useState(
     AppState.currentState === "active",
-  );
-  const [visibleCardIds, setVisibleCardIds] = useState<ReadonlySet<string>>(
-    () => new Set(),
   );
   const [toast, setToast] = useState<{
     message: string;
@@ -211,21 +242,27 @@ function useCollectionScreenView() {
     };
   }, []);
 
+  useEffect(
+    () => () => {
+      useVisibleCollectionCards.setState({ ids: new Set<string>() });
+    },
+    [],
+  );
+
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken<CollectionEntry>[] }) => {
       const nextVisibleCardIds = new Set(
         viewableItems.map(({ item }) => item.id),
       );
-      setVisibleCardIds((currentVisibleCardIds) => {
-        if (
-          currentVisibleCardIds.size === nextVisibleCardIds.size &&
-          [...nextVisibleCardIds].every((id) => currentVisibleCardIds.has(id))
-        ) {
-          return currentVisibleCardIds;
-        }
+      const currentVisibleCardIds = useVisibleCollectionCards.getState().ids;
+      if (
+        currentVisibleCardIds.size === nextVisibleCardIds.size &&
+        [...nextVisibleCardIds].every((id) => currentVisibleCardIds.has(id))
+      ) {
+        return;
+      }
 
-        return nextVisibleCardIds;
-      });
+      useVisibleCollectionCards.setState({ ids: nextVisibleCardIds });
     },
   ).current;
 
@@ -416,25 +453,29 @@ function useCollectionScreenView() {
     [],
   );
 
+  const openCard = useCallback(
+    (cardId: string) =>
+      router.push({
+        pathname: "/collection-card-detail",
+        params: { cardId },
+      }),
+    [router],
+  );
+  const animationsAllowed = screenFocused && appActive;
+
+  // Visibility is read per tile from a store, so a scroll only re-renders the tiles
+  // whose visibility changed instead of every row.
   const renderCollectionItem = useCallback(
     ({ item, index }: { item: CollectionEntry; index: number }) => (
-      <CardTile
-        entry={item}
+      <CollectionGridTile
         accessToken={accessToken}
-        animationsEnabled={
-          screenFocused && appActive && visibleCardIds.has(item.id)
-        }
-        muted={item.quantity === 0}
-        testID={`collection-card-tile-${index}`}
-        onPress={() =>
-          router.push({
-            pathname: "/collection-card-detail",
-            params: { cardId: item.cardId },
-          })
-        }
+        animationsAllowed={animationsAllowed}
+        entry={item}
+        index={index}
+        onOpenCard={openCard}
       />
     ),
-    [accessToken, appActive, router, screenFocused, visibleCardIds],
+    [accessToken, animationsAllowed, openCard],
   );
 
   if (collectionQueryIsLoading) {

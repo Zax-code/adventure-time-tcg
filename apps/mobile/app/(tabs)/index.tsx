@@ -43,6 +43,37 @@ const styles = StyleSheet.create({
   featuredCardFrame: {
     width: 144 } });
 
+// Owns the one-second ticker so only this line re-renders, not the whole Home tab.
+function DailyClaimCountdown({ timeUntilNextClaim }: { timeUntilNextClaim: number }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [liveTime, setLiveTime] = useState(timeUntilNextClaim);
+
+  reactEffect(() => {
+    setLiveTime(timeUntilNextClaim);
+  }, [timeUntilNextClaim]);
+
+  reactEffect(() => {
+    if (liveTime <= 0) return;
+    const id = setInterval(() => {
+      setLiveTime((prev) => {
+        if (prev <= 1000) {
+          queryClient.invalidateQueries({ queryKey: ["daily-claim"] });
+          return 0;
+        }
+        return prev - 1000;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [liveTime, queryClient]);
+
+  return (
+    <Text className="font-nunito text-sm leading-5 text-fgMuted">
+      {t("home.nextClaim", { time: formatTimeRemaining(liveTime) })}
+    </Text>
+  );
+}
+
 function formatTimeRemaining(ms: number) {
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
@@ -163,15 +194,10 @@ function useHomeScreenView() {
     user?.notificationPreferences.giftReceived,
   );
 
-  const [liveTime, setLiveTime] = useState(0);
   const [notificationPromptIgnored, setNotificationPromptIgnored] =
     useState(false);
   const [notificationPromptHidden, setNotificationPromptHidden] =
     useState(false);
-
-  reactEffect(() => {
-    setLiveTime(dailyClaimQueryData?.timeUntilNextClaim ?? 0);
-  }, [dailyClaimQueryData]);
 
   reactEffect(() => {
     let cancelled = false;
@@ -205,20 +231,6 @@ function useHomeScreenView() {
       subscription.remove();
     };
   }, [user?.id]);
-
-  reactEffect(() => {
-    if (liveTime <= 0 || canClaim) return;
-    const id = setInterval(() => {
-      setLiveTime((prev) => {
-        if (prev <= 1000) {
-          queryClient.invalidateQueries({ queryKey: ["daily-claim"] });
-          return 0;
-        }
-        return prev - 1000;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [liveTime, canClaim, queryClient]);
 
   const shouldShowNotificationPrompt =
     Boolean(user?.id) &&
@@ -370,13 +382,16 @@ function useHomeScreenView() {
                 <Text className="font-nunito-extrabold text-2xl leading-8 text-fg">
                   {canClaim ? t("home.rewardReady") : t("home.rewardClaimed")}
                 </Text>
-                <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                  {canClaim
-                    ? t("home.claimCoins", {
-                        amount: dailyClaimQueryData?.dailyReward ?? 50 })
-                    : t("home.nextClaim", {
-                        time: formatTimeRemaining(liveTime) })}
-                </Text>
+                {canClaim ? (
+                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                    {t("home.claimCoins", {
+                      amount: dailyClaimQueryData?.dailyReward ?? 50 })}
+                  </Text>
+                ) : (
+                  <DailyClaimCountdown
+                    timeUntilNextClaim={dailyClaimQueryData?.timeUntilNextClaim ?? 0}
+                  />
+                )}
               </View>
 
               <View
