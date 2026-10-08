@@ -35,6 +35,7 @@ import {
   WordleQuestIcon,
 } from "../../components/icons";
 import { PageLoadingState } from "../../components/loading-state";
+import { useFocusedRefetchInterval } from "../../hooks/use-focused-refetch-interval";
 import { useTranslation } from "../../i18n";
 import { apiClient } from "../../lib/api";
 import { useThemeStore } from "../../stores/theme-store";
@@ -127,6 +128,7 @@ export function RankingsScreen() {
     isLoadingPreview ? "steps/default" : "overall/all-quests",
   );
 
+  const leaderboardRefetchInterval = useFocusedRefetchInterval(60_000);
   const {
     data: queryData,
     error: queryError,
@@ -139,7 +141,7 @@ export function RankingsScreen() {
     queryFn: () => apiClient.leaderboard(boardKey, period as LivePeriod),
     enabled: !isPreview && period !== "history",
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    refetchInterval: leaderboardRefetchInterval,
     refetchIntervalInBackground: false,
     retry: 1,
   });

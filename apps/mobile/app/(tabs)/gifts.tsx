@@ -22,6 +22,7 @@ import {
   XCircleIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { useFocusedRefetchInterval } from "../../src/hooks/use-focused-refetch-interval";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
@@ -56,9 +57,11 @@ function useGiftsScreenView() {
     action: GiftDecision;
   } | null>(null);
 
+  const giftsRefetchInterval = useFocusedRefetchInterval(30_000);
   const { data: giftsQueryData, error: giftsQueryError, isError: giftsQueryIsError, isLoading: giftsQueryIsLoading, refetch: giftsQueryRefetch } = useQuery({
     queryKey: ["gifts"],
     queryFn: () => apiClient.gifts(),
+    refetchInterval: giftsRefetchInterval,
   });
 
   const processGiftMutation = useMutation({

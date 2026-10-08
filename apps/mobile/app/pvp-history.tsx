@@ -9,6 +9,7 @@ import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
 import { getPvpMatchResultView } from "../src/features/pvp/match-result";
+import { useFocusedRefetchInterval } from "../src/hooks/use-focused-refetch-interval";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
@@ -50,12 +51,14 @@ export default function PvpHistoryScreen() {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
+  const historyRefetchInterval = useFocusedRefetchInterval(
+    PVP_HISTORY_REFETCH_INTERVAL_MS,
+  );
   const { data: historyQueryData, error: historyQueryError, isError: historyQueryIsError, isLoading: historyQueryIsLoading, refetch: historyQueryRefetch } = useQuery({
     queryKey: ["pvp-history"],
     queryFn: () => apiClient.pvpHistory(),
     refetchOnMount: "always",
-    refetchInterval: (query) =>
-      query.state.status === "error" ? false : PVP_HISTORY_REFETCH_INTERVAL_MS,
+    refetchInterval: historyRefetchInterval,
   });
 
   const completedMatches = useMemo(

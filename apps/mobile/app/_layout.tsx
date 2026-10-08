@@ -36,6 +36,7 @@ import { useUserTimezoneSync } from "../src/hooks/use-user-timezone-sync";
 import { useWidgetRefreshPushRegistration } from "../src/hooks/use-widget-refresh-push-registration";
 import { useWarmPackVisuals } from "../src/hooks/use-warm-pack-visuals";
 import { useNotificationResponseRouting } from "../src/hooks/use-notification-response-routing";
+import { useGiftBadgeRefresh } from "../src/hooks/use-gift-badge-refresh";
 import { useNativeSplashDismissal } from "../src/hooks/use-native-splash-dismissal";
 import { AppLaunchScreen } from "../src/components/app-launch-screen";
 import { AppOverlayProvider } from "../src/components/app-overlay-portal";
@@ -331,6 +332,7 @@ function useRootLayoutView() {
   useNativeSplashDismissal(localBootReady);
 
   useNotificationResponseRouting(localBootReady && bootstrapPhase === "ready");
+  useGiftBadgeRefresh(localBootReady && bootstrapPhase === "ready");
 
   useEffect(() => {
     void hydrateTheme();

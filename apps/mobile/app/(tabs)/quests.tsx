@@ -31,6 +31,7 @@ import type {
 } from "@adventure-time/api-client";
 
 import { PageErrorState } from "../../src/components/error-state";
+import { useFocusedRefetchInterval } from "../../src/hooks/use-focused-refetch-interval";
 import {
   DailyLoginQuestIcon,
   DailyNumbersQuestIcon,
@@ -168,6 +169,7 @@ type SpeedCalculusGroupShareItem = {
 
 const WORDLE_MAX_ATTEMPTS = 6;
 const WORDLE_WORD_LENGTH = 5;
+const QUESTS_REFETCH_INTERVAL_MS = 60_000;
 let lastShownQuestResetToastAt = 0;
 
 function getQuestTitle(titleKey: string, t: Translate) {
@@ -602,6 +604,8 @@ function useQuestsScreenView() {
     return () => clearTimeout(timer);
   }, [toast, toastAnim]);
 
+  // The quest_reset socket event covers the daily reset; this only refreshes progress.
+  const questsRefetchInterval = useFocusedRefetchInterval(QUESTS_REFETCH_INTERVAL_MS);
   const {
     data: questsQueryData,
     error: questsQueryError,
@@ -610,7 +614,7 @@ function useQuestsScreenView() {
   } = useQuery({
     queryKey: ["quests"],
     queryFn: () => apiClient.quests(),
-    refetchInterval: 30_000,
+    refetchInterval: questsRefetchInterval,
     retry: false,
   });
 
