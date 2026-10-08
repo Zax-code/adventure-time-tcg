@@ -19,6 +19,16 @@ const DEFAULT_OUTPUT_PATH = path.resolve(
   "../local-build/android-production.aab",
 );
 
+// npm -w runs this script from apps/mobile, while the user typed --output relative
+// to where they launched npm (INIT_CWD); EAS then runs from apps/mobile too, so a
+// relative path must be made absolute here.
+function resolveOutputPath(output) {
+  const trimmed = output?.trim();
+  return trimmed
+    ? path.resolve(process.env.INIT_CWD ?? process.cwd(), trimmed)
+    : DEFAULT_OUTPUT_PATH;
+}
+
 function printHelp() {
   process.stdout.write(
     `Usage: npm run release:android -w @adventure-time/mobile -- --note "<text>" [options]\n\nOptions:\n  --note <text>            Short Google Play release note\n  --locale <code>          Play note locale (default: ${DEFAULT_LOCALE})\n  --track <name>           Play track to update (default: ${DEFAULT_TRACK})\n  --profile <name>         EAS build/submit profile (default: ${DEFAULT_PROFILE})\n  --package <name>         Android package name (default: ${DEFAULT_PACKAGE_NAME})\n  --service-account <path> Service account JSON path\n  --message <text>         Optional EAS build message\n  --output <path>          Local .aab output path (default: ${DEFAULT_OUTPUT_PATH})\n  --help                   Show this help\n`,
@@ -56,7 +66,7 @@ function parseCliOptions() {
     locale: values.locale?.trim() || DEFAULT_LOCALE,
     message: values.message?.trim() || "",
     note,
-    outputPath: values.output?.trim() || DEFAULT_OUTPUT_PATH,
+    outputPath: resolveOutputPath(values.output),
     packageName: values.package?.trim() || DEFAULT_PACKAGE_NAME,
     profile: values.profile?.trim() || DEFAULT_PROFILE,
     serviceAccountPath: resolveGooglePlayServiceAccountPath(

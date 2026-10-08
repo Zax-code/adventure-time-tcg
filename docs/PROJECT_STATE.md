@@ -1,6 +1,6 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-09-14
+Last verified: 2026-10-07 (audit remediation entries; other sections as of 2026-09-14)
 Repository: `Zax-code/adventure-time-tcg`
 Branch: `codex/mobile-release-20260902`
 Verified baseline commit: `36d6b48fc886b45f9a68648554aec9b7050ccb6d` (plus the SDK patch reconciliation recorded below)
@@ -250,7 +250,8 @@ At verification time the local development and test databases and production wer
 ## Work currently in progress
 
 - **PLANNED — broader native redesign:** `docs/design/adventure-time-tcg-redesign.pen` and `docs/design/adventure-time-tcg-redesign-assets/` preserve a native-app baseline, three visual directions, a recommended “Tournament Companion” direction, design-system guidance, and handoff notes. No corresponding application-code implementation was found; the handoff explicitly leaves behavior changes subject to product approval.
-- No open pull request remains after reconciling #244, #286, and #291. GitHub issue #256 is PLANNED exploration, not active implementation.
+- **IN PROGRESS — 2026-10-07 audit remediation:** findings and lot plan are versioned in `docs/audit/2026-10-07-audit.md` and `docs/audit/2026-10-07-remediation-plan.md`. Open pull requests: #305 (Phoenix hot paths: settled leaderboard periods with `leaderboard_periods.settled_at`, single-query auth, persisted `pvp_matches.current_player_id`, cached Daily Numbers puzzles; also stops the minute tick from superseding audited corrections), #306 (mobile focus-gated polling, in-memory access token, stable step-sync cache), #307 (web session survives transient refresh errors, lighter fonts/CSS), #308 (Daily Numbers ranked sessions as integrity evidence with an admin Integrity review page; single dust table), and this repository-hygiene pull request. Remaining lots: Phoenix 1.5–1.9 and the PvP row lock (after #305), mobile re-renders (after #306), and the remaining cleanup.
+- GitHub issue #256 is PLANNED exploration, not active implementation.
 
 ## Known issues and technical debt
 
@@ -262,7 +263,7 @@ At verification time the local development and test databases and production wer
 
 ### Suspected risks, not confirmed bugs
 
-- Daily Numbers ranking time trusts a client-maintained elapsed millisecond value. Arithmetic correctness is server-validated, but no timing attestation or upper-bound validation was found.
+- Daily Numbers ranking time trusts a client-maintained elapsed millisecond value. Arithmetic correctness is server-validated. Pull request #308 adds server-timed ranked sessions that reject a client time beyond the server window (+5 s) or after the deadline and flag implausibly short times for admin review; the score deliberately keeps the client time because the mobile timer pauses off screen.
 - Device-health step totals are accepted from the authenticated client. Fitbit data has a server-side provider path, but no equivalent attestation was found for local device-health snapshots.
 - The old open Daily Numbers UI pull request predates several current implementation changes and may require substantial reconciliation; merge conflict/behavior impact is UNKNOWN.
 

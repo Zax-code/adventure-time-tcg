@@ -1,5 +1,7 @@
 # Migration Audit
 
+> **Historical document.** This records the initial PWA-to-Phoenix extraction plan. The cutover is complete; for current state see `docs/PROJECT_STATE.md`, and treat paths and steps below as historical.
+
 Primary reference repository: `/home/zax/adventure-time-tcg`.
 
 Key initial extraction targets:

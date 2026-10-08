@@ -85,7 +85,6 @@ jobs:
             '^\.github/workflows/ci\.yml$' \
             '^\.npmrc$' \
             '^\.nvmrc$' \
-            '^app\.json$' \
             '^package(-lock)?\.json$' \
             '^patches/' \
             '^tsconfig[^/]*\.json$' \

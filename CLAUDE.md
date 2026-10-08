@@ -123,6 +123,9 @@ Root:
 - `npm run greenlight:mobile` - run Greenlight App Store preflight on the Expo app from a clean temporary source copy
 - `npm run build`
 - `npm run typecheck`
+- `npm run doctor` - run React Doctor across web and mobile; the pre-commit hook runs it on staged files, and `npx react-doctor --scope changed --base main` reports only issues new to a branch
+- `npm run dev:stack` - start the Docker Compose stack from `compose.yml` (PostgreSQL on `127.0.0.1:5434`, MinIO on `127.0.0.1:9100`/`9101`, containerized Phoenix on `4200`); `npm run dev:api:container` starts only the Phoenix service and its dependencies, and `docker compose up -d postgres` is enough for `mix test`
+- `npm run setup:mobile:appium` then `npm run test:mobile:appium:speed-calculus:<ios|android>` - the focused Appium multitouch check described in `apps/mobile/test/appium/README.md`
 
 Phoenix:
 - `cd apps/phoenix && mix deps.get`
@@ -135,6 +138,7 @@ Phoenix:
 - `cd apps/phoenix && mix test test/path/to/file_test.exs`
 - `cd apps/phoenix && mix format`
 - `cd apps/phoenix && mix precommit`
+- `cd apps/phoenix && ./scripts/rotate-env-secrets.sh` - local bootstrap only: creates `apps/phoenix/.env` from `.env.example` if needed, regenerates the token secrets, and resets the other keys (Google client IDs, MinIO credentials, mail settings) to template defaults; never run it against production env files
 
 PWA import:
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import audit`
@@ -468,6 +472,22 @@ Worktree rules:
 - before starting work in the secondary worktree, refresh it from `main` with `git fetch origin --prune` and `git merge --ff-only origin/main`
 - when one worktree is busy or dirty with unrelated work, use the other worktree instead of stashing or overwriting changes
 - for actual feature work in either worktree, create a fresh branch from `main` unless the user explicitly asks for direct work on `main`
+
+## Project-state maintenance
+
+Before planning, recommending, or implementing project work:
+
+1. Read `docs/PROJECT_STATE.md`.
+2. Inspect the relevant source code and recent Git history.
+3. Treat code, migrations, and configuration as authoritative when they conflict with the state document.
+4. Do not recommend or rebuild features recorded as complete without verifying their implementation.
+
+After completing work that changes features, architecture, dependencies, storage, APIs, deployment, UI status, or project priorities:
+
+1. Update the affected sections of `docs/PROJECT_STATE.md`.
+2. Update its verification date, branch, and commit reference when practical.
+3. Record important decisions or new blockers.
+4. Keep it factual and concise; do not add temporary debugging notes.
 
 ## Working Style
 

@@ -24,6 +24,20 @@ Use this order when behavior is unclear:
 2. the legacy PWA production data and codebase at `~/adventure-time-tcg-pwa` or `~/Develop/adventure-time-tcg-pwa`
 3. the legacy Fastify implementation in `apps/api`
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues; external PRs are not treated as a triage request surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default Matt Pocock triage label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use a single-context domain-doc layout: root `CONTEXT.md` plus `docs/adr/` when those files exist. See `docs/agents/domain.md`.
+
 ## Repo Shape
 
 Apps:
@@ -109,6 +123,9 @@ Root:
 - `npm run greenlight:mobile` - run Greenlight App Store preflight on the Expo app from a clean temporary source copy
 - `npm run build`
 - `npm run typecheck`
+- `npm run doctor` - run React Doctor across web and mobile; the pre-commit hook runs it on staged files, and `npx react-doctor --scope changed --base main` reports only issues new to a branch
+- `npm run dev:stack` - start the Docker Compose stack from `compose.yml` (PostgreSQL on `127.0.0.1:5434`, MinIO on `127.0.0.1:9100`/`9101`, containerized Phoenix on `4200`); `npm run dev:api:container` starts only the Phoenix service and its dependencies, and `docker compose up -d postgres` is enough for `mix test`
+- `npm run setup:mobile:appium` then `npm run test:mobile:appium:speed-calculus:<ios|android>` - the focused Appium multitouch check described in `apps/mobile/test/appium/README.md`
 
 Phoenix:
 - `cd apps/phoenix && mix deps.get`
@@ -121,6 +138,7 @@ Phoenix:
 - `cd apps/phoenix && mix test test/path/to/file_test.exs`
 - `cd apps/phoenix && mix format`
 - `cd apps/phoenix && mix precommit`
+- `cd apps/phoenix && ./scripts/rotate-env-secrets.sh` - local bootstrap only: creates `apps/phoenix/.env` from `.env.example` if needed, regenerates the token secrets, and resets the other keys (Google client IDs, MinIO credentials, mail settings) to template defaults; never run it against production env files
 
 PWA import:
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import audit`
