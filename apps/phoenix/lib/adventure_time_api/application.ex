@@ -14,6 +14,7 @@ defmodule AdventureTimeApi.Application do
       AdventureTimeApiWeb.Telemetry,
       AdventureTimeApi.Repo,
       AdventureTimeApi.Quests.DailyNumbersPuzzleCache,
+      AdventureTimeApi.Leaderboards.ProjectionCache,
       AdventureTimeApi.Quests.WordleCacheWarmer,
       {Oban, Application.fetch_env!(:adventure_time_api, Oban)},
       {DNSCluster,
