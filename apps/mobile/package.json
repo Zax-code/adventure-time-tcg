@@ -52,7 +52,6 @@
     "expo-apple-authentication": "~57.0.2",
     "expo-auth-session": "~57.0.12",
     "expo-background-task": "~57.0.17",
-    "expo-blur": "~57.0.3",
     "expo-build-properties": "~57.0.17",
     "expo-constants": "~57.0.18",
     "expo-crypto": "~57.0.3",
@@ -94,7 +93,6 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.14",
-    "connect": "^3.7.0",
     "tailwindcss": "^3.4.17",
     "typescript": "~6.0.3"
   }
