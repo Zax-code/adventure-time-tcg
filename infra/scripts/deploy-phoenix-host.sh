@@ -17,6 +17,7 @@ readonly backup_root=/var/backups/adventure-time-tcg/ci-deploy
 readonly state_root=/var/lib/adventure-time-tcg-deploy
 readonly health_url=http://127.0.0.1:4200/ready
 readonly media_health_url=http://127.0.0.1:4200/ready/media
+readonly drift_check=/usr/local/sbin/leaetzak-drift-check
 
 [[ $EUID -eq 0 ]] || { echo 'Deployment must run as root.' >&2; exit 77; }
 [[ $revision =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid commit revision.' >&2; exit 64; }
@@ -32,7 +33,8 @@ readonly media_health_url=http://127.0.0.1:4200/ready/media
 for path in "$quadlet" "$registry_auth" "$container_env"; do
   [[ -f $path ]] || { echo "Required deployment input is absent: $path" >&2; exit 78; }
 done
-for command_name in podman systemctl curl flock sha256sum awk install; do
+[[ -x $drift_check ]] || { echo "Required host drift check is absent: $drift_check" >&2; exit 78; }
+for command_name in podman systemctl curl flock sha256sum awk install logger; do
   command -v "$command_name" >/dev/null || {
     echo "Required command is absent: $command_name" >&2
     exit 78
@@ -50,6 +52,12 @@ for required_service in "$service" "$postgres_service" "$minio_service" caddy.se
 done
 [[ -z $(systemctl --failed --no-legend --no-pager) ]] || {
   echo 'The host has failed units; refusing deployment.' >&2
+  exit 78
+}
+# The deployment approves only the Quadlet it rewrites, so it must start from
+# an approved host: unreviewed drift is reported, never absorbed.
+"$drift_check" check >/dev/null || {
+  echo 'The host has unreviewed drift; refusing deployment.' >&2
   exit 78
 }
 
@@ -144,6 +152,10 @@ done
 curl --fail --silent --show-error --max-time 5 "$health_url" >/dev/null
 curl --fail --silent --show-error --max-time 5 "$media_health_url" >/dev/null
 systemctl is-active --quiet "$service" "$postgres_service" "$minio_service" caddy.service minecraft-prodigium.service
+[[ $(grep -c '^Image=' "$quadlet") -eq 1 && $(sed -n 's/^Image=//p' "$quadlet") == "$image" ]] || {
+  echo 'The installed API Quadlet does not reference the validated image.' >&2
+  exit 70
+}
 
 for watched_service in "$postgres_service" "$minio_service" caddy.service minecraft-prodigium.service; do
   before=$(awk -v unit="$watched_service" '$1 == unit { print $2 }' \
@@ -165,4 +177,11 @@ chmod 0600 "$state_root"/*
 
 activation_started=false
 trap - ERR
+
+approval="adventure-time-tcg $revision $image"
+"$drift_check" approve "$quadlet" "$approval" || {
+  echo "Deployed, but the drift approval failed; after review run: $drift_check approve $quadlet '$approval'" >&2
+  exit 71
+}
+logger -t adventure-time-tcg-deploy -- "deployed $revision $image; drift approved for $quadlet"
 echo "Deployed Adventure Time TCG revision $revision successfully."

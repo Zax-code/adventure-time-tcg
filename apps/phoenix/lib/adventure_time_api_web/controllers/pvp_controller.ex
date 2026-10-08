@@ -368,6 +368,9 @@ defmodule AdventureTimeApiWeb.PvpController do
         {:error, :not_your_turn} ->
           conn |> put_status(400) |> json(%{error: "Not your turn"})
 
+        {:error, :conflict} ->
+          conn |> put_status(409) |> json(%{error: "Match changed, please retry"})
+
         {:error, {:wrong_status, _}} ->
           conn |> put_status(400) |> json(%{error: "Match is not in progress"})
 
@@ -414,6 +417,9 @@ defmodule AdventureTimeApiWeb.PvpController do
 
         {:error, :not_your_turn} ->
           conn |> put_status(400) |> json(%{error: "Not your turn"})
+
+        {:error, :conflict} ->
+          conn |> put_status(409) |> json(%{error: "Match changed, please retry"})
 
         {:error, {:wrong_status, _}} ->
           conn |> put_status(400) |> json(%{error: "Match is not in progress"})

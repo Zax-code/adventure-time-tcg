@@ -423,24 +423,22 @@ defmodule AdventureTimeApi.Pvp do
     with %Match{} = match <- Repo.get(Match, match_id),
          match <- maybe_expire_match_if_due(match),
          :ok <- verify_participant(match, user_id),
-         :ok <- guard_status(match, "in_progress"),
-         {:ok, state} <- reconstruct_state(match.id),
-         :ok <- guard_your_turn(state, user_id) do
-      case BattleEngine.simulate_action(state, user_id, action) do
-        {:error, reason} ->
-          {:error, reason}
+         :ok <- guard_status(match, "in_progress") do
+      with_locked_turn(match.id, user_id, fn match, state ->
+        case BattleEngine.simulate_action(state, user_id, action) do
+          {:error, reason} ->
+            Repo.rollback(reason)
 
-        {:ok, new_state, events} ->
-          now = DateTime.utc_now() |> DateTime.truncate(:second)
+          {:ok, new_state, events} ->
+            now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-          {status, winner_id, turn_started_at} =
-            if new_state["phase"] == "ended" do
-              {"completed", new_state["winnerId"], match.turn_started_at}
-            else
-              {"in_progress", nil, now}
-            end
+            {status, winner_id, turn_started_at} =
+              if new_state["phase"] == "ended" do
+                {"completed", new_state["winnerId"], match.turn_started_at}
+              else
+                {"in_progress", nil, now}
+              end
 
-          Repo.transaction(fn ->
             seq =
               append_match_event!(match.id, "action_performed", new_state, %{
                 "playerId" => user_id,
@@ -462,27 +460,28 @@ defmodule AdventureTimeApi.Pvp do
 
             %{
               match: updated_match,
+              state: new_state,
               battle_state: BattleEngine.build_view(new_state, user_id),
               events: events
             }
-          end)
-          |> case do
-            {:ok, %{match: updated_match, battle_state: battle_state, events: persisted_events}} ->
-              maybe_notify_current_player(updated_match, battle_state, user_id)
+        end
+      end)
+      |> case do
+        {:ok, %{match: updated_match, state: new_state, battle_state: battle_state} = result} ->
+          maybe_notify_current_player(updated_match, battle_state, user_id)
 
-              {:ok,
-               %{
-                 match: serialize_match(updated_match, new_state),
-                 battleState: battle_state,
-                 events: persisted_events
-               }}
+          {:ok,
+           %{
+             match: serialize_match(updated_match, new_state),
+             battleState: battle_state,
+             events: result.events
+           }}
 
-            {:error, %Ecto.Changeset{} = changeset} ->
-              {:error, changeset}
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:error, changeset}
 
-            {:error, reason} ->
-              {:error, reason}
-          end
+        {:error, reason} ->
+          {:error, reason}
       end
     else
       nil -> {:error, :not_found}
@@ -494,19 +493,17 @@ defmodule AdventureTimeApi.Pvp do
     with %Match{} = match <- Repo.get(Match, match_id),
          match <- maybe_expire_match_if_due(match),
          :ok <- verify_participant(match, user_id),
-         :ok <- guard_status(match, "in_progress"),
-         {:ok, state} <- reconstruct_state(match.id),
-         :ok <- guard_your_turn(state, user_id) do
-      {new_state, events} = BattleEngine.simulate_end_turn(state, swap_opt)
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
+         :ok <- guard_status(match, "in_progress") do
+      with_locked_turn(match.id, user_id, fn match, state ->
+        {new_state, events} = BattleEngine.simulate_end_turn(state, swap_opt)
+        now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-      {status, winner_id} =
-        case BattleEngine.check_game_over(new_state) do
-          {:over, wid} -> {"completed", wid}
-          :ongoing -> {"in_progress", nil}
-        end
+        {status, winner_id} =
+          case BattleEngine.check_game_over(new_state) do
+            {:over, wid} -> {"completed", wid}
+            :ongoing -> {"in_progress", nil}
+          end
 
-      Repo.transaction(fn ->
         seq =
           append_match_event!(match.id, "turn_ended", new_state, %{
             "playerId" => user_id,
@@ -528,19 +525,20 @@ defmodule AdventureTimeApi.Pvp do
 
         %{
           match: updated_match,
+          state: new_state,
           battle_state: BattleEngine.build_view(new_state, user_id),
           events: events
         }
       end)
       |> case do
-        {:ok, %{match: updated_match, battle_state: battle_state, events: persisted_events}} ->
+        {:ok, %{match: updated_match, state: new_state, battle_state: battle_state} = result} ->
           maybe_notify_current_player(updated_match, battle_state, user_id)
 
           {:ok,
            %{
              match: serialize_match(updated_match, new_state),
              battleState: battle_state,
-             events: persisted_events
+             events: result.events
            }}
 
         {:error, %Ecto.Changeset{} = changeset} ->
@@ -553,6 +551,30 @@ defmodule AdventureTimeApi.Pvp do
       nil -> {:error, :not_found}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  # Serializes turn writes per match: the row lock makes the turn check, the
+  # simulation and the event append atomic, so two concurrent requests from the same
+  # player cannot both pass the turn guard. A leftover seq conflict maps to :conflict.
+  defp with_locked_turn(match_id, user_id, fun) do
+    Repo.transaction(fn ->
+      match =
+        Repo.one(from(m in Match, where: m.id == ^match_id, lock: "FOR UPDATE")) ||
+          Repo.rollback(:not_found)
+
+      with :ok <- guard_status(match, "in_progress"),
+           {:ok, state} <- reconstruct_state(match.id),
+           :ok <- guard_your_turn(state, user_id) do
+        fun.(match, state)
+      else
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  rescue
+    error in Ecto.ConstraintError ->
+      if error.constraint == "pvp_match_events_match_id_seq_idx",
+        do: {:error, :conflict},
+        else: reraise(error, __STACKTRACE__)
   end
 
   @doc "Expires every past-due PvP turn and pending invite (minute cron)."
