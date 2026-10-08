@@ -10,24 +10,11 @@ defmodule AdventureTimeApi.Catalog do
   alias AdventureTimeApi.Catalog.{Card, CardBackVisual, CardType, ImageAsset, Pack, Rarity}
   alias AdventureTimeApi.Media
 
-  def rarity_module, do: Rarity
-  def image_asset_module, do: ImageAsset
-  def card_module, do: Card
-  def pack_module, do: Pack
-
   def list_rarities do
     Rarity
     |> order_by([rarity], desc: rarity.drop_rate)
     |> Repo.all()
     |> Enum.map(&to_rarity_response/1)
-  end
-
-  def list_active_packs do
-    Pack
-    |> where([pack], pack.is_active == true)
-    |> order_by([pack], asc: pack.cost, asc: pack.inserted_at)
-    |> Repo.all()
-    |> Enum.map(&to_pack_response/1)
   end
 
   def list_admin_packs do
