@@ -46,7 +46,7 @@ Reports are written to `/home/zax/adventure-time-tcg/.migration-reports` by defa
 
 1. audits source PWA tables needed by Phoenix
 2. clears Phoenix placeholder/dev data
-3. copies referenced card/profile media into the Phoenix MinIO bucket
+3. copies referenced card/profile media into the Phoenix object storage bucket
 4. imports non-PvP data into Phoenix with UUID-safe remapping where required
 5. verifies final target counts
 
@@ -55,7 +55,7 @@ Reports are written to `/home/zax/adventure-time-tcg/.migration-reports` by defa
 Before running apply against a target environment:
 
 1. snapshot the Phoenix Postgres database
-2. snapshot or version the Phoenix MinIO bucket if needed
+2. snapshot or version the Phoenix object storage bucket if needed
 3. run `mix pwa_import audit`
 4. inspect the generated JSON report
 

@@ -1,0 +1,18 @@
+# Garage single-node object storage for Adventure Time TCG production.
+# Installed to /etc/adventure-time-tcg/garage.toml. Secrets are not stored here:
+# GARAGE_RPC_SECRET and the default key/bucket come from garage.container.env.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+metadata_auto_snapshot_interval = "6h"
+metadata_fsync = true
+data_fsync = true
+
+replication_factor = 1
+rpc_bind_addr = "127.0.0.1:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+# Phoenix signs every request for us-east-1.
+s3_region = "us-east-1"
+api_bind_addr = "127.0.0.1:3900"

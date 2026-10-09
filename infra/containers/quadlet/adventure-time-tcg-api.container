@@ -1,8 +1,8 @@
 [Unit]
 Description=Adventure Time TCG API
-After=network-online.target adventure-time-tcg-pod.service adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
+After=network-online.target adventure-time-tcg-pod.service adventure-time-tcg-postgres.service adventure-time-tcg-garage.service
 Wants=adventure-time-tcg-pod.service
-Requires=adventure-time-tcg-pod.service adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
+Requires=adventure-time-tcg-pod.service adventure-time-tcg-postgres.service adventure-time-tcg-garage.service
 
 [Container]
 ContainerName=adventure-time-tcg-api

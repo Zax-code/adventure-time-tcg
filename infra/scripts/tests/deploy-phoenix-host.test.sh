@@ -11,7 +11,7 @@ grep -Fq 'org.opencontainers.image.revision' "$deployer"
 grep -Fq 'systemctl stop "$service"' "$deployer"
 grep -Fq 'systemctl start "$service"' "$deployer"
 grep -Fq 'adventure-time-tcg-postgres.service' "$deployer"
-grep -Fq 'adventure-time-tcg-minio.service' "$deployer"
+grep -Fq 'adventure-time-tcg-garage.service' "$deployer"
 grep -Fq 'minecraft-prodigium.service' "$deployer"
 grep -Fq '"$drift_check" check' "$deployer"
 grep -Fq '"$drift_check" approve "$quadlet"' "$deployer"
@@ -34,7 +34,7 @@ if grep -Eq 'leaetzak-drift-check"? baseline|drift_check"? baseline' "$deployer"
   exit 1
 fi
 
-if grep -Eq 'systemctl (restart|stop) (adventure-time-tcg-(postgres|minio)|caddy|minecraft-prodigium)' "$deployer"; then
+if grep -Eq 'systemctl (restart|stop) ("?\$(postgres|object_storage)_service|adventure-time-tcg-(postgres|garage|minio)|caddy|minecraft-prodigium)' "$deployer"; then
   echo 'The restricted deployer must not stop or restart an unrelated service.' >&2
   exit 1
 fi

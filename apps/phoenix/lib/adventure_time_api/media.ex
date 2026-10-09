@@ -463,27 +463,11 @@ defmodule AdventureTimeApi.Media do
       |> Enum.into(%{})
 
     %{
-      base_url: object_storage_base_url(config),
-      bucket: System.get_env("MINIO_BUCKET") || config[:bucket],
-      access_key: System.get_env("MINIO_ACCESS_KEY") || config[:access_key],
-      secret_key: System.get_env("MINIO_SECRET_KEY") || config[:secret_key]
+      base_url: System.get_env("OBJECT_STORAGE_URL") || config[:base_url],
+      bucket: System.get_env("OBJECT_STORAGE_BUCKET") || config[:bucket],
+      access_key: System.get_env("OBJECT_STORAGE_ACCESS_KEY") || config[:access_key],
+      secret_key: System.get_env("OBJECT_STORAGE_SECRET_KEY") || config[:secret_key]
     }
-  end
-
-  defp object_storage_base_url(config) do
-    System.get_env("MINIO_BASE_URL") || config[:base_url] || minio_base_url_from_parts()
-  end
-
-  defp minio_base_url_from_parts do
-    case {System.get_env("MINIO_ENDPOINT"), System.get_env("MINIO_PORT")} do
-      {endpoint, port}
-      when is_binary(endpoint) and endpoint != "" and is_binary(port) and port != "" ->
-        scheme = if System.get_env("MINIO_USE_SSL") in ~w(true 1), do: "https", else: "http"
-        "#{scheme}://#{endpoint}:#{port}"
-
-      _ ->
-        nil
-    end
   end
 
   defp object_url(base_url, bucket, object_key) do
@@ -549,17 +533,10 @@ defmodule AdventureTimeApi.Media do
     )
   end
 
-  defp canonical_uri(%URI{path: path}) do
-    path
-    |> to_string()
-    |> String.split("/", trim: false)
-    |> Enum.map(fn segment -> URI.encode(segment, &URI.char_unreserved?/1) end)
-    |> Enum.join("/")
-    |> case do
-      "" -> "/"
-      encoded -> encoded
-    end
-  end
+  # Request paths are already S3-encoded by `object_url/3`; encoding them again
+  # here would sign a double-encoded path that strict S3 servers reject.
+  defp canonical_uri(%URI{path: path}) when path in [nil, ""], do: "/"
+  defp canonical_uri(%URI{path: path}), do: path
 
   defp canonical_query(%URI{query: nil}), do: ""
 

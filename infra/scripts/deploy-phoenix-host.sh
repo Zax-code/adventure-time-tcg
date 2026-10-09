@@ -7,7 +7,7 @@ readonly image=${2:-}
 readonly skip_migrate=${3:-false}
 readonly service=adventure-time-tcg-api.service
 readonly postgres_service=adventure-time-tcg-postgres.service
-readonly minio_service=adventure-time-tcg-minio.service
+readonly object_storage_service=adventure-time-tcg-garage.service
 readonly postgres_container=adventure-time-tcg-postgres
 readonly database=adventure_time_tcg
 readonly quadlet=/etc/containers/systemd/adventure-time-tcg-api.container
@@ -44,7 +44,7 @@ done
 exec 9>/run/lock/adventure-time-tcg-deploy.lock
 flock -n 9 || { echo 'Another Adventure deployment is running.' >&2; exit 75; }
 
-for required_service in "$service" "$postgres_service" "$minio_service" caddy.service minecraft-prodigium.service; do
+for required_service in "$service" "$postgres_service" "$object_storage_service" caddy.service minecraft-prodigium.service; do
   systemctl is-active --quiet "$required_service" || {
     echo "Required production service is not active: $required_service" >&2
     exit 78
@@ -95,7 +95,7 @@ mv "$backup_file.new" "$backup_file"
 sha256sum "$backup_file" >"$backup_directory/SHA256SUMS"
 cp -a "$quadlet" "$backup_directory/adventure-time-tcg-api.container"
 
-for watched_service in "$service" "$postgres_service" "$minio_service" caddy.service minecraft-prodigium.service; do
+for watched_service in "$service" "$postgres_service" "$object_storage_service" caddy.service minecraft-prodigium.service; do
   printf '%s %s\n' "$watched_service" \
     "$(systemctl show "$watched_service" --property=NRestarts --value)"
 done >"$backup_directory/restart-counters.before"
@@ -151,13 +151,13 @@ for _ in $(seq 1 60); do
 done
 curl --fail --silent --show-error --max-time 5 "$health_url" >/dev/null
 curl --fail --silent --show-error --max-time 5 "$media_health_url" >/dev/null
-systemctl is-active --quiet "$service" "$postgres_service" "$minio_service" caddy.service minecraft-prodigium.service
+systemctl is-active --quiet "$service" "$postgres_service" "$object_storage_service" caddy.service minecraft-prodigium.service
 [[ $(grep -c '^Image=' "$quadlet") -eq 1 && $(sed -n 's/^Image=//p' "$quadlet") == "$image" ]] || {
   echo 'The installed API Quadlet does not reference the validated image.' >&2
   exit 70
 }
 
-for watched_service in "$postgres_service" "$minio_service" caddy.service minecraft-prodigium.service; do
+for watched_service in "$postgres_service" "$object_storage_service" caddy.service minecraft-prodigium.service; do
   before=$(awk -v unit="$watched_service" '$1 == unit { print $2 }' \
     "$backup_directory/restart-counters.before")
   after=$(systemctl show "$watched_service" --property=NRestarts --value)

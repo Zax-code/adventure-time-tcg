@@ -14,7 +14,7 @@ Primary goals:
 
 Production runs on the shared Debian 13 Netcup VPS reached through SSH alias
 `leaetzak`; the former Arch/OVH host is retired rollback evidence. Treat
-systemd, Caddy, PostgreSQL, MinIO, and other host operations as production work
+systemd, Caddy, PostgreSQL, Garage, and other host operations as production work
 and use the infrastructure repository's safety contract before acting.
 
 ## Source Hierarchy
@@ -124,7 +124,7 @@ Root:
 - `npm run build`
 - `npm run typecheck`
 - `npm run doctor` - run React Doctor across web and mobile; the pre-commit hook runs it on staged files, and `npx react-doctor --scope changed --base main` reports only issues new to a branch
-- `npm run dev:stack` - start the Docker Compose stack from `compose.yml` (PostgreSQL on `127.0.0.1:5434`, MinIO on `127.0.0.1:9100`/`9101`, containerized Phoenix on `4200`); `npm run dev:api:container` starts only the Phoenix service and its dependencies, and `docker compose up -d postgres` is enough for `mix test`
+- `npm run dev:stack` - start the Docker Compose stack from `compose.yml` (PostgreSQL on `127.0.0.1:5434`, Garage S3 on `127.0.0.1:3900`, containerized Phoenix on `4200`); `npm run dev:api:container` starts only the Phoenix service and its dependencies, and `docker compose up -d postgres` is enough for `mix test`
 - `npm run setup:mobile:appium` then `npm run test:mobile:appium:speed-calculus:<ios|android>` - the focused Appium multitouch check described in `apps/mobile/test/appium/README.md`
 
 Phoenix:
@@ -138,7 +138,7 @@ Phoenix:
 - `cd apps/phoenix && mix test test/path/to/file_test.exs`
 - `cd apps/phoenix && mix format`
 - `cd apps/phoenix && mix precommit`
-- `cd apps/phoenix && ./scripts/rotate-env-secrets.sh` - local bootstrap only: creates `apps/phoenix/.env` from `.env.example` if needed, regenerates the token secrets, and resets the other keys (Google client IDs, MinIO credentials, mail settings) to template defaults; never run it against production env files
+- `cd apps/phoenix && ./scripts/rotate-env-secrets.sh` - local bootstrap only: creates `apps/phoenix/.env` from `.env.example` if needed, regenerates the token secrets, and resets the other keys (Google client IDs, object storage credentials, mail settings) to template defaults; never run it against production env files
 - `cd apps/phoenix && mix wordle.import_dictionary ...` - replaces the Wordle dictionary in the database; it clears the dictionary cache only in its own VM, so restart the running API (in production `adventure-time-tcg-api.service`) afterwards for players to get the new words
 
 PWA import:
@@ -318,7 +318,7 @@ Key Phoenix vars:
 - `REFRESH_TOKEN_SECRET`
 - `EMAIL_VERIFICATION_SECRET`
 - `PHX_HOST`
-- MinIO settings
+- object storage settings (`OBJECT_STORAGE_URL`, `OBJECT_STORAGE_BUCKET`, `OBJECT_STORAGE_ACCESS_KEY`, `OBJECT_STORAGE_SECRET_KEY`)
 - Google client IDs
 
 Public app host should be:
@@ -326,11 +326,11 @@ Public app host should be:
 
 Production VPS runtime:
 - Native production is the host Podman Quadlet stack named `adventure-time-tcg`.
-- Active services are `adventure-time-tcg-api.service`, `adventure-time-tcg-postgres.service`, `adventure-time-tcg-minio.service`, and `adventure-time-tcg-pod.service`.
+- Active services are `adventure-time-tcg-api.service`, `adventure-time-tcg-postgres.service`, `adventure-time-tcg-garage.service`, and `adventure-time-tcg-pod.service`.
 - Caddy routes `app.leaetzak.love` and `phoenix.leaetzak.love` to `127.0.0.1:4200`.
 - The canonical native database is `adventure_time_tcg` on `127.0.0.1:5434`.
 - The canonical native test database is `adventure_time_tcg_test` on `127.0.0.1:5434`.
-- Native MinIO is bound to `127.0.0.1:9100` with console on `127.0.0.1:9101`; the bucket is `private-images`.
+- Native object storage is single-node Garage (host network) with its S3 API on `127.0.0.1:3900` and RPC on `127.0.0.1:3901`; the bucket is `private-images`, config is `/etc/adventure-time-tcg/garage.toml`, and data lives under `/srv/adventure-time-tcg/garage`. The retired MinIO data under `/srv/adventure-time-tcg/minio` is rollback material only.
 - Native persisted service data lives under `/srv/adventure-time-tcg/`.
 - Do not reintroduce `phoenix` or `dev` into production native DB names.
 - The PWA remains separate in `~/adventure-time-tcg-pwa` and is served from Kubernetes behind `game.leaetzak.love`; do not point mobile/native traffic at PWA services.

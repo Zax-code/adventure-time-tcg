@@ -103,7 +103,7 @@ defmodule AdventureTimeApi.MediaTest do
     assert log =~ "media cleanup failed for uncommitted card upload"
     assert log =~ "delete_failed:500"
     refute log =~ "secret"
-    refute log =~ "minio"
+    refute log =~ "GK000000000000000000000001"
   end
 
   test "cleanup failure keeps the asset for an idempotent retry" do
@@ -127,12 +127,31 @@ defmodule AdventureTimeApi.MediaTest do
     refute :completed in changeset.changes.unique.states
   end
 
-  test "MinIO object deletion treats repeated deletes as successful" do
+  test "object deletion treats repeated deletes as successful" do
     {_bypass, requests} = storage_bypass()
 
     assert :ok = Media.delete_object("card/idempotent.webp")
     assert :ok = Media.delete_object("card/idempotent.webp")
     assert Enum.count(Agent.get(requests, & &1), &(&1.method == "DELETE")) == 2
+  end
+
+  test "requests sign the encoded object path exactly once" do
+    bypass = Bypass.open()
+
+    Application.put_env(:adventure_time_api, Media,
+      base_url: "http://127.0.0.1:#{bypass.port}",
+      bucket: "private-images",
+      access_key: "GK000000000000000000000001",
+      secret_key: "secret"
+    )
+
+    Bypass.expect_once(bypass, "DELETE", "/private-images/catalog/a%20b%2Bc.svg", fn conn ->
+      if valid_signature?(conn, "secret"),
+        do: Plug.Conn.resp(conn, 204, ""),
+        else: Plug.Conn.resp(conn, 403, "")
+    end)
+
+    assert :ok = Media.delete_object("catalog/a b+c.svg")
   end
 
   test "cleanup never deletes an asset still referenced by catalog data" do
@@ -240,7 +259,7 @@ defmodule AdventureTimeApi.MediaTest do
     Application.put_env(:adventure_time_api, Media,
       base_url: "http://127.0.0.1:#{bypass.port}",
       bucket: "private-images",
-      access_key: "minio",
+      access_key: "GK000000000000000000000001",
       secret_key: "secret"
     )
 
@@ -334,6 +353,54 @@ defmodule AdventureTimeApi.MediaTest do
       _extension -> "image/png"
     end
   end
+
+  # Recomputes AWS Signature V4 the way an S3 server does: the canonical URI is
+  # the raw request path as received on the wire.
+  defp valid_signature?(conn, secret_key) do
+    [authorization] = Plug.Conn.get_req_header(conn, "authorization")
+
+    [_, credential, signed_headers, signature] =
+      Regex.run(~r/Credential=([^,]+), SignedHeaders=([^,]+), Signature=(\w+)/, authorization)
+
+    [_access_key, date_stamp, region, service, "aws4_request"] = String.split(credential, "/")
+    [amz_date] = Plug.Conn.get_req_header(conn, "x-amz-date")
+    [payload_hash] = Plug.Conn.get_req_header(conn, "x-amz-content-sha256")
+    header_names = String.split(signed_headers, ";")
+
+    canonical_headers =
+      Enum.map_join(header_names, "", fn name ->
+        "#{name}:#{conn |> Plug.Conn.get_req_header(name) |> Enum.join(",")}\n"
+      end)
+
+    canonical_request =
+      Enum.join(
+        [
+          conn.method,
+          conn.request_path,
+          conn.query_string,
+          canonical_headers,
+          signed_headers,
+          payload_hash
+        ],
+        "\n"
+      )
+
+    scope = Enum.join([date_stamp, region, service, "aws4_request"], "/")
+
+    string_to_sign =
+      Enum.join(["AWS4-HMAC-SHA256", amz_date, scope, sha256_hex(canonical_request)], "\n")
+
+    expected =
+      [date_stamp, region, service, "aws4_request"]
+      |> Enum.reduce("AWS4" <> secret_key, &hmac(&2, &1))
+      |> hmac(string_to_sign)
+      |> Base.encode16(case: :lower)
+
+    expected == signature
+  end
+
+  defp hmac(key, data), do: :crypto.mac(:hmac, :sha256, key, data)
+  defp sha256_hex(data), do: :crypto.hash(:sha256, data) |> Base.encode16(case: :lower)
 
   defp unique(prefix), do: "#{prefix}-#{System.unique_integer([:positive])}"
 end

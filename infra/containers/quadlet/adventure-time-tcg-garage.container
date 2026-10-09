@@ -1,0 +1,26 @@
+[Unit]
+Description=Adventure Time TCG Garage object storage
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=adventure-time-tcg-garage
+Image=docker.io/dxflrs/garage:v2.4.1@sha256:9c96caa2612d3411acc5b0e6701fb238dbfba33e533a6d7d3d811a4b12d0d020
+Pull=never
+# Host networking keeps the S3 API (3900) and RPC (3901) on host loopback,
+# matching the host-networked API, without changing the shared pod's ports.
+Network=host
+Volume=/etc/adventure-time-tcg/garage.toml:/etc/garage.toml:ro
+Volume=/srv/adventure-time-tcg/garage:/var/lib/garage:Z
+# GARAGE_RPC_SECRET plus GARAGE_DEFAULT_{ACCESS_KEY,SECRET_KEY,BUCKET}; the
+# key pair must equal OBJECT_STORAGE_{ACCESS_KEY,SECRET_KEY} in api.container.env.
+EnvironmentFile=/home/zax/adventure-time-tcg-secrets/garage.container.env
+NoNewPrivileges=true
+Exec=/garage server --single-node --default-bucket
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target
