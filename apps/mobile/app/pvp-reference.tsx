@@ -150,7 +150,6 @@ export default function PvpReferenceScreen() {
     <ModalSheetRoute
       onClose={() => router.back()}
       sheetBackgroundColor={tc.bg}
-      handleColor={tc.muted}
       sheetStyle={THEME_VARS[themeName]}
       title={t("pvp.reference.title")}
     >

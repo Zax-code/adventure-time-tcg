@@ -110,7 +110,6 @@ export default function AdminAbilityEditorScreen() {
     <ModalSheetRoute
       onClose={closeEditor}
       sheetBackgroundColor={tc.bg}
-      handleColor={tc.primaryBorder}
       sheetStyle={THEME_VARS[themeName]}
       title={
         isCreateMode

@@ -97,7 +97,6 @@ export default function PvpMechanicsScreen() {
     <ModalSheetRoute
       onClose={() => router.back()}
       sheetBackgroundColor={tc.bg}
-      handleColor={tc.muted}
       sheetStyle={THEME_VARS[themeName]}
       title={t("pvp.mechanics.title")}
     >

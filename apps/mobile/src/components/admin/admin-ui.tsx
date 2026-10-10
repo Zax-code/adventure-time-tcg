@@ -27,6 +27,7 @@ import { getAbilityTypePalette, type ThemeColors } from "./admin-palette";
 import { pickReadableTextColor, withAlpha } from "../theme";
 import { ThemedExpoButton } from "../expo-ui/themed-button";
 import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
+import { getBackdropColor } from "../ui/tokens";
 import { useTranslation } from "../../i18n";
 import type { IoniconName } from "../../lib/ionicons";
 import { useThemeStore } from "../../stores/theme-store";
@@ -790,7 +791,7 @@ export function AdminModal({
       <KeyboardScreenView>
         <View
           className="flex-1 justify-center p-4"
-          style={{ backgroundColor: withAlpha(tc.primaryStrong, "54") }}
+          style={{ backgroundColor: getBackdropColor(themeName) }}
         >
           <Pressable style={absoluteFill} onPress={onClose} />
           <View className="max-h-[90%] overflow-hidden rounded-[30]">

@@ -13,6 +13,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { XIcon } from "../../components/icons";
 import { AppOverlayPortal } from "../../components/app-overlay-portal";
+import {
+  getBackdropColor,
+  getElevation,
+} from "../../components/ui/tokens";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../../theme/themes";
@@ -75,10 +79,7 @@ export function BattleFullScreenSheet({
         StyleSheet.absoluteFill,
         THEME_VARS[themeName] as never,
         {
-          backgroundColor:
-            themeName === "nightosphere"
-              ? "rgba(5,1,10,0.88)"
-              : "rgba(38,22,30,0.68)",
+          backgroundColor: getBackdropColor(themeName),
           paddingBottom: bottomPadding,
           paddingHorizontal: horizontalPadding,
           paddingTop: topPadding,
@@ -89,14 +90,11 @@ export function BattleFullScreenSheet({
       <View className="flex-1 items-center justify-center">
         <View
           accessibilityViewIsModal
-          className="w-full overflow-hidden rounded-[30px] border border-primaryTint bg-bg"
+          className="w-full overflow-hidden rounded-ds-xl border border-primaryTint bg-bg"
           style={{
             height: modalHeight,
             maxWidth: modalMaxWidth,
-            boxShadow:
-              themeName === "nightosphere"
-                ? "0px 20px 40px rgba(0, 0, 0, 0.42)"
-                : "0px 20px 40px rgba(90, 45, 12, 0.18)",
+            boxShadow: getElevation(themeName, "overlay"),
           }}
           testID={testID}
         >

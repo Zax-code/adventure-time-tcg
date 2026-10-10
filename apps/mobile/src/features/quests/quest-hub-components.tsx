@@ -29,6 +29,10 @@ import {
   ShareIcon,
   SparklesIcon,
 } from "../../components/icons";
+import { RADIUS } from "@adventure-time/theme";
+
+import { SheetHeader } from "../../components/ui/sheet-header";
+import { getBackdropColor, useThemeName } from "../../components/ui/tokens";
 import { QuestActionButton } from "./quest-action-button";
 import type { QuestHubPreferenceId, QuestLifecycle } from "./quest-hub-model";
 import type { THEME_COLORS } from "../../theme/themes";
@@ -537,8 +541,8 @@ function SheetSurface({ tc }: { tc: ThemeColors }) {
         StyleSheet.absoluteFill,
         {
           backgroundColor: tc.bg,
-          borderTopLeftRadius: 30,
-          borderTopRightRadius: 30,
+          borderTopLeftRadius: RADIUS.xl,
+          borderTopRightRadius: RADIUS.xl,
         },
       ]}
     />
@@ -548,36 +552,13 @@ function SheetSurface({ tc }: { tc: ThemeColors }) {
 function QuestSheetHeader({
   headingRef,
   subtitle,
-  tc,
   title,
 }: {
   headingRef: RefObject<Text | null>;
   subtitle: string;
-  tc: ThemeColors;
   title: string;
 }) {
-  return (
-    <View className="px-5 pb-4 pt-3">
-      <View
-        className="mb-4 h-1.5 w-11 self-center rounded-full"
-        style={{ backgroundColor: tc.muted }}
-      />
-      <Text
-        ref={headingRef}
-        className="text-center font-nunito-extrabold text-2xl text-fg"
-        accessibilityRole="header"
-        maxFontSizeMultiplier={1.8}
-      >
-        {title}
-      </Text>
-      <Text
-        className="mt-1 text-center font-nunito text-sm leading-5 text-fgMuted"
-        maxFontSizeMultiplier={2}
-      >
-        {subtitle}
-      </Text>
-    </View>
-  );
+  return <SheetHeader headingRef={headingRef} title={title} subtitle={subtitle} />;
 }
 
 function useSheetHeadingFocus(
@@ -619,6 +600,7 @@ export function QuestLaunchSheet({
   const stackOptions = fontScale >= 1.6;
   const useBoundedHeight = fontScale >= 1.6;
   const surface = useMemo(() => <SheetSurface tc={tc} />, [tc]);
+  const themeName = useThemeName();
   const headingRef = useRef<Text>(null);
   useSheetHeadingFocus(index, headingRef);
 
@@ -630,7 +612,7 @@ export function QuestLaunchSheet({
         if (nextIndex === 0) onDismiss();
       }}
       detents={[0, "content"]}
-      scrimColor="rgba(0,0,0,0.42)"
+      scrimColor={getBackdropColor(themeName)}
       surface={surface}
     >
       <View
@@ -640,8 +622,8 @@ export function QuestLaunchSheet({
         style={{
           height: useBoundedHeight ? height * 0.82 : undefined,
           maxHeight: height * 0.82,
-          borderTopLeftRadius: 30,
-          borderTopRightRadius: 30,
+          borderTopLeftRadius: RADIUS.xl,
+          borderTopRightRadius: RADIUS.xl,
           borderCurve: "continuous",
           overflow: "hidden",
         }}
@@ -651,7 +633,6 @@ export function QuestLaunchSheet({
           headingRef={headingRef}
           title={title}
           subtitle={subtitle}
-          tc={tc}
         />
         <ScrollView
           style={{ flex: useBoundedHeight ? 1 : undefined, flexShrink: 1 }}
@@ -774,6 +755,7 @@ export function QuestRecapSheet({
   const useBoundedHeight = fontScale >= 1.6;
   const surface = useMemo(() => <SheetSurface tc={tc} />, [tc]);
   const isBusy = actions.some((action) => action.isLoading);
+  const themeName = useThemeName();
   const headingRef = useRef<Text>(null);
   useSheetHeadingFocus(index, headingRef);
 
@@ -785,7 +767,7 @@ export function QuestRecapSheet({
         if (nextIndex === 0) onDismiss();
       }}
       detents={[0, "content"]}
-      scrimColor="rgba(0,0,0,0.42)"
+      scrimColor={getBackdropColor(themeName)}
       surface={surface}
     >
       <View
@@ -795,8 +777,8 @@ export function QuestRecapSheet({
         style={{
           height: useBoundedHeight ? height * 0.82 : undefined,
           maxHeight: height * 0.82,
-          borderTopLeftRadius: 30,
-          borderTopRightRadius: 30,
+          borderTopLeftRadius: RADIUS.xl,
+          borderTopRightRadius: RADIUS.xl,
           borderCurve: "continuous",
           overflow: "hidden",
         }}
@@ -806,7 +788,6 @@ export function QuestRecapSheet({
           headingRef={headingRef}
           title={title}
           subtitle={subtitle}
-          tc={tc}
         />
         <ScrollView
           style={{ flex: useBoundedHeight ? 1 : undefined, flexShrink: 1 }}
@@ -905,6 +886,7 @@ export function QuestOrderSheet({
   const useBoundedHeight = fontScale >= 1.6;
   const stackRowActions = fontScale >= 1.35;
   const surface = useMemo(() => <SheetSurface tc={tc} />, [tc]);
+  const themeName = useThemeName();
   const headingRef = useRef<Text>(null);
   useSheetHeadingFocus(index, headingRef);
 
@@ -916,7 +898,7 @@ export function QuestOrderSheet({
         if (nextIndex === 0) onDismiss();
       }}
       detents={[0, "content"]}
-      scrimColor="rgba(0,0,0,0.42)"
+      scrimColor={getBackdropColor(themeName)}
       surface={surface}
     >
       <View
@@ -926,8 +908,8 @@ export function QuestOrderSheet({
         style={{
           height: useBoundedHeight ? height * 0.82 : undefined,
           maxHeight: height * 0.82,
-          borderTopLeftRadius: 30,
-          borderTopRightRadius: 30,
+          borderTopLeftRadius: RADIUS.xl,
+          borderTopRightRadius: RADIUS.xl,
           borderCurve: "continuous",
           overflow: "hidden",
         }}
@@ -937,7 +919,6 @@ export function QuestOrderSheet({
           headingRef={headingRef}
           title={title}
           subtitle={subtitle}
-          tc={tc}
         />
         <ScrollView
           style={{ flex: useBoundedHeight ? 1 : undefined, flexShrink: 1 }}

@@ -8,6 +8,7 @@ import {
 } from "react-native";
 
 import { useThemeStore } from "../stores/theme-store";
+import { getBackdropColor, getElevation } from "./ui/tokens";
 import { THEME_COLORS, THEME_VARS } from "../theme/themes";
 
 type ThemedModalProps = {
@@ -31,10 +32,7 @@ export function ThemedModal({
 }: ThemedModalProps) {
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
-  const backdropColor =
-    themeName === "nightosphere"
-      ? "rgba(6, 1, 10, 0.84)"
-      : "rgba(74, 34, 50, 0.44)";
+  const backdropColor = getBackdropColor(themeName);
 
   return (
     <Modal
@@ -71,10 +69,7 @@ export function ThemedModal({
                 borderColor: tc.primaryBorder,
                 backgroundColor: tc.surface,
                 padding: 20,
-                boxShadow:
-                  themeName === "nightosphere"
-                    ? "0px 14px 28px rgba(0, 0, 0, 0.36)"
-                    : "0px 14px 28px rgba(122, 86, 24, 0.16)",
+                boxShadow: getElevation(themeName, "overlay"),
               },
               panelStyle,
             ]}

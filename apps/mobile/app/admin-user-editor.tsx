@@ -338,7 +338,6 @@ function useAdminUserEditorScreenView() {
     <ModalSheetRoute
       onClose={closeEditor}
       sheetBackgroundColor={tc.bg}
-      handleColor={tc.primaryBorder}
       sheetStyle={THEME_VARS[themeName]}
       title={t("admin.userEditor.title")}
       subtitle={t("admin.users.subtitle")}
