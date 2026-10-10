@@ -2,6 +2,7 @@ import { vars } from "nativewind";
 
 import {
   getThemeColorScheme,
+  getThemeEffectCssVariables,
   THEME_COLORS,
   THEME_CSS_VARIABLES,
   THEME_NAMES,
@@ -20,6 +21,9 @@ export const THEME_VARS: Record<
 > = Object.fromEntries(
   THEME_NAMES.map((themeName) => [
     themeName,
-    vars(THEME_CSS_VARIABLES[themeName]),
+    vars({
+      ...THEME_CSS_VARIABLES[themeName],
+      ...getThemeEffectCssVariables(themeName),
+    }),
   ]),
 ) as Record<ThemeName, ReturnType<typeof vars>>;
