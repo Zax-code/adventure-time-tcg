@@ -17,9 +17,9 @@ Status: proposal. No application code has changed.
 | --- | --- |
 | 00 Audit | 12 findings, each with the captures where it shows and the component that fixes it |
 | 01 Foundations | 39 theme colors on a `candy / ice / nightosphere` axis, type scale, radius, spacing, control heights, elevation, icon set |
-| 02 Components | 20 reusable components with tone and size variants |
+| 02 Components | 24 reusable components with tone and size variants, including the game control kit |
 | 03 Patterns & rules | Surface taxonomy for all 23 overlays, screen anatomy, tone semantics, rarity and quest mapping, button hierarchy |
-| 04 Screens | Before / after pairs rebuilt only from the components |
+| 04 Screens | 18 before / after pairs rebuilt only from the components, including the quest games and the battle board |
 | Appendix | The current captures, unchanged |
 
 ## What is inconsistent today
@@ -85,7 +85,13 @@ Status: proposal. No application code has changed.
 Button (primary, secondary, ghost, danger; lg, md, sm), Icon Button, Chip,
 Segmented Control, Icon Tile, Stat Tile, Card, Section Header, Notice (info,
 warning, success, danger), List Row, Input, Progress Bar, App Header, Page
-Title, Stack Header, Sheet Header, Tab Bar, Dialog, State Panel.
+Title, Stack Header, Sheet Header, Tab Bar, Dialog, State Panel, and the game
+control kit: Game Tile, Game Key, Keypad Key, Game HUD (shared by Wordle, Daily
+Numbers, Speed Calculus and Perfect Timing).
+
+Collectible cards are the one thing never wrapped in a Card or a captioned
+tile: in Collection, Packs and Gifts the card art with its rarity outline is
+the grid item itself, as today.
 
 Mapping to code: Button replaces `PrimaryButton` / `SecondaryButton` /
 `GhostButton` / `AdminButton` / `QuestActionButton` and the auth CTA; Notice
@@ -112,6 +118,16 @@ the six screen-local switches. On web the same names land in
 - **Navigation**: the same six tab members in the same order on mobile and web
   (Home, Packs, PvP, Quests, Collection, Rankings); Gifts stays a header action.
 
+### Screens (board 04)
+
+Eighteen pairs. Tab screens: Home, Quests hub, Rankings (empty state matching
+the capture, plus an illustrative populated state), Collection, Gifts, PvP hub.
+Stack screens: Speed Calculus hub, Match history. Overlays: Settings sheet,
+Sort dialog, Quest order sheet. Admin: Cards. Games: Daily Wordle mid-game,
+Daily Numbers play, Daily Numbers history, Perfect Timing idle and running,
+Speed Calculus run panel, PvP battle board (landscape takeover; board and card
+art unchanged, only the chrome is swapped).
+
 ## Adoption order (suggested)
 
 1. Tokens: export radius, spacing, type and backdrop from `packages/theme`;
@@ -126,6 +142,12 @@ the six screen-local switches. On web the same names land in
 
 - Website screens are compared at the code level only; the inventory has no
   web captures yet.
+- The inventory captures the quest games only in their idle or empty state. The
+  mid-game and result states (Wordle guesses and definition modal, Daily
+  Numbers solved board, Perfect Timing running and result, Speed Calculus
+  results, quest recap sheet) have no "before" image; the proposal draws them
+  from the code and marks them as such. Capturing them needs a Maestro flow that
+  plays each game, which is a follow-up to pull request #324.
 - Card art frames, pack-opening animation and the battle board keep their
   current visuals; only their chrome (headers, buttons, chips, dialogs) is
   covered.
