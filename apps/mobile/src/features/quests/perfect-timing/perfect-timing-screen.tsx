@@ -556,9 +556,9 @@ function usePerfectTimingScreenView() {
           {t("quests.perfectTiming.loadError")}
         </Text>
         <QuestActionButton
+          tone="primary"
           label={t("common.tryAgain")}
           onPress={() => void stateQuery.refetch()}
-          backgroundColor={tc.primary}
         />
       </View>
     );

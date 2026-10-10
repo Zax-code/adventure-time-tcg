@@ -72,10 +72,10 @@ export function OfficialPanel({
         <>
           <TimerCard timerRunning timerText={timerText} t={t} />
           <QuestActionButton
+            tone="danger"
+            size="lg"
             label={t("quests.perfectTiming.stop")}
             onPress={onStop}
-            backgroundColor={tc.dangerDark}
-            minHeight={56}
             testID="perfect-timing-stop"
           />
         </>
@@ -87,9 +87,9 @@ export function OfficialPanel({
             {t("quests.perfectTiming.stopError")}
           </Text>
           <QuestActionButton
+            tone="danger"
             label={t("quests.perfectTiming.retrySave")}
             onPress={onRetrySave}
-            backgroundColor={tc.dangerDark}
             testID="perfect-timing-retry-save"
           />
         </View>
@@ -98,11 +98,11 @@ export function OfficialPanel({
       {!timerRunning && state.status === "ready" && !stopError ? (
         <View className="gap-3">
           <QuestActionButton
+            tone="primary"
+            size="lg"
             label={t("quests.perfectTiming.start")}
             onPress={onStart}
             loading={startPending}
-            backgroundColor={tc.primary}
-            minHeight={56}
             testID="perfect-timing-start"
           />
           {startError ? (
@@ -145,20 +145,20 @@ export function OfficialPanel({
         <View className="gap-3">
           {showKeep ? (
             <QuestActionButton
+              tone="secondary"
+              size="lg"
               label={t("quests.perfectTiming.keepResult")}
               onPress={onKeep}
               loading={keepPending}
-              backgroundColor={tc.successDark}
-              minHeight={52}
               testID="perfect-timing-keep"
             />
           ) : null}
           <QuestActionButton
+            tone="primary"
+            size="lg"
             label={t("quests.perfectTiming.continue")}
             onPress={onContinue}
             loading={continuePending}
-            backgroundColor={tc.primary}
-            minHeight={52}
             testID="perfect-timing-continue"
           />
         </View>
@@ -166,6 +166,8 @@ export function OfficialPanel({
 
       {state.finalized ? (
         <QuestActionButton
+          tone="ghost"
+          size="lg"
           label={
             isSharing
               ? t("quests.perfectTiming.sharePreparing")
@@ -174,10 +176,6 @@ export function OfficialPanel({
           onPress={onShare}
           loading={isSharing}
           loadingMode="inline"
-          backgroundColor={tc.surface}
-          foregroundColor={tc.primaryDark}
-          borderColor={tc.primaryBorder}
-          minHeight={50}
           testID="perfect-timing-share"
         />
       ) : null}

@@ -1833,6 +1833,7 @@ function useQuestsScreenView() {
     const claimButton =
       item.kind === "single" && item.quest.completed && !item.quest.claimed ? (
         <QuestActionButton
+          tone="secondary"
           label={t("quests.hub.claimReady", { amount: item.quest.reward })}
           onPress={() => {
             claimQuestFromHub(item.quest);
@@ -1840,10 +1841,6 @@ function useQuestsScreenView() {
           disabled={claimInFlight && !isClaimLoading}
           loading={isClaimLoading}
           loadingMode="inline"
-          backgroundColor={tc.successTint}
-          foregroundColor={tc.successText}
-          borderColor={tc.successBorder}
-          minHeight={46}
           testID={isStep ? "quests-step-claim" : "quests-passive-claim"}
         />
       ) : null;
@@ -1870,6 +1867,7 @@ function useQuestsScreenView() {
         ) : null}
         {lifecycle === "fresh" || lifecycle === "in_progress" ? (
           <QuestActionButton
+            tone="ghost"
             label={
               stepLoading
                 ? t("settings.syncing")
@@ -1887,10 +1885,6 @@ function useQuestsScreenView() {
             disabled={stepLoading || claimInFlight}
             loading={stepLoading}
             loadingMode="inline"
-            backgroundColor={tc.surface}
-            foregroundColor={tc.primaryText}
-            borderColor={tc.primaryBorder}
-            minHeight={44}
             testID="quests-step-sync"
           />
         ) : null}
@@ -2044,6 +2038,7 @@ function useQuestsScreenView() {
                 </View>
               </View>
               <QuestActionButton
+                tone="primary"
                 label={
                   isConnectingFitbit
                     ? t("settings.connectingFitbit")
@@ -2055,8 +2050,6 @@ function useQuestsScreenView() {
                 disabled={isConnectingFitbit}
                 loading={isConnectingFitbit}
                 loadingMode="inline"
-                backgroundColor={tc.successDark}
-                minHeight={46}
                 style={{ marginTop: 12 }}
               />
             </View>

@@ -2,7 +2,7 @@ import Ionicons from "@react-native-vector-icons/ionicons";
 import { useRef } from "react";
 import { AccessibilityInfo, findNodeHandle, Text, View } from "react-native";
 
-import { ThemedExpoButton } from "../../../components/expo-ui/themed-button";
+import { Button } from "../../../components/ui/button";
 import { ThemedModal } from "../../../components/themed-modal";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
@@ -60,28 +60,26 @@ export function ContinueConfirmationModal({
         </View>
 
         <View className="w-full gap-3">
-          <ThemedExpoButton
+          <Button
+            tone="primary"
+            size="lg"
             onPress={onStay}
             disabled={loading}
-            preferFallback
-            fallbackAppearance={{ borderRadius: 16 }}
-            style={{ minHeight: 50, width: "100%" }}
+            style={{ width: "100%" }}
             testID="perfect-timing-continue-confirmation-stay"
-            variant="secondary"
           >
             {t("quests.perfectTiming.continueConfirmStayAction")}
-          </ThemedExpoButton>
-          <ThemedExpoButton
+          </Button>
+          <Button
+            tone="danger"
+            size="lg"
             onPress={onDiscard}
             loading={loading}
-            preferFallback
-            fallbackAppearance={{ borderRadius: 16 }}
-            style={{ minHeight: 50, width: "100%" }}
+            style={{ width: "100%" }}
             testID="perfect-timing-continue-confirmation-discard"
-            variant="danger"
           >
             {t("quests.perfectTiming.continueConfirmAction")}
-          </ThemedExpoButton>
+          </Button>
         </View>
       </View>
     </ThemedModal>

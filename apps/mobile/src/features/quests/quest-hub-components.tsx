@@ -181,13 +181,10 @@ export function QuestHubSummary({
             {title}
           </Text>
           <QuestActionButton
+            tone="ghost"
+            size="sm"
             label={customizeLabel}
             onPress={onCustomize}
-            backgroundColor={tc.surface}
-            foregroundColor={tc.primaryText}
-            borderColor={tc.primaryBorder}
-            minHeight={36}
-            textClassName="font-nunito-bold text-xs"
             testID="quests-customize-order"
           />
         </View>
@@ -251,15 +248,14 @@ export function QuestHubSummary({
               }
             >
               <QuestActionButton
+                tone={claimMode ? "secondary" : "primary"}
+                size="lg"
                 buttonRef={actionRef}
                 label={actionLabel}
                 onPress={onAction}
                 disabled={actionDisabled}
                 loading={actionLoading}
                 loadingMode="inline"
-                backgroundColor={claimMode ? tc.successTint : tc.primaryStrong}
-                foregroundColor={claimMode ? tc.successText : "#FFFFFF"}
-                borderColor={claimMode ? tc.successBorder : undefined}
                 leadingAccessory={
                   claimMode ? (
                     <CoinIcon size={19} />
@@ -267,7 +263,6 @@ export function QuestHubSummary({
                     <SparklesIcon size={19} color="#FFFFFF" />
                   )
                 }
-                minHeight={50}
                 style={{ width: "100%" }}
                 testID="quests-primary-action"
               />
@@ -287,14 +282,12 @@ export function QuestHubSummary({
           )}
           {onShare ? (
             <QuestActionButton
+              tone="ghost"
+              size="lg"
               buttonRef={shareRef}
               label={shareLabel}
               onPress={onShare}
-              backgroundColor={tc.surface}
-              foregroundColor={tc.primaryText}
-              borderColor={tc.primaryBorder}
               leadingIcon={ShareIcon}
-              minHeight={50}
               style={{ width: "100%" }}
               testID="quests-share-results"
             />
@@ -746,12 +739,9 @@ export function QuestLaunchSheet({
 
           {historyAction ? (
             <QuestActionButton
+              tone="ghost"
               label={historyAction.label}
               onPress={historyAction.onPress}
-              backgroundColor={tc.surface}
-              foregroundColor={tc.primaryText}
-              borderColor={tc.primaryBorder}
-              minHeight={48}
               testID={historyAction.testID}
             />
           ) : null}
@@ -863,16 +853,13 @@ export function QuestRecapSheet({
                   </View>
                 </View>
                 <QuestActionButton
+                  tone="ghost"
                   label={action.buttonLabel}
                   onPress={action.onPress}
                   disabled={isBusy && !action.isLoading}
                   loading={action.isLoading}
                   loadingMode="inline"
-                  backgroundColor={tc.surface}
-                  foregroundColor={tc.primaryText}
-                  borderColor={tc.primaryBorder}
                   leadingIcon={ShareIcon}
-                  minHeight={48}
                   style={{ marginTop: 12 }}
                   testID={action.testID}
                 />
@@ -1008,6 +995,8 @@ export function QuestOrderSheet({
                     }
                   >
                     <QuestActionButton
+                      tone="ghost"
+                      size="sm"
                       accessibilityLabel={`${moveUpLabel}: ${option.title}`}
                       label={moveUpLabel}
                       onPress={() => {
@@ -1015,20 +1004,17 @@ export function QuestOrderSheet({
                         onMove(option.id, "up");
                       }}
                       disabled={optionIndex === 0}
-                      backgroundColor={tc.surface}
-                      foregroundColor={tc.primaryText}
-                      borderColor={tc.primaryBorder}
                       leadingAccessory={
                         <View style={{ transform: [{ rotate: "180deg" }] }}>
                           <ChevronDownIcon size={16} color={tc.primaryText} />
                         </View>
                       }
-                      minHeight={40}
-                      textClassName="font-nunito-bold text-xs"
                       style={stackRowActions ? { flex: 1 } : undefined}
                       testID={`quests-order-up-${option.id}`}
                     />
                     <QuestActionButton
+                      tone="ghost"
+                      size="sm"
                       accessibilityLabel={`${moveDownLabel}: ${option.title}`}
                       label={moveDownLabel}
                       onPress={() => {
@@ -1036,14 +1022,9 @@ export function QuestOrderSheet({
                         onMove(option.id, "down");
                       }}
                       disabled={optionIndex === options.length - 1}
-                      backgroundColor={tc.surface}
-                      foregroundColor={tc.primaryText}
-                      borderColor={tc.primaryBorder}
                       leadingAccessory={
                         <ChevronDownIcon size={16} color={tc.primaryText} />
                       }
-                      minHeight={40}
-                      textClassName="font-nunito-bold text-xs"
                       style={stackRowActions ? { flex: 1 } : undefined}
                       testID={`quests-order-down-${option.id}`}
                     />
@@ -1053,15 +1034,12 @@ export function QuestOrderSheet({
             );
           })}
           <QuestActionButton
+            tone="ghost"
             label={resetLabel}
             onPress={() => {
               void Haptics.selectionAsync();
               onReset();
             }}
-            backgroundColor={tc.surface}
-            foregroundColor={tc.primaryText}
-            borderColor={tc.primaryBorder}
-            minHeight={46}
             testID="quests-order-reset"
           />
           <View style={{ height: Math.max(bottom + 20, 32) }} />

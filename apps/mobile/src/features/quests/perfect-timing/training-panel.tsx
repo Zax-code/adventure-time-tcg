@@ -57,10 +57,10 @@ export function TrainingPanel({
             {t("quests.perfectTiming.trainingTargetError")}
           </Text>
           <QuestActionButton
+            tone="danger"
             label={t("common.tryAgain")}
             onPress={onNewTarget}
             loading={isRefreshing}
-            backgroundColor={tc.dangerDark}
             testID="perfect-timing-training-target-retry"
           />
         </View>
@@ -70,10 +70,10 @@ export function TrainingPanel({
         <>
           <TimerCard timerRunning timerText={timerText} t={t} />
           <QuestActionButton
+            tone="danger"
+            size="lg"
             label={t("quests.perfectTiming.stop")}
             onPress={onStop}
-            backgroundColor={tc.dangerDark}
-            minHeight={56}
             testID="perfect-timing-training-stop"
           />
         </>
@@ -81,23 +81,21 @@ export function TrainingPanel({
 
       {!timerRunning && phase === "ready" && !isLoading && !isRefreshing ? (
         <QuestActionButton
+          tone="primary"
+          size="lg"
           label={t("quests.perfectTiming.start")}
           onPress={onStart}
-          backgroundColor={tc.primary}
-          minHeight={56}
           testID="perfect-timing-training-start"
         />
       ) : null}
 
       {phase !== "result" && !isLoading && !hasError ? (
         <QuestActionButton
+          tone="ghost"
+          size="lg"
           label={t("quests.perfectTiming.newTarget")}
           onPress={onNewTarget}
           loading={isRefreshing}
-          backgroundColor={tc.surface}
-          foregroundColor={tc.primaryDark}
-          borderColor={tc.primaryBorder}
-          minHeight={50}
           testID="perfect-timing-training-new-target"
         />
       ) : null}
@@ -116,22 +114,20 @@ export function TrainingPanel({
           <View className="flex-row gap-3">
             <View className="flex-1">
               <QuestActionButton
+                tone="primary"
+                size="lg"
                 label={t("quests.perfectTiming.retry")}
                 onPress={onRetry}
-                backgroundColor={tc.primary}
-                minHeight={50}
                 testID="perfect-timing-training-retry"
               />
             </View>
             <View className="flex-1">
               <QuestActionButton
+                tone="ghost"
+                size="lg"
                 label={t("quests.perfectTiming.newTarget")}
                 onPress={onNewTarget}
                 loading={isRefreshing}
-                backgroundColor={tc.surface}
-                foregroundColor={tc.primaryDark}
-                borderColor={tc.primaryBorder}
-                minHeight={50}
                 testID="perfect-timing-training-new-target"
               />
             </View>

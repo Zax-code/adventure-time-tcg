@@ -79,8 +79,8 @@ describe("Perfect Timing UI behavior", () => {
   it("uses the themed design-system modal to confirm staying or continuing", () => {
     assert.match(screenSource, /<ContinueConfirmationModal/);
     assert.match(continueConfirmationModalSource, /<ThemedModal/);
-    assert.match(continueConfirmationModalSource, /variant="secondary"/);
-    assert.match(continueConfirmationModalSource, /variant="danger"/);
+    assert.match(continueConfirmationModalSource, /tone="primary"/);
+    assert.match(continueConfirmationModalSource, /tone="danger"/);
     assert.match(
       continueConfirmationModalSource,
       /testID="perfect-timing-continue-confirmation-stay"/,

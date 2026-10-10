@@ -1339,6 +1339,7 @@ function SolutionHuntLists({
       {progress.otherSolutions.length > 0 ? (
         <>
           <QuestActionButton
+            tone="ghost"
             accessibilityLabel={
               revealedOtherSolutions
                 ? t("quests.dailyNumbers.solutionHuntHideSolutions", {
@@ -1349,8 +1350,6 @@ function SolutionHuntLists({
                   })
             }
             accessibilityState={{ expanded: revealedOtherSolutions }}
-            backgroundColor={tc.bg}
-            foregroundColor={tc.primaryText}
             label={
               revealedOtherSolutions
                 ? t("quests.dailyNumbers.solutionHuntHideSolutions", {
@@ -1361,7 +1360,6 @@ function SolutionHuntLists({
                   })
             }
             leadingIcon={EyeIcon}
-            minHeight={48}
             onPress={onToggleOtherSolutions}
             style={{ marginTop: 14 }}
             testID="daily-numbers-reveal-other-solutions"
@@ -1437,16 +1435,14 @@ function ResultDetails({
       {!solutionHuntProgress && officialSolutionSteps.length > 0 ? (
         <>
           <QuestActionButton
+            tone="ghost"
             label={
               interaction.revealedSolution
                 ? t("quests.dailyNumbers.hideSolution")
                 : t("quests.dailyNumbers.revealSolution")
             }
             onPress={onToggleSolution}
-            backgroundColor={tc.bg}
-            foregroundColor={tc.primaryText}
             leadingIcon={EyeIcon}
-            minHeight={48}
             style={{ marginTop: 14 }}
             testID="daily-numbers-reveal-solution"
             accessibilityLabel={
@@ -1698,16 +1694,14 @@ function FinishStatePanel({
         </Text>
       ) : claimable && state.questVersion ? (
         <QuestActionButton
+          tone="secondary"
           label={t("quests.dailyNumbers.claimReward", {
             reward: state.reward,
           })}
           onPress={onClaimReward}
           loading={claimPending}
           loadingMode="inline"
-          backgroundColor={tc.primaryStrong}
-          foregroundColor="#FFFFFF"
           leadingAccessory={<CoinIcon size={18} />}
-          minHeight={48}
           accessibilityLabel={t("quests.dailyNumbers.claimReward", {
             reward: state.reward,
           })}
@@ -1721,12 +1715,10 @@ function FinishStatePanel({
       ) : null}
       {archiveMode && canRetryArchive ? (
         <QuestActionButton
+          tone="primary"
           label={t("quests.dailyNumbers.archiveTryAgain")}
           onPress={onStartRetry}
-          backgroundColor={tc.primaryStrong}
-          foregroundColor="#FFFFFF"
           leadingIcon={RecycleIcon}
-          minHeight={48}
           style={{ marginTop: 12 }}
           testID="daily-numbers-archive-retry"
           accessibilityLabel={t("quests.dailyNumbers.archiveTryAgain")}
@@ -1785,11 +1777,9 @@ function FinishStatePanel({
           {!solutionHuntProgress.allSolutionsFound ? (
             <View className="mt-3">
               <QuestActionButton
+                tone="primary"
                 label={t("quests.dailyNumbers.solutionHuntFindAnother")}
                 onPress={onStartSolutionHunt}
-                backgroundColor={tc.primaryStrong}
-                foregroundColor="#FFFFFF"
-                minHeight={48}
                 testID="daily-numbers-solution-hunt-start"
                 accessibilityLabel={t(
                   "quests.dailyNumbers.solutionHuntFindAnother",
@@ -1800,6 +1790,7 @@ function FinishStatePanel({
         </View>
       ) : null}
       <QuestActionButton
+        tone="ghost"
         label={
           isSharing
             ? t("quests.dailyNumbers.sharePreparing")
@@ -1808,11 +1799,7 @@ function FinishStatePanel({
         onPress={onShareResult}
         loading={isSharing}
         loadingMode="inline"
-        backgroundColor={tc.surface}
-        foregroundColor={tc.primaryText}
-        borderColor={tc.primaryBorder}
         leadingIcon={ShareIcon}
-        minHeight={48}
         accessibilityLabel={t("quests.dailyNumbers.shareResult")}
         testID="daily-numbers-share-result"
         style={{ marginTop: 12 }}
@@ -2629,6 +2616,8 @@ function LivePlayControls({
   return (
     <>
       <QuestActionButton
+        tone="ghost"
+        size="lg"
         label={
           archiveMode
             ? t("quests.dailyNumbers.archiveSaveResult")
@@ -2638,11 +2627,7 @@ function LivePlayControls({
         disabled={interactionLocked}
         loading={submitting}
         loadingMode="inline"
-        backgroundColor={interactionLocked ? tc.surfaceMuted : tc.surface}
-        foregroundColor={interactionLocked ? tc.fgMuted : tc.primaryText}
-        borderColor={tc.primaryBorder}
         leadingIcon={CheckIcon}
-        minHeight={50}
         accessibilityLabel={
           archiveMode
             ? t("quests.dailyNumbers.archiveSaveResult")
@@ -2655,16 +2640,12 @@ function LivePlayControls({
       <View className="mt-2 flex-row gap-2">
         <View className="min-w-0 flex-1">
           <QuestActionButton
+            tone="ghost"
             label={t("quests.dailyNumbers.undo")}
             onPress={onUndoStep}
             disabled={interactionLocked}
-            backgroundColor={tc.primaryTint}
-            foregroundColor={tc.primaryText}
-            borderColor={tc.primaryBorder}
             leadingIcon={SkipBackIcon}
             leadingIconSize={16}
-            minHeight={46}
-            textClassName="font-nunito-bold text-xs"
             accessibilityLabel={t("quests.dailyNumbers.undo")}
             testID="daily-numbers-undo"
             style={{ opacity: interactionLocked ? 0.38 : 1 }}
@@ -2672,16 +2653,12 @@ function LivePlayControls({
         </View>
         <View className="min-w-0 flex-1">
           <QuestActionButton
+            tone="ghost"
             label={t("quests.dailyNumbers.reset")}
             onPress={onResetBoard}
             disabled={interactionLocked}
-            backgroundColor={tc.accentTint}
-            foregroundColor={tc.accentStrong}
-            borderColor={tc.accentBorder}
             leadingIcon={RecycleIcon}
             leadingIconSize={16}
-            minHeight={46}
-            textClassName="font-nunito-bold text-xs"
             accessibilityLabel={t("quests.dailyNumbers.reset")}
             testID="daily-numbers-reset"
             style={{ opacity: interactionLocked ? 0.38 : 1 }}
@@ -2698,16 +2675,14 @@ function LivePlayControls({
       {archiveMode && officialSolutionSteps.length > 0 ? (
         <>
           <QuestActionButton
+            tone="ghost"
             label={
               revealedSolution
                 ? t("quests.dailyNumbers.hideSolution")
                 : t("quests.dailyNumbers.revealSolution")
             }
             onPress={handleToggleSolution}
-            backgroundColor={tc.bg}
-            foregroundColor={tc.primaryText}
             leadingIcon={EyeIcon}
-            minHeight={48}
             style={{ marginTop: 12 }}
             testID="daily-numbers-archive-reveal-solution"
             accessibilityLabel={
