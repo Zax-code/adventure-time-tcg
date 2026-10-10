@@ -5,8 +5,9 @@ Turns `docs/design/design-system-proposal.pen` (summary in
 Each lot leaves the app shippable. No gameplay, contract, backend or data
 change is part of this plan.
 
-Status: planned, not started. Prerequisite: pull requests #324 (view
-inventory) and #325 (proposal) merged, or the branch based on #325.
+Status: lot 0 in review (branch `codex/ds-0-tokens`, stacked on #325); lots
+1 to 7 not started. Prerequisite: pull requests #324 (view inventory) and #325
+(proposal) merged, or the branch based on #325.
 
 ## Ground rules
 
@@ -60,6 +61,34 @@ Changes:
 Acceptance: `grep -c "#[0-9A-Fa-f]\{6\}" apps/web/src/theme/theme.css` is
 generated output only; no `pinkLight` et al. in the repo; `npm run typecheck`,
 `npm run build:web`, `cd apps/mobile && npx expo-doctor` pass.
+
+Lot 0 as built:
+
+- `packages/theme/src/index.ts` exports `RADIUS`, `SPACE`, `TYPE`,
+  `FONT_WEIGHT`, `LINE_HEIGHT`, `CONTROL`, `SHADOW` (float and overlay per
+  theme) and `BACKDROP` per theme. `npm run build -w @adventure-time/theme`
+  runs `scripts/generate.ts`, which writes `apps/mobile/global.css`,
+  `apps/web/src/theme/theme.css` and `packages/theme/generated/tailwind-tokens.cjs`;
+  `npm run check -w @adventure-time/theme` fails on stale output and runs in CI.
+- Tailwind keys for the new scales carry a `ds-` prefix (`rounded-ds-lg`,
+  `p-ds-4`, `text-ds-h1`) and control heights use semantic keys
+  (`h-control-lg`, `h-icon-button`, `h-input`, `h-header`, `h-tab-bar`).
+  Overriding Tailwind's `rounded-2xl`, `text-sm` or `p-4` would have changed
+  hundreds of existing screens, which lot 0 must not do.
+- Mobile `global.css` holds only the default (candy) theme in `:root`: React
+  Native has no attribute selectors, so ice and nightosphere keep coming from
+  `THEME_VARS` at runtime, which is built from the same package export and now
+  also carries `--color-backdrop` and `--color-shadow`.
+- The spec draws the overlay shadow for candy only (20% primaryStrong). Ice
+  uses the same rule; nightosphere uses black at 65%, next to its 50% float
+  shadow.
+- `components/theme.ts` card type and rarity palettes stay as raw values with
+  a comment: they are card art, and binding them to UI tokens would let a token
+  change recolor a card frame, which the spec forbids. The unused
+  `SECONDARY_TINT` constant was removed.
+- Weight 900 was in `apps/web/src/styles/*.css` and `balance-page.css`
+  (44 sites, not 36 in `styles.css`); all now ask for 800. The SVG text in web
+  `icons.tsx` still asks for 900 and is left to lot 7.
 
 ### Lot 1: mobile primitives
 
@@ -243,6 +272,8 @@ Acceptance: no hex literal in either `icons.tsx`.
 
 | Metric | Today | Target |
 | --- | --- | --- |
+| Dead mobile color tokens (`pinkLight` et al.) | 0 (lot 0; was 7) | 0 |
+| `font-weight: 900` in web CSS | 0 (lot 0; was 44) | 0 |
 | Distinct corner radii in `apps/mobile/app` | ~20 | 5 |
 | Distinct text sizes in `apps/mobile/app` | 30+ | 8 |
 | Button implementations | 9 | 1 |
@@ -250,7 +281,7 @@ Acceptance: no hex literal in either `icons.tsx`.
 | Stat-tile implementations | 7 | 1 |
 | Header implementations | 4 + 9 ad hoc | 3 |
 | Backdrop colors | 4 | 1 |
-| Hex literals in web `theme.css` | 116 hand-copied | generated |
+| Hex literals in web `theme.css` | 122 generated (lot 0; was 116 hand-copied) | generated |
 | Hex literals in `icons.tsx` (mobile + web) | 97 + 54 | 0 |
 | Tab label size | 9 | 11 |
 
