@@ -2,6 +2,22 @@ import { type ReactNode, useState } from "react";
 import { Redirect } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AlarmClock from "lucide-react-native/icons/alarm-clock";
+import Check from "lucide-react-native/icons/check";
+import ChevronLeft from "lucide-react-native/icons/chevron-left";
+import Clock from "lucide-react-native/icons/clock";
+import Coins from "lucide-react-native/icons/coins";
+import Gift from "lucide-react-native/icons/gift";
+import Grid3x3 from "lucide-react-native/icons/grid-3x3";
+import Play from "lucide-react-native/icons/play";
+import Search from "lucide-react-native/icons/search";
+import Settings from "lucide-react-native/icons/settings";
+import Sparkles from "lucide-react-native/icons/sparkles";
+import Star from "lucide-react-native/icons/star";
+import Timer from "lucide-react-native/icons/timer";
+import Trash from "lucide-react-native/icons/trash";
+import Trophy from "lucide-react-native/icons/trophy";
+import X from "lucide-react-native/icons/x";
 
 import { THEME_NAMES, type ThemeName } from "@adventure-time/theme";
 
@@ -106,7 +122,7 @@ function UiKit() {
             </View>
           ))}
           <View className="flex-row flex-wrap items-center gap-ds-2">
-            <Button icon="play">With icon</Button>
+            <Button icon={Play}>With icon</Button>
             <Button disabled>Disabled</Button>
             <Button loading>Loading</Button>
           </View>
@@ -115,13 +131,13 @@ function UiKit() {
 
         <KitSection title="Icon button" testID="e2e-ui-kit-icon-buttons">
           <View className="flex-row flex-wrap gap-ds-2">
-            <IconButton icon="chevron-back" accessibilityLabel="Back" />
-            <IconButton icon="close" accessibilityLabel="Close" />
-            <IconButton icon="settings-outline" accessibilityLabel="Settings" />
+            <IconButton icon={ChevronLeft} accessibilityLabel="Back" />
+            <IconButton icon={X} accessibilityLabel="Close" />
+            <IconButton icon={Settings} accessibilityLabel="Settings" />
             {TONES.map((tone) => (
-              <IconButton key={tone} icon="star-outline" tone={tone} accessibilityLabel={tone} />
+              <IconButton key={tone} icon={Star} tone={tone} accessibilityLabel={tone} />
             ))}
-            <IconButton icon="trash-outline" accessibilityLabel="Disabled" disabled />
+            <IconButton icon={Trash} accessibilityLabel="Disabled" disabled />
           </View>
         </KitSection>
 
@@ -130,8 +146,8 @@ function UiKit() {
             {CHIP_TONES.map((tone) => (
               <Chip key={tone} tone={tone} label={tone} />
             ))}
-            <Chip tone="secondary" icon="cash-outline" label="Coins 5000" />
-            <Chip tone="success" icon="checkmark" label="Ready" onPress={() => {}} />
+            <Chip tone="secondary" icon={Coins} label="Coins 5000" />
+            <Chip tone="success" icon={Check} label="Ready" onPress={() => {}} />
           </View>
         </KitSection>
 
@@ -150,10 +166,10 @@ function UiKit() {
         <KitSection title="Icon tile" testID="e2e-ui-kit-icon-tiles">
           <View className="flex-row flex-wrap items-center gap-ds-2">
             {TONES.map((tone) => (
-              <IconTile key={tone} tone={tone} icon="sparkles-outline" />
+              <IconTile key={tone} tone={tone} icon={Sparkles} />
             ))}
-            <IconTile size={32} icon="trophy-outline" />
-            <IconTile size={48} icon="gift-outline" tone="secondary" />
+            <IconTile size={32} icon={Trophy} />
+            <IconTile size={48} icon={Gift} tone="secondary" />
           </View>
         </KitSection>
 
@@ -200,9 +216,9 @@ function UiKit() {
         </KitSection>
 
         <KitSection title="List row" testID="e2e-ui-kit-list-rows">
-          <Card className="p-0">
+          <Card flush>
             <ListRow
-              icon="grid-outline"
+              icon={Grid3x3}
               iconTone="success"
               title="Daily Wordle"
               meta="Two languages · 0 / 2 done"
@@ -210,14 +226,14 @@ function UiKit() {
               chevron
               onPress={() => {}}
             />
-            <ListRow icon="calculator-outline" iconTone="info" title="Speed Calculus" meta="Best 42" chevron />
-            <ListRow icon="time-outline" iconTone="accent" title="Perfect Timing" divider={false} />
+            <ListRow icon={Timer} iconTone="info" title="Speed Calculus" meta="Best 42" chevron />
+            <ListRow icon={Clock} iconTone="accent" title="Perfect Timing" divider={false} />
           </Card>
         </KitSection>
 
         <KitSection title="Input" testID="e2e-ui-kit-inputs">
           <Input
-            icon="search"
+            icon={Search}
             value={search}
             onChangeText={setSearch}
             placeholder="Search by name or character"
@@ -252,7 +268,7 @@ function UiKit() {
       <Dialog
         visible={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        icon="alarm-outline"
+        icon={AlarmClock}
         title="Time's up!"
         body="The quest day just ended. Fresh quests are ready."
         cancel={{ label: "Later", onPress: () => setDialogOpen(false) }}

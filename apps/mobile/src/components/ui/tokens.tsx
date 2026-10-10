@@ -1,6 +1,6 @@
-import type { ComponentProps, ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
-import Ionicons from "@react-native-vector-icons/ionicons";
+import type { LucideIcon } from "lucide-react-native";
 
 import { BACKDROP, SHADOW, type ShadowToken } from "@adventure-time/theme";
 
@@ -15,14 +15,15 @@ export type Tone =
   | "info"
   | "danger";
 
-export type IoniconName = ComponentProps<typeof Ionicons>["name"];
+// The spec's icon set is Lucide at a 1.75 stroke. Import icons one by one
+// ("lucide-react-native/icons/coins") so Metro does not bundle the whole set.
+export const ICON_STROKE_WIDTH = 1.75;
 
-// An icon is an Ionicons name, a ready element, or a render function that
+// An icon is a Lucide component, a ready element, or a render function that
 // receives the tone color and size picked by the component.
-export type IconSlot =
-  | IoniconName
-  | ReactElement
-  | ((props: { color: string; size: number }) => ReactNode);
+export type IconRender = (props: { color: string; size: number }) => ReactNode;
+
+export type IconSlot = LucideIcon | ReactElement | IconRender;
 
 export const TONE_CLASS: Record<
   Tone,
@@ -105,13 +106,15 @@ export function SlotIcon({
     return null;
   }
 
-  if (typeof icon === "string") {
-    return <Ionicons name={icon} size={size} color={color} />;
-  }
-
   if (isValidElement(icon)) {
     return icon;
   }
 
-  return <>{icon({ color, size })}</>;
+  // Lucide icons are forwardRef objects; render functions are plain functions.
+  if (typeof icon === "object") {
+    const Icon = icon as LucideIcon;
+    return <Icon size={size} color={color} strokeWidth={ICON_STROKE_WIDTH} />;
+  }
+
+  return <>{(icon as IconRender)({ color, size })}</>;
 }

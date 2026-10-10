@@ -6,6 +6,7 @@ import {
   isSuccessResponse,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Google from "expo-auth-session/providers/google";
 import { SessionUrlProvider } from "expo-auth-session/build/SessionUrlProvider";
@@ -352,7 +353,13 @@ function SocialSignInButton({
     <Button
       tone="ghost"
       size="lg"
-      icon={provider === "apple" ? "logo-apple" : "logo-google"}
+      icon={({ color, size }: { color: string; size: number }) => (
+        <Ionicons
+          name={provider === "apple" ? "logo-apple" : "logo-google"}
+          size={size}
+          color={color}
+        />
+      )}
       accessibilityLabel={title}
       disabled={disabled}
       onPress={onPress}

@@ -19,6 +19,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
+import Check from "lucide-react-native/icons/check";
+import X from "lucide-react-native/icons/x";
+
 import { ApiClientError } from "@adventure-time/api-client";
 
 import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
@@ -1199,7 +1202,7 @@ function usePvpScreenView() {
                         <View className="flex-row gap-2">
                           <Button
                             tone="primary"
-                            icon="checkmark"
+                            icon={Check}
                             disabled={
                               !selectedLoadoutId || acceptMutation.isPending
                             }
@@ -1224,7 +1227,7 @@ function usePvpScreenView() {
                           </Button>
                           <Button
                             tone="ghost"
-                            icon="close"
+                            icon={X}
                             onPress={() =>
                               declineMutation.mutate(invite.id)
                             }
@@ -1433,7 +1436,7 @@ function usePvpScreenView() {
                 </View>
                 <IconButton
                   tone="danger"
-                  icon="close"
+                  icon={X}
                   disabled={cancelInviteMutation.isPending}
                   onPress={() =>
                     cancelInviteMutation.mutate(invite.id)

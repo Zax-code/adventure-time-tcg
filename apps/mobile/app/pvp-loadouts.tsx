@@ -20,6 +20,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ChevronLeft from "lucide-react-native/icons/chevron-left";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
 
@@ -726,7 +727,7 @@ function usePvpLoadoutsScreenView() {
         >
           <View className="flex-row items-center gap-2">
             <IconButton
-              icon="chevron-back"
+              icon={ChevronLeft}
               onPress={() => router.back()}
               accessibilityLabel={t("common.errorStates.backAction")}
             />

@@ -1,6 +1,11 @@
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 
+import CircleAlert from "lucide-react-native/icons/circle-alert";
+import CircleCheck from "lucide-react-native/icons/circle-check";
+import Info from "lucide-react-native/icons/info";
+import TriangleAlert from "lucide-react-native/icons/triangle-alert";
+
 import { IconTile } from "./icon-tile";
 import { type IconSlot, type Tone, TONE_CLASS } from "./tokens";
 
@@ -14,10 +19,10 @@ const NOTICE_TONE: Record<NoticeTone, Tone> = {
 };
 
 const DEFAULT_ICON: Record<NoticeTone, IconSlot> = {
-  info: "information-circle-outline",
-  warning: "alert-circle-outline",
-  success: "checkmark-circle-outline",
-  danger: "warning-outline",
+  info: Info,
+  warning: CircleAlert,
+  success: CircleCheck,
+  danger: TriangleAlert,
 };
 
 export interface NoticeProps {

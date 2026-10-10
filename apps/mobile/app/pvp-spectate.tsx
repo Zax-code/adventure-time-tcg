@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ChevronLeft from "lucide-react-native/icons/chevron-left";
 
 import { apiClient } from "../src/lib/api";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
@@ -56,7 +57,7 @@ export default function PvpSpectateScreen() {
       >
         <View className="flex-row items-center gap-3">
           <IconButton
-            icon="chevron-back"
+            icon={ChevronLeft}
             onPress={() => router.push("/(tabs)/pvp")}
             accessibilityLabel={t("common.errorStates.backAction")}
           />

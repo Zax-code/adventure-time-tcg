@@ -1,5 +1,9 @@
 import { ActivityIndicator, Text, View } from "react-native";
 
+import CircleAlert from "lucide-react-native/icons/circle-alert";
+import Hourglass from "lucide-react-native/icons/hourglass";
+import Inbox from "lucide-react-native/icons/inbox";
+
 import { Button } from "./button";
 import { IconTile } from "./icon-tile";
 import {
@@ -18,9 +22,9 @@ const DEFAULT_TONE: Record<StatePanelVariant, Tone> = {
 };
 
 const DEFAULT_ICON: Record<StatePanelVariant, IconSlot> = {
-  empty: "file-tray-outline",
-  error: "alert-circle-outline",
-  loading: "hourglass-outline",
+  empty: Inbox,
+  error: CircleAlert,
+  loading: Hourglass,
 };
 
 export interface StatePanelProps {

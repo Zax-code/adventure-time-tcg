@@ -72,6 +72,7 @@
     "expo-system-ui": "~57.0.4",
     "expo-task-manager": "~57.0.21",
     "expo-web-browser": "~57.0.3",
+    "lucide-react-native": "1.48.0",
     "nativewind": "^4.2.3",
     "phoenix": "^1.8.5",
     "react": "19.2.3",

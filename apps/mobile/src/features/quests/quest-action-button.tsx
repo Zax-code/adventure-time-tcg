@@ -53,9 +53,13 @@ export function QuestActionButton({
 }) {
   const showInlineLoading = loading && loadingMode === "inline";
   const icon: IconSlot | undefined = showInlineLoading
-    ? ({ color }) => <ActivityIndicator color={color} size="small" />
+    ? ({ color }: { color: string }) => (
+        <ActivityIndicator color={color} size="small" />
+      )
     : LeadingIcon
-      ? ({ color }) => <LeadingIcon size={leadingIconSize} color={color} />
+      ? ({ color }: { color: string }) => (
+          <LeadingIcon size={leadingIconSize} color={color} />
+        )
       : leadingAccessory
         ? () => leadingAccessory
         : undefined;

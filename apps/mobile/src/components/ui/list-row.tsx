@@ -1,9 +1,14 @@
 import type { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
-import Ionicons from "@react-native-vector-icons/ionicons";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
 
 import { IconTile } from "./icon-tile";
-import { type IconSlot, type Tone, useThemePalette } from "./tokens";
+import {
+  ICON_STROKE_WIDTH,
+  type IconSlot,
+  type Tone,
+  useThemePalette,
+} from "./tokens";
 
 export interface ListRowProps {
   title: string;
@@ -51,7 +56,7 @@ export function ListRow({
       </View>
       {trailing}
       {chevron ? (
-        <Ionicons name="chevron-forward" size={18} color={tc.muted} />
+        <ChevronRight size={18} color={tc.muted} strokeWidth={ICON_STROKE_WIDTH} />
       ) : null}
     </>
   );
