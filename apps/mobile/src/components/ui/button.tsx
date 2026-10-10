@@ -16,7 +16,7 @@ import { CONTROL, ON_PRIMARY, RADIUS, SPACE } from "@adventure-time/theme";
 import {
   getElevation,
   type IconSlot,
-  renderIcon,
+  SlotIcon,
   type ThemePalette,
   useThemeName,
   useThemePalette,
@@ -111,7 +111,7 @@ export function Button({
     <ActivityIndicator color={foreground} />
   ) : (
     <View className="flex-row items-center justify-center gap-ds-2">
-      {renderIcon(icon, foreground, 18)}
+      <SlotIcon icon={icon} color={foreground} size={18} />
       {label != null ? (
         <Text
           className={`shrink text-center font-nunito-bold ${

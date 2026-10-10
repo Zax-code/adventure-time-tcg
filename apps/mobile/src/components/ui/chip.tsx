@@ -5,7 +5,7 @@ import { ON_PRIMARY } from "@adventure-time/theme";
 
 import {
   type IconSlot,
-  renderIcon,
+  SlotIcon,
   type Tone,
   TONE_CLASS,
   type ThemePalette,
@@ -65,7 +65,7 @@ export function Chip({
   } ${className ?? ""}`;
   const content = (
     <>
-      {renderIcon(icon, getChipColor(tc, tone), 14)}
+      <SlotIcon icon={icon} color={getChipColor(tc, tone)} size={14} />
       <Text
         className={`font-nunito-bold text-ds-caption ${classes.text}`}
         numberOfLines={1}

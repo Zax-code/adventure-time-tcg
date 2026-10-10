@@ -2,7 +2,7 @@ import { View } from "react-native";
 
 import {
   type IconSlot,
-  renderIcon,
+  SlotIcon,
   type Tone,
   TONE_CLASS,
   toneTextColor,
@@ -44,7 +44,7 @@ export function IconTile({
         onTint ? "bg-surface" : TONE_CLASS[tone].tint
       }`}
     >
-      {renderIcon(icon, toneTextColor(tc, tone), ICON_SIZE[size])}
+      <SlotIcon icon={icon} color={toneTextColor(tc, tone)} size={ICON_SIZE[size]} />
     </View>
   );
 }

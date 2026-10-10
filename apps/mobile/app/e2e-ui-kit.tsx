@@ -5,27 +5,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { THEME_NAMES, type ThemeName } from "@adventure-time/theme";
 
-import {
-  Button,
-  type ButtonSize,
-  type ButtonTone,
-  Card,
-  Chip,
-  type ChipTone,
-  Dialog,
-  IconButton,
-  IconTile,
-  Input,
-  ListRow,
-  Notice,
-  type NoticeTone,
-  ProgressBar,
-  SectionHeader,
-  SegmentedControl,
-  StatePanel,
-  StatTile,
-  type Tone,
-} from "../src/components/ui";
+import { Button, type ButtonSize, type ButtonTone } from "../src/components/ui/button";
+import { Card } from "../src/components/ui/card";
+import { Chip, type ChipTone } from "../src/components/ui/chip";
+import { Dialog } from "../src/components/ui/dialog";
+import { IconButton } from "../src/components/ui/icon-button";
+import { IconTile } from "../src/components/ui/icon-tile";
+import { Input } from "../src/components/ui/input";
+import { ListRow } from "../src/components/ui/list-row";
+import { Notice, type NoticeTone } from "../src/components/ui/notice";
+import { ProgressBar } from "../src/components/ui/progress-bar";
+import { SectionHeader } from "../src/components/ui/section-header";
+import { SegmentedControl } from "../src/components/ui/segmented-control";
+import { StatePanel } from "../src/components/ui/state-panel";
+import { StatTile } from "../src/components/ui/stat-tile";
+import type { Tone } from "../src/components/ui/tokens";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_VARS } from "../src/theme/themes";
 
@@ -39,6 +33,8 @@ const BUTTON_TONES: ButtonTone[] = ["primary", "secondary", "ghost", "danger"];
 const BUTTON_SIZES: ButtonSize[] = ["lg", "md", "sm"];
 const CHIP_TONES: ChipTone[] = ["neutral", ...TONES, "selected"];
 const NOTICE_TONES: NoticeTone[] = ["info", "warning", "success", "danger"];
+const WORDLE_REWARD = <Chip tone="secondary" label="+50" />;
+const SCROLL_CONTENT_STYLE = { paddingHorizontal: 16, paddingVertical: 16, gap: 24 };
 
 export default function E2EUiKitScreen() {
   if (!IS_KIT_ENABLED) {
@@ -76,16 +72,15 @@ function UiKit() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <View testID="e2e-ui-kit" className="flex-1 bg-bg" style={THEME_VARS[themeName]}>
-      <ScrollView
-        testID="e2e-ui-kit-scroll"
-        contentContainerStyle={{
-          paddingTop: insets.top + 16,
-          paddingBottom: insets.bottom + 48,
-          paddingHorizontal: 16,
-          gap: 24,
-        }}
-      >
+    <View
+      testID="e2e-ui-kit"
+      className="flex-1 bg-bg"
+      style={[
+        THEME_VARS[themeName],
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
+    >
+      <ScrollView testID="e2e-ui-kit-scroll" contentContainerStyle={SCROLL_CONTENT_STYLE}>
         <Text className="font-nunito-extrabold text-ds-h1 text-fg">UI kit</Text>
 
         <KitSection title="Theme" testID="e2e-ui-kit-theme">
@@ -211,7 +206,7 @@ function UiKit() {
               iconTone="success"
               title="Daily Wordle"
               meta="Two languages · 0 / 2 done"
-              trailing={<Chip tone="secondary" label="+50" />}
+              trailing={WORDLE_REWARD}
               chevron
               onPress={() => {}}
             />

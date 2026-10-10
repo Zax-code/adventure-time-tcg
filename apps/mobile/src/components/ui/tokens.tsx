@@ -92,11 +92,15 @@ export function getElevation(themeName: ThemeName, level: "float" | "overlay") {
   return toBoxShadow(SHADOW[themeName][level]);
 }
 
-export function renderIcon(
-  icon: IconSlot | undefined,
-  color: string,
-  size: number,
-): ReactNode {
+export function SlotIcon({
+  icon,
+  color,
+  size,
+}: {
+  icon: IconSlot | undefined;
+  color: string;
+  size: number;
+}) {
   if (icon == null) {
     return null;
   }
@@ -109,5 +113,5 @@ export function renderIcon(
     return icon;
   }
 
-  return icon({ color, size });
+  return <>{icon({ color, size })}</>;
 }

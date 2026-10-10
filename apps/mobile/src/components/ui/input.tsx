@@ -4,7 +4,7 @@ import { View } from "react-native";
 import { CONTROL } from "@adventure-time/theme";
 
 import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
-import { type IconSlot, renderIcon, useThemePalette } from "./tokens";
+import { type IconSlot, SlotIcon, useThemePalette } from "./tokens";
 
 type TextInputProps = Omit<
   ComponentProps<typeof ThemedExpoTextInput>,
@@ -44,7 +44,7 @@ export function Input({
       } ${className ?? ""}`}
       style={{ minHeight: CONTROL.input }}
     >
-      {renderIcon(icon, tc.muted, 18)}
+      <SlotIcon icon={icon} color={tc.muted} size={18} />
       <ThemedExpoTextInput
         {...props}
         multiline={multiline}

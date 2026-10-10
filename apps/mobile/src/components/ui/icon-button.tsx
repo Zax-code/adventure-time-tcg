@@ -3,7 +3,7 @@ import { Pressable } from "react-native";
 
 import {
   type IconSlot,
-  renderIcon,
+  SlotIcon,
   type Tone,
   TONE_CLASS,
   toneTextColor,
@@ -46,7 +46,7 @@ export function IconButton({
         TONE_CLASS[tone].border
       } ${disabled ? "opacity-[0.45]" : ""} ${className ?? ""}`}
     >
-      {renderIcon(icon, toneTextColor(tc, tone), 20)}
+      <SlotIcon icon={icon} color={toneTextColor(tc, tone)} size={20} />
     </Pressable>
   );
 }
