@@ -2,11 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import ChevronLeft from "lucide-react-native/icons/chevron-left";
 
 import { apiClient } from "../src/lib/api";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
-import { IconButton } from "../src/components/ui/icon-button";
+import { StackHeader } from "../src/components/ui/stack-header";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
 import { useFocusedRefetchInterval } from "../src/hooks/use-focused-refetch-interval";
@@ -51,25 +50,15 @@ export default function PvpSpectateScreen() {
 
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingBottom: 32 }}>
-      <View
-        className="border-b border-primaryTint bg-white/90 px-4 pb-4"
-        style={{ paddingTop: insets.top + 8 }}
-      >
-        <View className="flex-row items-center gap-3">
-          <IconButton
-            icon={ChevronLeft}
-            onPress={() => router.push("/(tabs)/pvp")}
-            accessibilityLabel={t("common.errorStates.backAction")}
-          />
-          <View>
-            <Text className="font-nunito-extrabold text-2xl text-infoDark">
-              {t("pvp.spectateTitle")}
-            </Text>
-            <Text className="font-nunito text-sm text-fgMuted">
-              {t("pvp.spectateSubtitle")}
-            </Text>
-          </View>
-        </View>
+      <View style={{ paddingTop: insets.top }}>
+        <StackHeader
+          title={t("pvp.spectateTitle")}
+          onBack={() => router.push("/(tabs)/pvp")}
+          backLabel={t("common.errorStates.backAction")}
+        />
+        <Text className="px-ds-4 text-center font-nunito text-ds-sm text-fgMuted">
+          {t("pvp.spectateSubtitle")}
+        </Text>
       </View>
 
       <View className="px-4 pt-5">

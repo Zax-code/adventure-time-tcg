@@ -198,11 +198,7 @@ export default function DailyNumbersHistoryScreen() {
   return (
     <View className="flex-1 bg-bg">
       <View
-        className="bg-bg pb-2"
-        style={{
-          paddingTop: insets.top + 12,
-          paddingHorizontal: 14,
-        }}
+        style={{ paddingTop: insets.top }}
       >
         <QuestScreenHeader
           title={t("quests.dailyNumbers.title")}

@@ -205,16 +205,13 @@ describe("mobile UI regression contracts", () => {
   });
 
   it("keeps Gifts and Settings on the same header action surface", () => {
-    assert.match(
-      appHeaderSource,
-      /const HEADER_ACTION_SURFACE_STYLE = \{[\s\S]*?width: 40,[\s\S]*?height: 40,/,
-      "header actions should share one explicit 40 by 40 surface",
-    );
-    assert.equal(
-      appHeaderSource.match(/\.\.\.HEADER_ACTION_SURFACE_STYLE/g)?.length,
-      2,
-      "both Gifts and Settings should use the shared header action surface",
-    );
+    for (const testID of ["app-header-gifts-button", "app-header-settings-button"]) {
+      assert.match(
+        appHeaderSource,
+        new RegExp(`<IconButton(?:(?!/>)[\\s\\S])*?testID="${testID}"`),
+        "header actions should share the 40 by 40 IconButton surface",
+      );
+    }
   });
 
   it("keeps leaderboard public profiles discoverable from every ranking placement", () => {

@@ -20,7 +20,6 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import ChevronLeft from "lucide-react-native/icons/chevron-left";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
 
@@ -30,7 +29,7 @@ import { getCardImageCacheKey, getCardImageUrl } from "../src/lib/card-images";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
 import { KeyboardScreenView } from "../src/components/keyboard-screen-view";
 import { Button } from "../src/components/ui/button";
-import { IconButton } from "../src/components/ui/icon-button";
+import { StackHeader } from "../src/components/ui/stack-header";
 import { Chip } from "../src/components/ui/chip";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { useTranslation } from "../src/i18n";
@@ -40,7 +39,6 @@ import { CARD_TYPE_COLORS, RARITY_COLORS } from "../src/components/theme";
 import {
   CardsIcon,
   CheckIcon,
-  SwordsIcon,
   XIcon,
 } from "../src/components/icons";
 import { PageErrorState } from "../src/components/error-state";
@@ -721,23 +719,12 @@ function usePvpLoadoutsScreenView() {
           </View>
         ) : null}
 
-        <View
-          className="border-b border-primaryTint bg-white/90 px-4 pb-4"
-          style={{ paddingTop: insets.top + 8 }}
-        >
-          <View className="flex-row items-center gap-2">
-            <IconButton
-              icon={ChevronLeft}
-              onPress={() => router.back()}
-              accessibilityLabel={t("common.errorStates.backAction")}
-            />
-            <View className="flex-1 flex-row items-center gap-2">
-              <SwordsIcon size={22} color={tc.primaryText} />
-              <Text className="font-nunito-bold text-xl text-primaryText">
-                {editingLoadout ? t("pvp.editLoadout") : t("pvp.createLoadout")}
-              </Text>
-            </View>
-          </View>
+        <View style={{ paddingTop: insets.top }}>
+          <StackHeader
+            title={editingLoadout ? t("pvp.editLoadout") : t("pvp.createLoadout")}
+            onBack={() => router.back()}
+            backLabel={t("common.errorStates.backAction")}
+          />
         </View>
 
         <ScrollView

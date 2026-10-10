@@ -644,7 +644,7 @@ function useSpeedCalculusTrainingScreenView() {
         </View>
       ) : null}
 
-      <View className="bg-bg px-4 pb-2" style={{ paddingTop: insets.top + 12 }}>
+      <View style={{ paddingTop: insets.top }}>
         <QuestScreenHeader
           title={t("quests.speedCalculusTrainingTitle")}
           backLabel={t("quests.speedCalculusBackToMain")}

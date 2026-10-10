@@ -1139,7 +1139,7 @@ function useWordleScreenView() {
 
   return (
     <View className="flex-1 bg-bg" style={THEME_VARS[themeName]}>
-      <View className="bg-bg px-4 pb-2" style={{ paddingTop: insets.top + 12 }}>
+      <View style={{ paddingTop: insets.top }}>
         <QuestScreenHeader
           title={t("quests.wordle.title")}
           backLabel={t("quests.wordle.backToQuests")}
