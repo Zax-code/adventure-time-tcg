@@ -37,7 +37,7 @@
 .balance-weight-grid > label > span {
   color: var(--fg);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }
@@ -112,7 +112,7 @@
 .balance-history-select > span {
   color: var(--primaryText);
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.055em;
   text-transform: uppercase;
 }
@@ -141,7 +141,7 @@
   background: transparent;
   color: var(--dangerText);
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .balance-history-select:hover,
@@ -213,13 +213,13 @@
   background: color-mix(in srgb, var(--primaryTint) 62%, var(--surface));
   color: var(--primaryText);
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.045em;
   text-transform: uppercase;
 }
 
 .balance-table tbody th {
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .balance-table tbody tr:last-child :where(th, td) {
@@ -280,7 +280,7 @@
   border: 1px solid;
   border-radius: 999px;
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -321,7 +321,7 @@
   margin: 0;
   color: var(--fg);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .balance-recommendations {
@@ -355,7 +355,7 @@
   content: counter(balance-check);
   counter-increment: balance-check;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .balance-run-facts {

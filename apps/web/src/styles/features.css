@@ -214,7 +214,7 @@
 .support-strip p { max-width: 680px; color: var(--fgMuted); }
 .checked-time { color: var(--fgMuted); font-size: 11px; font-weight: 700; }
 .lost-page { display: grid; min-height: 650px; place-items: center; align-content: center; gap: 15px; text-align: center; }
-.lost-number { display: flex; align-items: center; color: var(--primaryText); font-size: clamp(7rem, 25vw, 18rem); font-weight: 900; letter-spacing: -0.12em; line-height: 0.7; }
+.lost-number { display: flex; align-items: center; color: var(--primaryText); font-size: clamp(7rem, 25vw, 18rem); font-weight: 800; letter-spacing: -0.12em; line-height: 0.7; }
 .lost-number img { width: 0.48em; margin: 0 0.08em; border-radius: 28%; }
 .lost-page h1 { max-width: 760px; font-size: clamp(2.5rem, 5vw, 5rem); }
 .lost-page p { max-width: 600px; color: var(--fgMuted); }
@@ -226,7 +226,7 @@
 .card-tile:hover { z-index: 2; box-shadow: var(--shadow-float); transform: translateY(-5px); }
 .card-art { position: relative; }
 .card-tile .game-card-art { border-radius: 21px 21px 0 0; }
-.card-art-placeholder { display: grid; aspect-ratio: 0.7; place-items: center; background: linear-gradient(145deg, var(--primaryTint), var(--accentTint)); color: var(--primaryText); font-size: 55px; font-weight: 900; }
+.card-art-placeholder { display: grid; aspect-ratio: 0.7; place-items: center; background: linear-gradient(145deg, var(--primaryTint), var(--accentTint)); color: var(--primaryText); font-size: 55px; font-weight: 800; }
 .card-copy { display: grid; gap: 4px; padding: 12px 13px 14px; }
 .card-copy > span { overflow: hidden; color: var(--fgMuted); font-size: 9px; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .card-copy b { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
@@ -234,7 +234,7 @@
 .card-stats span { display: inline-flex; align-items: center; gap: 2px; }
 .card-stats svg { width: 11px; height: 11px; }
 .rarity-badge,
-.quantity-badge { position: absolute; z-index: 4; top: 10px; padding: 5px 8px; border: 1px solid color-mix(in srgb, white 50%, transparent); border-radius: 999px; box-shadow: 0 3px 9px rgb(0 0 0 / 17%); font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.quantity-badge { position: absolute; z-index: 4; top: 10px; padding: 5px 8px; border: 1px solid color-mix(in srgb, white 50%, transparent); border-radius: 999px; box-shadow: 0 3px 9px rgb(0 0 0 / 17%); font-size: 8px; font-weight: 800; text-transform: uppercase; }
 .rarity-badge { left: 10px; background: color-mix(in srgb, var(--accent) 82%, var(--surface)); color: white; }
 .quantity-badge { right: 10px; background: var(--surface); color: var(--primaryText); }
 .catalog-toolbar { display: flex; align-items: center; gap: 10px; padding: 10px; }
@@ -259,7 +259,7 @@
 .combat-stat-grid .stat-card strong { font-size: 25px; }
 .ability-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .ability-grid article { display: grid; gap: 8px; padding: 20px; border: 1px solid var(--primaryBorder); border-radius: 22px; background: var(--surfaceMuted); }
-.ability-grid article > span { color: var(--primaryText); font-size: 9px; font-weight: 900; text-transform: uppercase; }
+.ability-grid article > span { color: var(--primaryText); font-size: 9px; font-weight: 800; text-transform: uppercase; }
 .ability-grid h3 { font-size: 19px; }
 .ability-grid p { color: var(--fgMuted); font-size: 12px; }
 .ability-grid small { color: var(--accentText); font-weight: 800; }
@@ -312,7 +312,7 @@
 .pack-result-summary svg { width: 34px; height: 34px; }
 .pack-result-summary div { display: grid; }
 .revealed-card { display: grid; gap: 6px; }
-.revealed-card > span { justify-self: center; color: var(--primaryText); font-size: 10px; font-weight: 900; text-transform: uppercase; }
+.revealed-card > span { justify-self: center; color: var(--primaryText); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .dialog .card-grid { grid-template-columns: repeat(3, 1fr); }
 
 .gift-list,
@@ -326,7 +326,7 @@
 .gift-copy p,
 .gift-copy small { color: var(--fgMuted); font-size: 11px; }
 .gift-copy blockquote { margin: 7px 0; padding: 9px 13px; border-left: 3px solid var(--primary); background: var(--primaryBg); color: var(--fgMuted); font-size: 12px; }
-.status-chip { justify-self: start; padding: 4px 8px; border-radius: 999px; background: var(--infoTint); color: var(--infoText); font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.status-chip { justify-self: start; padding: 4px 8px; border-radius: 999px; background: var(--infoTint); color: var(--infoText); font-size: 8px; font-weight: 800; text-transform: uppercase; }
 .status-chip.status-accepted { background: var(--successTint); color: var(--successText); }
 .status-chip.status-rejected { background: var(--dangerTint); color: var(--dangerText); }
 .gift-actions { display: flex; flex-direction: column; gap: 7px; }
@@ -337,11 +337,11 @@
 .quest-row { display: grid; min-width: 0; align-items: center; grid-template-columns: 44px 55px minmax(0, 1fr) 78px auto; gap: 16px; padding: 17px; border: 1px solid var(--primaryBorder); border-radius: 24px; background: var(--surface); }
 .quest-row.complete { border-color: var(--successBorder); background: linear-gradient(90deg, var(--surface), var(--successTint)); }
 .quest-row.failed { border-color: var(--dangerBorder); }
-.quest-number { color: var(--muted); font-size: 10px; font-weight: 900; }
+.quest-number { color: var(--muted); font-size: 10px; font-weight: 800; }
 .quest-icon { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 17px; background: var(--primaryTint); color: var(--primaryText); }
 .quest-icon svg { width: 27px; height: 27px; }
 .quest-copy { display: grid; min-width: 0; gap: 4px; }
-.quest-copy > span { color: var(--primaryText); font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.quest-copy > span { color: var(--primaryText); font-size: 8px; font-weight: 800; text-transform: uppercase; }
 .quest-copy h2 { font-size: 19px; }
 .quest-copy p,
 .quest-copy small { color: var(--fgMuted); font-size: 10px; }
@@ -360,7 +360,7 @@
 .number-target strong { font-size: 32px; }
 .number-mode-card h2 { font-size: 26px; }
 .number-preview { display: flex; flex-wrap: wrap; gap: 5px; }
-.number-preview span { display: grid; width: 39px; height: 39px; place-items: center; border: 1px solid var(--primaryBorder); border-radius: 11px; background: var(--surface); font-weight: 900; }
+.number-preview span { display: grid; width: 39px; height: 39px; place-items: center; border: 1px solid var(--primaryBorder); border-radius: 11px; background: var(--surface); font-weight: 800; }
 .number-mode-card dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .number-mode-card dl div { display: grid; padding: 9px; border-radius: 12px; background: var(--surfaceMuted); }
 .number-mode-card dt { color: var(--fgMuted); font-size: 8px; text-transform: uppercase; }
@@ -372,11 +372,11 @@
 .target-panel strong { color: var(--secondaryText); font-size: 50px; }
 .number-board { display: grid; gap: 22px; }
 .number-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.number-tiles button { min-height: 90px; border: 2px solid var(--primaryBorder); border-radius: 22px; background: var(--surfaceMuted); cursor: pointer; font-size: 33px; font-weight: 900; }
+.number-tiles button { min-height: 90px; border: 2px solid var(--primaryBorder); border-radius: 22px; background: var(--surfaceMuted); cursor: pointer; font-size: 33px; font-weight: 800; }
 .number-tiles button.left { border-color: var(--primary); background: var(--primaryTint); color: var(--primaryText); }
 .number-tiles button.right { border-color: var(--accent); background: var(--accentTint); color: var(--accentText); }
 .operator-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
-.operator-row button { min-height: 49px; border: 1px solid var(--accentBorder); border-radius: 16px; background: var(--accentTint); color: var(--accentText); cursor: pointer; font-size: 23px; font-weight: 900; }
+.operator-row button { min-height: 49px; border: 1px solid var(--accentBorder); border-radius: 16px; background: var(--accentTint); color: var(--accentText); cursor: pointer; font-size: 23px; font-weight: 800; }
 .operator-row button[aria-pressed="true"] { background: var(--accent); color: white; }
 .equation-preview { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 18px; border-radius: 20px; background: var(--primaryBg); font-size: 25px; }
 .equation-preview span,
@@ -384,7 +384,7 @@
 .number-ledger { display: grid; gap: 15px; }
 .number-ledger ol { display: grid; gap: 6px; max-height: 360px; padding: 0; overflow: auto; list-style: none; }
 .number-ledger li { display: flex; align-items: center; gap: 9px; padding: 9px; border-radius: 12px; background: var(--surfaceMuted); font-size: 10px; }
-.number-ledger li span { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: var(--primaryTint); color: var(--primaryText); font-weight: 900; }
+.number-ledger li span { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: var(--primaryTint); color: var(--primaryText); font-weight: 800; }
 .number-result-panel { display: grid; min-height: 430px; align-items: center; grid-template-columns: 240px 1fr; gap: clamp(28px, 6vw, 80px); }
 .number-result-orb { display: grid; aspect-ratio: 1; place-items: center; align-content: center; border: 1px solid var(--successBorder); border-radius: 50%; background: var(--successTint); color: var(--successText); box-shadow: 0 0 0 20px color-mix(in srgb, var(--success) 9%, transparent); }
 .number-result-orb span,
@@ -395,7 +395,7 @@
 .number-result-copy p { color: var(--fgMuted); }
 .number-result-copy ol { display: grid; gap: 5px; padding: 0; list-style: none; }
 .number-result-copy li { display: flex; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--surfaceMuted); }
-.number-result-copy li span { color: var(--primaryText); font-weight: 900; }
+.number-result-copy li span { color: var(--primaryText); font-weight: 800; }
 .solution-hunt-panel { display: grid; gap: 9px; padding: 16px; border: 1px solid var(--infoBorder); border-radius: 18px; background: var(--infoTint); }
 .solution-hunt-panel h3 { font-size: 22px; }
 .solution-hunt-panel strong { color: var(--successText); }
@@ -406,7 +406,7 @@
 .solution-list details,
 .solution-list-reveal { overflow: hidden; border: 1px solid var(--primaryBorder); border-radius: 12px; background: var(--surface); }
 .solution-list summary,
-.solution-list-reveal > summary { padding: 10px 12px; color: var(--fg); font-weight: 900; cursor: pointer; }
+.solution-list-reveal > summary { padding: 10px 12px; color: var(--fg); font-weight: 800; cursor: pointer; }
 .solution-list details[open] > summary,
 .solution-list-reveal[open] > summary { border-bottom: 1px solid var(--primaryBorder); }
 .solution-list details ol { padding: 9px; }
@@ -439,8 +439,8 @@
 .training-score { color: var(--fgMuted); font-size: 11px; }
 .speed-run-head strong { display: block; color: var(--fg); font-size: 42px; }
 .speed-question { display: flex; align-items: center; justify-content: center; gap: 16px; padding: clamp(24px, 6vw, 70px); border: 1px solid var(--primaryBorder); border-radius: 28px; background: var(--primaryBg); }
-.speed-question > div { font-size: clamp(2.8rem, 7vw, 6rem); font-weight: 900; white-space: nowrap; }
-.speed-question input { width: min(180px, 28vw); min-height: 75px; border: 2px solid var(--primaryBorder); border-radius: 20px; background: var(--surface); font-size: 38px; font-weight: 900; text-align: center; }
+.speed-question > div { font-size: clamp(2.8rem, 7vw, 6rem); font-weight: 800; white-space: nowrap; }
+.speed-question input { width: min(180px, 28vw); min-height: 75px; border: 2px solid var(--primaryBorder); border-radius: 20px; background: var(--surface); font-size: 38px; font-weight: 800; text-align: center; }
 .run-history { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
 .run-history article { display: grid; padding: 15px; border-radius: 16px; background: var(--surfaceMuted); }
 .run-history span,
@@ -450,12 +450,12 @@
 .wordle-board { display: grid; justify-items: center; gap: 22px; }
 .word-grid { display: grid; gap: 7px; }
 .word-grid > div { display: grid; grid-template-columns: repeat(5, 62px); gap: 7px; }
-.word-grid span { display: grid; aspect-ratio: 1; place-items: center; border: 2px solid var(--primaryBorder); border-radius: 13px; background: var(--surfaceMuted); font-size: 29px; font-weight: 900; }
+.word-grid span { display: grid; aspect-ratio: 1; place-items: center; border: 2px solid var(--primaryBorder); border-radius: 13px; background: var(--surfaceMuted); font-size: 29px; font-weight: 800; }
 .word-grid span.correct { border-color: var(--successDark); background: var(--success); color: white; }
 .word-grid span.present { border-color: var(--secondaryDark); background: var(--secondary); color: var(--secondaryText); }
 .word-grid span.absent { border-color: var(--muted); background: var(--muted); color: white; }
 .wordle-entry { display: flex; width: 100%; justify-content: center; gap: 8px; }
-.wordle-entry input { width: 190px; min-height: 52px; padding: 8px 13px; border: 2px solid var(--primaryBorder); border-radius: 16px; background: var(--surfaceMuted); font-weight: 900; letter-spacing: 0.18em; text-align: center; text-transform: uppercase; }
+.wordle-entry input { width: 190px; min-height: 52px; padding: 8px 13px; border: 2px solid var(--primaryBorder); border-radius: 16px; background: var(--surfaceMuted); font-weight: 800; letter-spacing: 0.18em; text-align: center; text-transform: uppercase; }
 .wordle-guide { position: sticky; top: 110px; display: grid; gap: 12px; }
 .wordle-guide > svg { width: 55px; height: 55px; color: var(--accentText); }
 .wordle-guide h2 { font-size: 32px; }
@@ -488,7 +488,7 @@
 .loadout-card-picker button > span { align-self: center; display: grid; min-width: 0; }
 .loadout-card-picker button b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .loadout-card-picker button small { color: var(--fgMuted); font-size: 9px; }
-.loadout-card-picker button i { position: absolute; top: 6px; right: 6px; display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: var(--accent); color: white; font-size: 10px; font-style: normal; font-weight: 900; }
+.loadout-card-picker button i { position: absolute; top: 6px; right: 6px; display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: var(--accent); color: white; font-size: 10px; font-style: normal; font-weight: 800; }
 .saved-loadouts { display: grid; gap: 10px; }
 .saved-loadouts > article { display: grid; gap: 12px; padding: 17px; border: 1px solid var(--primaryBorder); border-radius: 22px; background: var(--surface); }
 .saved-loadouts > article.invalid { border-color: var(--dangerBorder); }
@@ -515,7 +515,7 @@ button.battle-unit.targetable { border: 2px solid var(--accent); box-shadow: 0 0
 button.battle-unit.targetable:hover { transform: translateY(-2px); box-shadow: 0 0 0 4px var(--accentTint), 0 10px 24px color-mix(in srgb, var(--accent) 18%, transparent); }
 .battle-unit.ko { filter: grayscale(1); opacity: 0.55; }
 .battle-unit.ko.targetable { filter: none; opacity: 0.82; }
-.battle-unit-art { display: grid; aspect-ratio: 1; place-items: center; overflow: hidden; background: var(--primaryTint); color: var(--primaryText); font-size: 35px; font-weight: 900; }
+.battle-unit-art { display: grid; aspect-ratio: 1; place-items: center; overflow: hidden; background: var(--primaryTint); color: var(--primaryText); font-size: 35px; font-weight: 800; }
 .battle-unit-art img { width: 100%; height: 100%; object-fit: cover; }
 .battle-unit-copy { display: grid; gap: 4px; padding: 9px; }
 .battle-unit-copy > span { overflow: hidden; color: var(--fgMuted); font-size: 7px; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
@@ -531,7 +531,7 @@ button.battle-unit.targetable:hover { transform: translateY(-2px); box-shadow: 0
 .bench .battle-unit-copy { display: none; }
 .battle-divider { display: grid; place-items: center; align-content: center; gap: 7px; color: var(--accentText); }
 .battle-divider svg { width: 45px; height: 45px; }
-.battle-divider span { font-size: 8px; font-weight: 900; text-transform: uppercase; writing-mode: vertical-rl; }
+.battle-divider span { font-size: 8px; font-weight: 800; text-transform: uppercase; writing-mode: vertical-rl; }
 .battle-actions { display: grid; align-items: start; grid-template-columns: minmax(230px, 0.6fr) minmax(0, 1.4fr); gap: 22px; }
 .battle-command-copy { max-width: 530px; }
 .battle-actions p { margin-top: 6px; color: var(--fgMuted); font-size: 11px; }
@@ -549,7 +549,7 @@ button.battle-unit.targetable:hover { transform: translateY(-2px); box-shadow: 0
 .battle-log li { display: grid; grid-template-columns: 110px 170px 1fr; gap: 9px; padding: 8px 10px; border-radius: 10px; background: var(--surfaceMuted); font-size: 9px; }
 .battle-log li span { color: var(--fgMuted); }
 .battle-log code { overflow: hidden; color: var(--fgMuted); text-overflow: ellipsis; white-space: nowrap; }
-.match-result { display: grid; min-width: 78px; min-height: 42px; place-items: center; padding: 7px; border-radius: 14px; background: var(--infoTint); color: var(--infoText); font-size: 9px; font-weight: 900; }
+.match-result { display: grid; min-width: 78px; min-height: 42px; place-items: center; padding: 7px; border-radius: 14px; background: var(--infoTint); color: var(--infoText); font-size: 9px; font-weight: 800; }
 .match-result.result-victory { background: var(--successTint); color: var(--successText); }
 .match-result.result-defeat { background: var(--dangerTint); color: var(--dangerText); }
 .spectate-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
@@ -588,7 +588,7 @@ button.battle-unit.targetable:hover { transform: translateY(-2px); box-shadow: 0
 .replay-timeline b { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .mechanic-list { display: grid; gap: 0; }
 .mechanic-list article { display: grid; grid-template-columns: 90px 1fr; gap: 28px; padding: 30px 0; border-bottom: 1px solid var(--primaryBorder); }
-.mechanic-list article > span { color: var(--primaryText); font-size: 14px; font-weight: 900; }
+.mechanic-list article > span { color: var(--primaryText); font-size: 14px; font-weight: 800; }
 .mechanic-list h2 { font-size: clamp(25px, 3vw, 38px); }
 .mechanic-list p { max-width: 760px; margin-top: 8px; color: var(--fgMuted); }
 .reference-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -601,7 +601,7 @@ button.battle-unit.targetable:hover { transform: translateY(-2px); box-shadow: 0
 
 .settings-grid { display: grid; align-items: start; grid-template-columns: minmax(280px, 0.7fr) minmax(0, 1.3fr); gap: 17px; }
 .profile-card { display: grid; justify-items: center; gap: 15px; text-align: center; }
-.settings-avatar { display: grid; width: 130px; height: 130px; place-items: center; border: 2px solid var(--primaryBorder); border-radius: 42px; background: var(--primaryTint); color: var(--primaryText); font-size: 52px; font-weight: 900; }
+.settings-avatar { display: grid; width: 130px; height: 130px; place-items: center; border: 2px solid var(--primaryBorder); border-radius: 42px; background: var(--primaryTint); color: var(--primaryText); font-size: 52px; font-weight: 800; }
 .settings-avatar-image { width: 130px; height: 130px; border: 2px solid var(--primaryBorder); border-radius: 42px; object-fit: cover; }
 .profile-card > div:nth-child(2) { display: grid; gap: 3px; }
 .profile-card p,

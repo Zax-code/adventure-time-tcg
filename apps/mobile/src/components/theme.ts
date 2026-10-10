@@ -1,3 +1,10 @@
+// Card type and rarity palettes are part of the collectible card art, not the
+// UI chrome. They stay bespoke on purpose: the design system rule is that card
+// art and rarity outlines never move with the theme tokens in
+// packages/theme, so a token change cannot recolor a card frame. Some values
+// equal a theme token today (for example Royalty frame = candy primary); that is
+// a coincidence of the shared Tailwind palette, not a dependency.
+
 export const CARD_TYPE_COLORS: Record<string, { frame: string; light: string; dark: string }> = {
   Hero:    { frame: "#60A5FA", light: "#DBEAFE", dark: "#1E40AF" },
   Tech:    { frame: "#2DD4BF", light: "#CCFBF1", dark: "#0F766E" },
@@ -53,8 +60,6 @@ export const RARITY_COLORS_NIGHTOSPHERE: Record<string, { from: string; to: stri
   Epic:      { from: "#C084FC", to: "#7C3AED", ring: "#A855F7" },
   Legendary: { from: "#F97316", to: "#EA580C", ring: "#FB923C" },
 };
-
-const SECONDARY_TINT = "rgba(253, 224, 71, 0.15)";
 
 export const RARITY_COLORS: Record<string, { from: string; to: string; ring: string }> = {
   Common:    { from: "#9CA3AF", to: "#6B7280", ring: "#9CA3AF" },

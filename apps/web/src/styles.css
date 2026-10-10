@@ -9,10 +9,6 @@
   font-family: "Nunito", system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --radius-input: 16px;
-  --radius-card: 24px;
-  --radius-panel: 28px;
-  --radius-hero: 34px;
   --shadow-card: 0 3px 8px rgb(0 0 0 / 5%);
   --shadow-panel: 0 8px 20px color-mix(in srgb, var(--primaryStrong) 12%, transparent);
   --shadow-float: 0 10px 28px color-mix(in srgb, var(--primaryStrong) 18%, transparent);
@@ -245,7 +241,7 @@ h3 {
   min-width: 0;
   padding: clamp(18px, 3vw, 28px);
   border: 1px solid color-mix(in srgb, var(--primaryBorder) 82%, transparent);
-  border-radius: var(--radius-panel);
+  border-radius: var(--radius-xl);
   background: var(--surface);
   box-shadow: var(--shadow-card);
 }
@@ -354,7 +350,7 @@ h3 {
   overflow: hidden;
   padding: 18px;
   border: 1px solid var(--tone-border, var(--primaryBorder));
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-lg);
   background: linear-gradient(145deg, var(--surface), var(--tone-tint, var(--primaryBg)));
   box-shadow: var(--shadow-card);
 }
@@ -497,7 +493,7 @@ h3 {
   min-height: 50px;
   padding: 12px 14px;
   border: 1px solid var(--primaryBorder);
-  border-radius: var(--radius-input);
+  border-radius: var(--radius-md);
   outline: 0;
   background: var(--surfaceMuted);
   color: var(--fg);
