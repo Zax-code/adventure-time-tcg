@@ -6,13 +6,21 @@ import { type Tone, TONE_CLASS } from "./tokens";
 export interface CardProps {
   children: ReactNode;
   tone?: Tone | "neutral";
+  // No padding or gap, for ListRows that draw their own insets and dividers.
+  flush?: boolean;
   className?: string;
   testID?: string;
 }
 
 // The only content container. Never wrap a collectible card (CardTile, pack
 // reveal, gift card art) in it.
-export function Card({ children, tone = "neutral", className, testID }: CardProps) {
+export function Card({
+  children,
+  tone = "neutral",
+  flush,
+  className,
+  testID,
+}: CardProps) {
   const colors =
     tone === "neutral"
       ? "bg-surface border-primaryBorder"
@@ -21,7 +29,9 @@ export function Card({ children, tone = "neutral", className, testID }: CardProp
   return (
     <View
       testID={testID}
-      className={`gap-ds-3 rounded-ds-lg border p-ds-4 ${colors} ${className ?? ""}`}
+      className={`overflow-hidden rounded-ds-lg border ${
+        flush ? "" : "gap-ds-3 p-ds-4"
+      } ${colors} ${className ?? ""}`}
     >
       {children}
     </View>

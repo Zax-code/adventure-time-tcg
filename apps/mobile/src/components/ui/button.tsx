@@ -4,6 +4,7 @@ import {
   type AccessibilityState,
   type Insets,
   Pressable,
+  StyleSheet,
   type StyleProp,
   Text,
   View,
@@ -11,7 +12,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { CONTROL, ON_PRIMARY, RADIUS, SPACE } from "@adventure-time/theme";
+import { CONTROL, ON_PRIMARY, RADIUS } from "@adventure-time/theme";
 
 import {
   getElevation,
@@ -104,8 +105,6 @@ export function Button({
   const inactive = disabled || loading;
   const paddingClass =
     size === "sm" ? "px-ds-4" : tone === "ghost" ? "px-ds-5" : "px-ds-6";
-  const paddingHorizontal =
-    size === "sm" ? SPACE[4] : tone === "ghost" ? SPACE[5] : SPACE[6];
 
   const content = loading ? (
     <ActivityIndicator color={foreground} />
@@ -142,7 +141,7 @@ export function Button({
       nativeID={testID}
       testID={testID}
       disabled={inactive}
-      className={`rounded-ds-pill ${
+      className={`items-center justify-center rounded-ds-pill ${paddingClass} ${
         gradient ? "" : "border border-primaryBorder bg-surface"
       } ${inactive ? "opacity-[0.45]" : ""} ${className ?? ""}`}
       style={[
@@ -158,28 +157,14 @@ export function Button({
     >
       {gradient ? (
         <LinearGradient
+          pointerEvents="none"
           colors={gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: RADIUS.pill,
-            minHeight: HEIGHT[size],
-            paddingHorizontal,
-          }}
-        >
-          {content}
-        </LinearGradient>
-      ) : (
-        <View
-          className={`flex-1 items-center justify-center ${paddingClass}`}
-          style={{ minHeight: HEIGHT[size] - 2 }}
-        >
-          {content}
-        </View>
-      )}
+          style={[StyleSheet.absoluteFill, { borderRadius: RADIUS.pill }]}
+        />
+      ) : null}
+      {content}
     </Pressable>
   );
 }
