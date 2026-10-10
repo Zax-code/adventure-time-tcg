@@ -1,24 +1,16 @@
 import type { BottomTabBarProps } from "expo-router/js-tabs";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from "react-native";
+import { StyleSheet, View, type ViewStyle } from "react-native";
+
+import House from "lucide-react-native/icons/house";
+import Layers from "lucide-react-native/icons/layers";
+import Package from "lucide-react-native/icons/package";
+import ScrollText from "lucide-react-native/icons/scroll-text";
+import Swords from "lucide-react-native/icons/swords";
+import Trophy from "lucide-react-native/icons/trophy";
+import type { LucideIcon } from "lucide-react-native";
 
 import { useTranslation } from "../i18n";
-import { useThemeStore } from "../stores/theme-store";
-import { THEME_COLORS } from "../theme/themes";
-import { BottomTabBarFrame, type ThemeColorKey } from "./bottom-tab-bar-frame";
-import {
-  CardsIcon,
-  HomeIcon,
-  PackIcon,
-  QuestIcon,
-  SwordsIcon,
-  TrophyIcon,
-} from "./icons";
+import { BottomTabBarFrame, TabBarItem } from "./bottom-tab-bar-frame";
 
 type VisibleTabName =
   | "index"
@@ -28,19 +20,14 @@ type VisibleTabName =
   | "collection"
   | "rankings";
 
-const TAB_CONFIG: Record<
-  VisibleTabName,
-  {
-    labelKey: string;
-    tintKey: ThemeColorKey;
-  }
-> = {
-  index: { labelKey: "nav.home", tintKey: "primaryText" },
-  packs: { labelKey: "nav.pack", tintKey: "secondaryText" },
-  pvp: { labelKey: "nav.pvp", tintKey: "accentText" },
-  quests: { labelKey: "nav.quests", tintKey: "infoText" },
-  collection: { labelKey: "nav.collection", tintKey: "primaryText" },
-  rankings: { labelKey: "nav.rankings", tintKey: "accentText" },
+// Order matches the web dock: Home, Packs, PvP, Quests, Collection, Rankings.
+const TAB_CONFIG: Record<VisibleTabName, { labelKey: string; icon: LucideIcon }> = {
+  index: { labelKey: "nav.home", icon: House },
+  packs: { labelKey: "nav.pack", icon: Package },
+  pvp: { labelKey: "nav.pvp", icon: Swords },
+  quests: { labelKey: "nav.quests", icon: ScrollText },
+  collection: { labelKey: "nav.collection", icon: Layers },
+  rankings: { labelKey: "nav.rankings", icon: Trophy },
 };
 
 const TAB_ORDER: VisibleTabName[] = Object.keys(TAB_CONFIG) as VisibleTabName[];
@@ -60,8 +47,6 @@ export function BottomTabBar({
   navigation,
 }: BottomTabBarProps) {
   const { t } = useTranslation();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
   const tabs = TAB_ORDER.map((name) => {
     const routeIndex = state.routes.findIndex((route) => route.name === name);
     if (routeIndex === -1) {
@@ -71,10 +56,8 @@ export function BottomTabBar({
     const route = state.routes[routeIndex];
     const focused = state.index === routeIndex;
     const config = TAB_CONFIG[name];
-    const color = focused ? tc[config.tintKey] : tc.fgMuted;
-    const label = t(config.labelKey);
 
-    return { route, routeIndex, focused, color, label };
+    return { route, focused, icon: config.icon, label: t(config.labelKey) };
   }).filter((tab): tab is NonNullable<typeof tab> => tab !== null);
 
   const activeTabIndex = Math.max(
@@ -92,89 +75,42 @@ export function BottomTabBar({
 
   return (
     <BottomTabBarFrame activeIndex={activeTabIndex} itemCount={tabs.length}>
-      <View className="flex-row items-center">
+      <View className="flex-1 flex-row items-stretch">
         {tabs.map((tab) => {
           const descriptor = descriptors[tab.route.key];
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: tab.route.key,
-              canPreventDefault: true,
-            });
-
-            if (!tab.focused && !event.defaultPrevented) {
-              navigation.navigate(tab.route.name, tab.route.params);
-            }
-          };
-
-          const onLongPress = () => {
-            navigation.emit({
-              type: "tabLongPress",
-              target: tab.route.key,
-            });
-          };
-
           return (
-            <Pressable
+            <TabBarItem
               key={tab.route.key}
-              accessible
-              accessibilityRole="button"
-              accessibilityState={tab.focused ? { selected: true } : {}}
-              accessibilityLabel={
-                descriptor.options.tabBarAccessibilityLabel ?? tab.label
-              }
+              icon={tab.icon}
+              label={tab.label}
+              focused={tab.focused}
+              accessibilityLabel={descriptor.options.tabBarAccessibilityLabel}
               testID={
                 descriptor.options.tabBarButtonTestID ??
                 TAB_TEST_IDS[tab.route.name as VisibleTabName]
               }
-              onPress={onPress}
-              onLongPress={onLongPress}
-              className="flex-1 items-center justify-center gap-1 rounded-[22px] px-0 py-2"
-              style={{ minWidth: 0 }}
-            >
-              <View className="relative">
-                <TabIcon
-                  routeName={tab.route.name as VisibleTabName}
-                  color={tab.color}
-                />
-              </View>
-              <Text
-                className={`text-center text-[9px] ${
-                  tab.focused ? "font-nunito-bold" : "font-nunito-semibold"
-                }`}
-                numberOfLines={1}
-                style={{ color: tab.color, flexShrink: 1 }}
-              >
-                {tab.label}
-              </Text>
-            </Pressable>
+              onPress={() => {
+                const event = navigation.emit({
+                  type: "tabPress",
+                  target: tab.route.key,
+                  canPreventDefault: true,
+                });
+
+                if (!tab.focused && !event.defaultPrevented) {
+                  navigation.navigate(tab.route.name, tab.route.params);
+                }
+              }}
+              onLongPress={() => {
+                navigation.emit({
+                  type: "tabLongPress",
+                  target: tab.route.key,
+                });
+              }}
+            />
           );
         })}
       </View>
     </BottomTabBarFrame>
   );
-}
-
-function TabIcon({
-  routeName,
-  color,
-}: {
-  routeName: VisibleTabName;
-  color: string;
-}) {
-  switch (routeName) {
-    case "index":
-      return <HomeIcon size={24} color={color} />;
-    case "packs":
-      return <PackIcon size={24} color={color} />;
-    case "pvp":
-      return <SwordsIcon size={24} color={color} />;
-    case "quests":
-      return <QuestIcon size={24} color={color} />;
-    case "collection":
-      return <CardsIcon size={24} color={color} />;
-    case "rankings":
-      return <TrophyIcon size={24} color={color} />;
-  }
 }

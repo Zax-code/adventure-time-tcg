@@ -15,6 +15,8 @@ export interface IconButtonProps {
   accessibilityLabel: string;
   onPress?: () => void;
   tone?: Tone;
+  // Fill with the tone tint instead of surface (the admin header action).
+  tinted?: boolean;
   disabled?: boolean;
   hitSlop?: Insets | number;
   className?: string;
@@ -26,6 +28,7 @@ export function IconButton({
   accessibilityLabel,
   onPress,
   tone = "primary",
+  tinted,
   disabled,
   hitSlop,
   className,
@@ -42,9 +45,9 @@ export function IconButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: Boolean(disabled) }}
       testID={testID}
-      className={`h-icon-button w-icon-button items-center justify-center rounded-ds-pill border bg-surface ${
-        TONE_CLASS[tone].border
-      } ${disabled ? "opacity-[0.45]" : ""} ${className ?? ""}`}
+      className={`h-icon-button w-icon-button items-center justify-center rounded-ds-pill border ${
+        tinted ? TONE_CLASS[tone].tint : "bg-surface"
+      } ${TONE_CLASS[tone].border} ${disabled ? "opacity-[0.45]" : ""} ${className ?? ""}`}
     >
       <SlotIcon icon={icon} color={toneTextColor(tc, tone)} size={20} />
     </Pressable>

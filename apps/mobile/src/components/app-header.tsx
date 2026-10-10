@@ -1,48 +1,44 @@
 import { useQuery } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
+import Coins from "lucide-react-native/icons/coins";
+import Gift from "lucide-react-native/icons/gift";
+import Settings from "lucide-react-native/icons/settings";
+import Shield from "lucide-react-native/icons/shield";
 
+import { useTranslation } from "../i18n";
 import { apiClient } from "../lib/api";
 import { useSessionStore } from "../stores/session-store";
-import { useThemeStore } from "../stores/theme-store";
-import { THEME_COLORS } from "../theme/themes";
-import { CoinIcon, GiftHeartIcon, SettingsIcon } from "./icons";
+import { ICON_STROKE_WIDTH, useThemePalette } from "./ui/tokens";
+import { IconButton } from "./ui/icon-button";
 
-const HEADER_ACTION_SURFACE_STYLE = {
-  width: 40,
-  height: 40,
-  borderRadius: 999,
-  alignItems: "center",
-  justifyContent: "center",
-  boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-} as const;
+// The coin balance at the left of the app and admin headers.
+export function CoinChip() {
+  const tc = useThemePalette();
+  const coins = useSessionStore((state) => state.user?.coins ?? 0);
 
-function HeaderShieldUserIcon({ size = 24, color = "#FFFFFF" }: { size?: number; color?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 2L4 5V11C4 16.5 7.5 20.5 12 22C16.5 20.5 20 16.5 20 11V5L12 2Z"
-        fill={color}
-        fillOpacity={0.2}
-        stroke={color}
-        strokeWidth={2}
-        strokeLinejoin="round"
-      />
-      <Circle cx={12} cy={9} r={2.5} fill={color} />
-      <Path d="M8 16C8 14 9.5 13 12 13C14.5 13 16 14 16 16" stroke={color} strokeWidth={2} strokeLinecap="round" />
-    </Svg>
+    <View
+      testID="app-header-coins"
+      className="h-control-sm flex-row items-center gap-[6px] rounded-ds-pill border border-secondaryBorder bg-secondaryTint px-[14px]"
+    >
+      <Coins size={16} color={tc.secondaryText} strokeWidth={ICON_STROKE_WIDTH} />
+      <Text className="font-nunito-bold text-[14px] text-secondaryText">
+        {coins}
+      </Text>
+    </View>
   );
 }
 
+// Tab screens only: coin balance on the left, header actions on the right,
+// 56 high on a transparent background. Never renders a title; the screen's
+// PageTitle sits right below it.
 export function AppHeader() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const user = useSessionStore((state) => state.user);
-  const coins = useSessionStore((state) => state.user?.coins ?? 0);
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const { t } = useTranslation();
+  const isAdmin = useSessionStore((state) => state.user?.isAdmin ?? false);
   const { data: giftsQueryData } = useQuery({
     queryKey: ["gifts"],
     queryFn: () => apiClient.gifts(),
@@ -51,82 +47,50 @@ export function AppHeader() {
   const pendingGifts = giftsQueryData?.pendingCount ?? 0;
 
   return (
-    <View style={{ paddingTop: insets.top, backgroundColor: 'transparent' }}>
-      <View className="flex-row items-center justify-between px-4 py-2">
-        <LinearGradient
-          colors={[tc.secondary, tc.secondaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            borderRadius: 9999,
-            paddingHorizontal: 16,
-            paddingVertical: 6,
-            boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          <CoinIcon size={20} />
-          <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 14, color: tc.secondaryText }}>{coins}</Text>
-        </LinearGradient>
-        <View className="flex-row items-center" style={{ columnGap: 16 }}>
-          <Pressable
-            onPress={() => router.push("/(tabs)/gifts" as never)}
-            hitSlop={8}
-            testID="app-header-gifts-button"
-          >
-            <View
-              style={{
-                ...HEADER_ACTION_SURFACE_STYLE,
-                backgroundColor: tc.surfaceMuted,
-              }}
-            >
-              <GiftHeartIcon size={23} color={tc.successText} />
-              {pendingGifts > 0 ? (
-                <View className="absolute -right-1 -top-1 min-w-4 items-center rounded-full bg-dangerDark px-1 py-0.5">
-                  <Text className="font-nunito-bold text-[9px] text-white">
-                    {pendingGifts > 9 ? "9+" : pendingGifts}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          </Pressable>
+    <View style={{ paddingTop: insets.top }}>
+      <View className="h-header flex-row items-center justify-between px-ds-4 py-ds-2">
+        <CoinChip />
 
-          {user?.isAdmin ? (
-            <Pressable onPress={() => router.push("/admin/cards" as never)} hitSlop={8}>
-              <LinearGradient
-                colors={[tc.accent, tc.accentDark, tc.accentText]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 999,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0px 3px 8px rgba(0, 0, 0, 0.15)",
-                }}
+        <View className="flex-row items-center gap-ds-2">
+          <View>
+            <IconButton
+              icon={Gift}
+              accessibilityLabel={t("nav.gifts")}
+              onPress={() => router.push("/(tabs)/gifts" as never)}
+              hitSlop={4}
+              testID="app-header-gifts-button"
+            />
+            {pendingGifts > 0 ? (
+              <View
+                pointerEvents="none"
+                className="absolute -right-1 -top-1 min-w-[18px] items-center rounded-ds-pill bg-dangerDark px-1 py-[1px]"
               >
-                <HeaderShieldUserIcon size={24} color="#FFFFFF" />
-              </LinearGradient>
-            </Pressable>
+                <Text className="font-nunito-bold text-[11px] text-white">
+                  {pendingGifts > 9 ? "9+" : pendingGifts}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          {isAdmin ? (
+            <IconButton
+              icon={Shield}
+              tone="accent"
+              tinted
+              accessibilityLabel={t("admin.shell.consoleTitle")}
+              onPress={() => router.push("/admin/cards" as never)}
+              hitSlop={4}
+              testID="app-header-admin-button"
+            />
           ) : null}
 
-          <Pressable
+          <IconButton
+            icon={Settings}
+            accessibilityLabel={t("settings.title")}
             onPress={() => router.push("/settings")}
-            hitSlop={8}
+            hitSlop={4}
             testID="app-header-settings-button"
-          >
-            <View
-              style={{
-                ...HEADER_ACTION_SURFACE_STYLE,
-                backgroundColor: tc.surfaceMuted,
-              }}
-            >
-              <SettingsIcon size={24} color={tc.primaryDark} />
-            </View>
-          </Pressable>
+          />
         </View>
       </View>
     </View>
