@@ -1,0 +1,5682 @@
+{
+  "version": "2.17",
+  "children": [
+    {
+      "type": "frame",
+      "id": "P0t92E",
+      "x": 0,
+      "y": -400,
+      "name": "View Card",
+      "reusable": true,
+      "width": 300,
+      "fill": "$surface",
+      "cornerRadius": 12,
+      "stroke": "$border",
+      "strokeWidth": 1,
+      "layout": "vertical",
+      "gap": 6,
+      "padding": 16,
+      "children": [
+        {
+          "type": "frame",
+          "id": "qByEn",
+          "name": "Top Row",
+          "width": "fill_container",
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "LmwJb",
+              "name": "Kind Badge",
+              "fill": "#FCE7F3",
+              "cornerRadius": 999,
+              "padding": [
+                3,
+                8
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "mZsC4",
+                  "name": "Kind Label",
+                  "fill": "#BE185D",
+                  "content": "SCREEN",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 10,
+                  "fontWeight": "800",
+                  "letterSpacing": 0.8
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "B1jld",
+              "name": "Platforms",
+              "fill": "$fg-muted",
+              "content": "iOS · Android",
+              "fontFamily": "$font-ui",
+              "fontSize": 11,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "zdmJh",
+          "name": "Title",
+          "fill": "$fg",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "View title",
+          "fontFamily": "$font-ui",
+          "fontSize": 17,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "Og6l2",
+          "name": "Route",
+          "fill": "$primary-strong",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "/route",
+          "fontFamily": "$font-mono",
+          "fontSize": 12,
+          "fontWeight": "600"
+        },
+        {
+          "type": "text",
+          "id": "r7fk9d",
+          "name": "Source",
+          "fill": "$fg-muted",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "app/file.tsx",
+          "fontFamily": "$font-mono",
+          "fontSize": 10,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "cryqt",
+          "name": "Note",
+          "fill": "$fg",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "What this view does",
+          "lineHeight": 1.4,
+          "fontFamily": "$font-ui",
+          "fontSize": 12,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "kiqSL",
+      "x": 0,
+      "y": 0,
+      "name": "Mobile app views (Expo)",
+      "clip": true,
+      "width": 1344,
+      "fill": "$bg",
+      "cornerRadius": 24,
+      "layout": "vertical",
+      "gap": 40,
+      "padding": 48,
+      "children": [
+        {
+          "type": "frame",
+          "id": "C7PcK",
+          "name": "Board Header",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "text",
+              "id": "s4CJv",
+              "name": "Eyebrow",
+              "fill": "$primary-strong",
+              "content": "ADVENTURE TIME TCG - VIEW INVENTORY",
+              "fontFamily": "$font-ui",
+              "fontSize": 12,
+              "fontWeight": "800",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "text",
+              "id": "h3izEL",
+              "name": "Board Title",
+              "fill": "$fg",
+              "content": "Mobile app (Expo Router)",
+              "fontFamily": "$font-ui",
+              "fontSize": 40,
+              "fontWeight": "900"
+            },
+            {
+              "type": "text",
+              "id": "U4H1F4",
+              "name": "Board Summary",
+              "fill": "$fg-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "57 views across 8 groups: route files under apps/mobile/app plus overlays rendered inside screens. Inventoried from main @ a404cfa on 2026-10-10.",
+              "fontFamily": "$font-ui",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "zvJM3",
+          "name": "Section - Entry & session",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "F9RH1k",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "K7ouD",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "Entry & session",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "rSEII",
+                  "name": "Section Count",
+                  "fill": "$primary",
+                  "content": "3",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "tjGEz",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "Launch, sign-in and deep-link bridges outside the tab shell.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "XlKb1",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "D1ckw",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Launch gate",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#F3F4F6"
+                    },
+                    "mZsC4": {
+                      "content": "REDIRECT",
+                      "fill": "#4B5563"
+                    },
+                    "B1jld": {
+                      "content": "mobile only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Launch gate"
+                    },
+                    "Og6l2": {
+                      "content": "/"
+                    },
+                    "r7fk9d": {
+                      "content": "app/index.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Waits for session hydration, then routes to tabs or /login."
+                    }
+                  }
+                },
+                {
+                  "id": "KtAMZ",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Sign in",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /login",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Sign in"
+                    },
+                    "Og6l2": {
+                      "content": "/login"
+                    },
+                    "r7fk9d": {
+                      "content": "app/login.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Email and Google sign-in."
+                    }
+                  }
+                },
+                {
+                  "id": "s3eVtk",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Widget quests bridge",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#F3F4F6"
+                    },
+                    "mZsC4": {
+                      "content": "REDIRECT",
+                      "fill": "#4B5563"
+                    },
+                    "B1jld": {
+                      "content": "mobile only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Widget quests bridge"
+                    },
+                    "Og6l2": {
+                      "content": "/widget-quests"
+                    },
+                    "r7fk9d": {
+                      "content": "app/widget-quests.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Home-screen widget deep link; lands on the Quests tab with steps focused."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "rOUDz",
+          "name": "Section - Tab shell",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "t0ZVE",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pVVdj",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "Tab shell",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "Y8jwtn",
+                  "name": "Section Count",
+                  "fill": "$primary",
+                  "content": "7",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "AR891",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "app/(tabs)/_layout.tsx - auth-gated, portrait-locked bottom tabs.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "j6jLGp",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "G399Ho",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Home",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#DBEAFE"
+                    },
+                    "mZsC4": {
+                      "content": "TAB",
+                      "fill": "#1D4ED8"
+                    },
+                    "B1jld": {
+                      "content": "web: /home",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Home"
+                    },
+                    "Og6l2": {
+                      "content": "/(tabs)"
+                    },
+                    "r7fk9d": {
+                      "content": "app/(tabs)/index.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Dashboard: balances, featured cards and shortcuts."
+                    }
+                  }
+                },
+                {
+                  "id": "tsheY",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Packs",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#DBEAFE"
+                    },
+                    "mZsC4": {
+                      "content": "TAB",
+                      "fill": "#1D4ED8"
+                    },
+                    "B1jld": {
+                      "content": "web: /packs",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Packs"
+                    },
+                    "Og6l2": {
+                      "content": "/(tabs)/packs"
+                    },
+                    "r7fk9d": {
+                      "content": "app/(tabs)/packs.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Pack shop, preview and opening reveal."
+                    }
+                  }
+                },
+                {
+                  "id": "ZiXMr",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Quests",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#DBEAFE"
+                    },
+                    "mZsC4": {
+                      "content": "TAB",
+                      "fill": "#1D4ED8"
+                    },
+                    "B1jld": {
+                      "content": "web: /quests",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Quests"
+                    },
+                    "Og6l2": {
+                      "content": "/(tabs)/quests"
+                    },
+                    "r7fk9d": {
+                      "content": "app/(tabs)/quests.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Daily quest hub, step goals and minigame launchers."
+                    }
+                  }
+                },
+                {
+                  "id": "z8wyAv",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "PvP",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#DBEAFE"
+                    },
+                    "mZsC4": {
+                      "content": "TAB",
+                      "fill": "#1D4ED8"
+                    },
+                    "B1jld": {
+                      "content": "web: /pvp",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "PvP"
+                    },
+                    "Og6l2": {
+                      "content": "/(tabs)/pvp"
+                    },
+                    "r7fk9d": {
+                      "content": "app/(tabs)/pvp.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Lobby: matchmaking, active matches, links to loadouts, history and spectate."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lmlHD",
+              "name": "Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "YbSKd",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Rankings",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#DBEAFE"
+                    },
+                    "mZsC4": {
+                      "content": "TAB",
+                      "fill": "#1D4ED8"
+                    },
+                    "B1jld": {
+                      "content": "mobile only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Rankings"
+                    },
+                    "Og6l2": {
+                      "content": "/(tabs)/rankings"
+                    },
+                    "r7fk9d": {
+                      "content": "src/features/leaderboards/rankings-screen.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Live leaderboards by period."
+                    }
+                  }
+                },
+                {
+                  "id": "XcBsI",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Collection",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#DBEAFE"
+                    },
+                    "mZsC4": {
+                      "content": "TAB",
+                      "fill": "#1D4ED8"
+                    },
+                    "B1jld": {
+                      "content": "web: /collection",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Collection"
+                    },
+                    "Og6l2": {
+                      "content": "/(tabs)/collection"
+                    },
+                    "r7fk9d": {
+                      "content": "app/(tabs)/collection.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Owned cards grid, filters and dust."
+                    }
+                  }
+                },
+                {
+                  "id": "MAOUX",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Gifts",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#E0E7FF"
+                    },
+                    "mZsC4": {
+                      "content": "HIDDEN TAB",
+                      "fill": "#4338CA"
+                    },
+                    "B1jld": {
+                      "content": "web: /gifts",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Gifts"
+                    },
+                    "Og6l2": {
+                      "content": "/(tabs)/gifts"
+                    },
+                    "r7fk9d": {
+                      "content": "app/(tabs)/gifts.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Registered with href: null; opened from Home."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "G6uBUS",
+          "name": "Section - Quests",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "z8kOFB",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "wrITY",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "Quests",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "Z6LGDL",
+                  "name": "Section Count",
+                  "fill": "$primary",
+                  "content": "7",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "CxBdw",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "Stack screens launched from the Quests tab.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "BR2we",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "VkpSE",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Daily Numbers",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#F3F4F6"
+                    },
+                    "mZsC4": {
+                      "content": "REDIRECT",
+                      "fill": "#4B5563"
+                    },
+                    "B1jld": {
+                      "content": "web: hub page",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Daily Numbers"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/daily-numbers"
+                    },
+                    "r7fk9d": {
+                      "content": "app/quests/daily-numbers.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Normalizes the mode param (1-5, 2-4, 3-3) and forwards to play."
+                    }
+                  }
+                },
+                {
+                  "id": "y7rucX",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Daily Numbers play",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /quests/daily-numbers/play",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Daily Numbers play"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/daily-numbers-play"
+                    },
+                    "r7fk9d": {
+                      "content": "app/quests/daily-numbers-play.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Puzzle board; the largest mobile view (4.4k lines)."
+                    }
+                  }
+                },
+                {
+                  "id": "UqU24",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Daily Numbers archive",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /quests/daily-numbers/history",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Daily Numbers archive"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/daily-numbers-history"
+                    },
+                    "r7fk9d": {
+                      "content": "app/quests/daily-numbers-history.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Past puzzles and results."
+                    }
+                  }
+                },
+                {
+                  "id": "KHCOL",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Perfect Timing",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Perfect Timing"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/perfect-timing"
+                    },
+                    "r7fk9d": {
+                      "content": "src/features/quests/perfect-timing/perfect-timing-screen.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Timing minigame quest."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "L89qJt",
+              "name": "Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "B1EWp",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Speed Calculus",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /quests/speed-calculus",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Speed Calculus"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/speed-calculus"
+                    },
+                    "r7fk9d": {
+                      "content": "app/quests/speed-calculus/index.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Ranked mental-math run."
+                    }
+                  }
+                },
+                {
+                  "id": "Wrraq",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Calculus training",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: .../training",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Calculus training"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/speed-calculus/training"
+                    },
+                    "r7fk9d": {
+                      "content": "app/quests/speed-calculus/training.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Unranked practice mode."
+                    }
+                  }
+                },
+                {
+                  "id": "dwc9m",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Daily Wordle",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /quests/wordle",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Daily Wordle"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/wordle"
+                    },
+                    "r7fk9d": {
+                      "content": "app/quests/wordle.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Wordle board with on-screen keyboard."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "UnYCV",
+          "name": "Section - PvP & social",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "NpOTV",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "DyH8n",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "PvP & social",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "EliPE",
+                  "name": "Section Count",
+                  "fill": "$primary",
+                  "content": "7",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "LiuCG",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "Full-screen stack routes outside the tabs.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Ar1gg",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "UTvG8",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Live battle",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /pvp/match/:matchId",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Live battle"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp-match"
+                    },
+                    "r7fk9d": {
+                      "content": "app/pvp-match.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Battle board, unit actions and battle log."
+                    }
+                  }
+                },
+                {
+                  "id": "XGqii",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Battle replay",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /pvp/history/:matchId",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Battle replay"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp-replay"
+                    },
+                    "r7fk9d": {
+                      "content": "app/pvp-replay.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Step through a finished match."
+                    }
+                  }
+                },
+                {
+                  "id": "s6ocK",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Loadouts",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /pvp/loadouts",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Loadouts"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp-loadouts"
+                    },
+                    "r7fk9d": {
+                      "content": "app/pvp-loadouts.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Build and save PvP loadouts."
+                    }
+                  }
+                },
+                {
+                  "id": "l0PNT",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Battle history",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /pvp/history",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Battle history"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp-history"
+                    },
+                    "r7fk9d": {
+                      "content": "app/pvp-history.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Finished matches list."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "KrsHs",
+              "name": "Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "y8hlCM",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Spectate",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /pvp/spectate",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Spectate"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp-spectate"
+                    },
+                    "r7fk9d": {
+                      "content": "app/pvp-spectate.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Live matches open to watch."
+                    }
+                  }
+                },
+                {
+                  "id": "nv21U",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Spectate match",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /pvp/spectate/:matchId",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Spectate match"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp-spectate-match"
+                    },
+                    "r7fk9d": {
+                      "content": "app/pvp-spectate-match.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Read-only live battle view."
+                    }
+                  }
+                },
+                {
+                  "id": "rZOZg",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Public profile",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Public profile"
+                    },
+                    "Og6l2": {
+                      "content": "/public-profile"
+                    },
+                    "r7fk9d": {
+                      "content": "src/features/leaderboards/public-profile-screen.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Player profile opened from Rankings."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "NqGfa",
+          "name": "Section - Route-backed sheets",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "fZ4f6",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ZGMvB",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "Route-backed sheets",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "r1Fhp",
+                  "name": "Section Count",
+                  "fill": "$primary",
+                  "content": "9",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "YnuAm",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "transparentModal routes rendered with ModalSheetRoute.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GFLOT",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "W9RJFK",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Settings",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "ROUTE SHEET",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "web: /settings",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Settings"
+                    },
+                    "Og6l2": {
+                      "content": "/settings"
+                    },
+                    "r7fk9d": {
+                      "content": "app/settings.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Account, language, theme and step source."
+                    }
+                  }
+                },
+                {
+                  "id": "WGTcK",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Card detail",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "ROUTE SHEET",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "web: /collection/:cardId",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Card detail"
+                    },
+                    "Og6l2": {
+                      "content": "/collection-card-detail"
+                    },
+                    "r7fk9d": {
+                      "content": "app/collection-card-detail.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Card art, abilities and dust actions."
+                    }
+                  }
+                },
+                {
+                  "id": "m8Ci5",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "PvP card details",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "ROUTE SHEET",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "mobile only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "PvP card details"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp-card-details"
+                    },
+                    "r7fk9d": {
+                      "content": "app/pvp-card-details.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Card info opened from PvP surfaces."
+                    }
+                  }
+                },
+                {
+                  "id": "a7DPqL",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "PvP mechanics",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "ROUTE SHEET",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "web: /pvp/mechanics",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "PvP mechanics"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp-mechanics"
+                    },
+                    "r7fk9d": {
+                      "content": "app/pvp-mechanics.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Rules explainer."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "T7df6r",
+              "name": "Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "pTFIj",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Combat reference",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "ROUTE SHEET",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "web: /pvp/reference",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Combat reference"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp-reference"
+                    },
+                    "r7fk9d": {
+                      "content": "app/pvp-reference.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Ability and status glossary."
+                    }
+                  }
+                },
+                {
+                  "id": "o4UoEr",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Leaderboard help",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "ROUTE SHEET",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "mobile only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Leaderboard help"
+                    },
+                    "Og6l2": {
+                      "content": "/leaderboard-help"
+                    },
+                    "r7fk9d": {
+                      "content": "app/leaderboard-help.tsx"
+                    },
+                    "cryqt": {
+                      "content": "How rankings are scored."
+                    }
+                  }
+                },
+                {
+                  "id": "mcag0",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Admin card editor",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "ROUTE SHEET",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/cards/:id",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Admin card editor"
+                    },
+                    "Og6l2": {
+                      "content": "/admin-card-editor"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin-card-editor.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Create or edit a card."
+                    }
+                  }
+                },
+                {
+                  "id": "R5l1ZC",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Admin ability editor",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "ROUTE SHEET",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/abilities/:id",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Admin ability editor"
+                    },
+                    "Og6l2": {
+                      "content": "/admin-ability-editor"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin-ability-editor.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Create or edit an ability."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Q4E3E",
+              "name": "Row 3",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "scLr3",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Admin user editor",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "ROUTE SHEET",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/users/:id",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Admin user editor"
+                    },
+                    "Og6l2": {
+                      "content": "/admin-user-editor"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin-user-editor.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Edit a player's balances and role."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "BMTgq",
+          "name": "Section - Admin",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "v1P0Wf",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "M81wqq",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "Admin",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "DGNgM",
+                  "name": "Section Count",
+                  "fill": "$primary",
+                  "content": "8",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "w50qte",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "app/admin/_layout.tsx - redirects non-admins back to the tabs.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "M4LyC",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "JuRmj",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Admin entry",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#F3F4F6"
+                    },
+                    "mZsC4": {
+                      "content": "REDIRECT",
+                      "fill": "#4B5563"
+                    },
+                    "B1jld": {
+                      "content": "web: overview page",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Admin entry"
+                    },
+                    "Og6l2": {
+                      "content": "/admin"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin/index.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Forwards to /admin/cards."
+                    }
+                  }
+                },
+                {
+                  "id": "HTpIt",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Cards",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/cards",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Cards"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/cards"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin/cards.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Card catalog list."
+                    }
+                  }
+                },
+                {
+                  "id": "Al2kB",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Packs",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/packs",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Packs"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/packs"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin/packs.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Pack catalog and odds."
+                    }
+                  }
+                },
+                {
+                  "id": "CPUYf",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Abilities",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/abilities",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Abilities"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/abilities"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin/abilities.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Ability catalog."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "a38h6",
+              "name": "Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "iHdvT",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Users",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/users",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Users"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/users"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin/users.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Player search and moderation."
+                    }
+                  }
+                },
+                {
+                  "id": "F8ftEC",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Featured",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/featured",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Featured"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/featured"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin/featured.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Featured cards on Home."
+                    }
+                  }
+                },
+                {
+                  "id": "pC7o1",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Image assets",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/image-assets",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Image assets"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/image-assets"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin/image-assets.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Uploaded art library."
+                    }
+                  }
+                },
+                {
+                  "id": "VA48L",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Card back visuals",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "SCREEN",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web: /admin/card-backs",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Card back visuals"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/card-back-visuals"
+                    },
+                    "r7fk9d": {
+                      "content": "app/admin/card-back-visuals.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Card back artwork."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "H0XS5i",
+          "name": "Section - In-screen sheets & modals",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "aenYW",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "udX7K",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "In-screen sheets & modals",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "lQMeN",
+                  "name": "Section Count",
+                  "fill": "$primary",
+                  "content": "14",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "HH0c5",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "Overlays without their own route.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "DFFji",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "g74Htf",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Dust info sheet",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#E0F2FE"
+                    },
+                    "mZsC4": {
+                      "content": "SHEET",
+                      "fill": "#0369A1"
+                    },
+                    "B1jld": {
+                      "content": "ModalBottomSheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Dust info sheet"
+                    },
+                    "Og6l2": {
+                      "content": "in Collection"
+                    },
+                    "r7fk9d": {
+                      "content": "app/(tabs)/collection.tsx - DustInfoSheet"
+                    },
+                    "cryqt": {
+                      "content": "Explains the dust economy."
+                    }
+                  }
+                },
+                {
+                  "id": "JoxRY",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Pack summary card sheet",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#E0F2FE"
+                    },
+                    "mZsC4": {
+                      "content": "SHEET",
+                      "fill": "#0369A1"
+                    },
+                    "B1jld": {
+                      "content": "ModalBottomSheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Pack summary card sheet"
+                    },
+                    "Og6l2": {
+                      "content": "in Packs"
+                    },
+                    "r7fk9d": {
+                      "content": "features/packs/opening-components.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Card summary after a pack opening."
+                    }
+                  }
+                },
+                {
+                  "id": "lVHMB",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Quest launch sheet",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#E0F2FE"
+                    },
+                    "mZsC4": {
+                      "content": "SHEET",
+                      "fill": "#0369A1"
+                    },
+                    "B1jld": {
+                      "content": "ModalBottomSheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Quest launch sheet"
+                    },
+                    "Og6l2": {
+                      "content": "in Quests"
+                    },
+                    "r7fk9d": {
+                      "content": "features/quests/quest-hub-components.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Quest intro and start."
+                    }
+                  }
+                },
+                {
+                  "id": "hts1B",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Quest recap sheet",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#E0F2FE"
+                    },
+                    "mZsC4": {
+                      "content": "SHEET",
+                      "fill": "#0369A1"
+                    },
+                    "B1jld": {
+                      "content": "ModalBottomSheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Quest recap sheet"
+                    },
+                    "Og6l2": {
+                      "content": "in Quests"
+                    },
+                    "r7fk9d": {
+                      "content": "features/quests/quest-hub-components.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Result recap for a finished quest."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "SBK0U",
+              "name": "Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "x2pV0",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Quest order sheet",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#E0F2FE"
+                    },
+                    "mZsC4": {
+                      "content": "SHEET",
+                      "fill": "#0369A1"
+                    },
+                    "B1jld": {
+                      "content": "ModalBottomSheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Quest order sheet"
+                    },
+                    "Og6l2": {
+                      "content": "in Quests"
+                    },
+                    "r7fk9d": {
+                      "content": "features/quests/quest-hub-components.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Reorder quest cards."
+                    }
+                  }
+                },
+                {
+                  "id": "c9aVD",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "PvP action modal",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEF3C7"
+                    },
+                    "mZsC4": {
+                      "content": "MODAL",
+                      "fill": "#B45309"
+                    },
+                    "B1jld": {
+                      "content": "centered modal",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "PvP action modal"
+                    },
+                    "Og6l2": {
+                      "content": "in Live battle"
+                    },
+                    "r7fk9d": {
+                      "content": "features/pvp/action-modal.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Choose a unit action; built on BattleFullScreenSheet."
+                    }
+                  }
+                },
+                {
+                  "id": "xMWzR",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "PvP card info modal",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEF3C7"
+                    },
+                    "mZsC4": {
+                      "content": "MODAL",
+                      "fill": "#B45309"
+                    },
+                    "B1jld": {
+                      "content": "centered modal",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "PvP card info modal"
+                    },
+                    "Og6l2": {
+                      "content": "in Live battle"
+                    },
+                    "r7fk9d": {
+                      "content": "features/pvp/card-info-modal.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Unit card details; built on BattleFullScreenSheet."
+                    }
+                  }
+                },
+                {
+                  "id": "J8jXv",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Wordle definition modal",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEF3C7"
+                    },
+                    "mZsC4": {
+                      "content": "MODAL",
+                      "fill": "#B45309"
+                    },
+                    "B1jld": {
+                      "content": "RN Modal",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Wordle definition modal"
+                    },
+                    "Og6l2": {
+                      "content": "in Daily Wordle"
+                    },
+                    "r7fk9d": {
+                      "content": "app/quests/wordle.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Shows the word definition."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "RcmUm",
+              "name": "Row 3",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "o1F2WK",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Wordle reset modal",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEF3C7"
+                    },
+                    "mZsC4": {
+                      "content": "MODAL",
+                      "fill": "#B45309"
+                    },
+                    "B1jld": {
+                      "content": "RN Modal",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Wordle reset modal"
+                    },
+                    "Og6l2": {
+                      "content": "in Daily Wordle"
+                    },
+                    "r7fk9d": {
+                      "content": "app/quests/wordle.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Confirms a board reset."
+                    }
+                  }
+                },
+                {
+                  "id": "d2vFp",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Speed Calculus run panel",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEF3C7"
+                    },
+                    "mZsC4": {
+                      "content": "MODAL",
+                      "fill": "#B45309"
+                    },
+                    "B1jld": {
+                      "content": "RN Modal",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Speed Calculus run panel"
+                    },
+                    "Og6l2": {
+                      "content": "in Speed Calculus"
+                    },
+                    "r7fk9d": {
+                      "content": "features/quests/speed-calculus/active-run-panel.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Full-screen active run."
+                    }
+                  }
+                },
+                {
+                  "id": "ptTtt",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Perfect Timing continue",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEF3C7"
+                    },
+                    "mZsC4": {
+                      "content": "MODAL",
+                      "fill": "#B45309"
+                    },
+                    "B1jld": {
+                      "content": "ThemedModal",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Perfect Timing continue"
+                    },
+                    "Og6l2": {
+                      "content": "in Perfect Timing"
+                    },
+                    "r7fk9d": {
+                      "content": "features/quests/perfect-timing/continue-confirmation-modal.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Confirm continuing a run."
+                    }
+                  }
+                },
+                {
+                  "id": "LrCf9",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Quest day cutoff",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEF3C7"
+                    },
+                    "mZsC4": {
+                      "content": "MODAL",
+                      "fill": "#B45309"
+                    },
+                    "B1jld": {
+                      "content": "ThemedModal",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Quest day cutoff"
+                    },
+                    "Og6l2": {
+                      "content": "in Quests"
+                    },
+                    "r7fk9d": {
+                      "content": "features/quests/quest-day-cutoff-modal.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Warns when the quest day rolls over."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "wV88o",
+              "name": "Row 4",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "o0lJQ",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Collection confirms",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEF3C7"
+                    },
+                    "mZsC4": {
+                      "content": "MODAL",
+                      "fill": "#B45309"
+                    },
+                    "B1jld": {
+                      "content": "ThemedModal x2",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Collection confirms"
+                    },
+                    "Og6l2": {
+                      "content": "in Collection"
+                    },
+                    "r7fk9d": {
+                      "content": "app/(tabs)/collection.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Two confirmation dialogs (e.g. dusting)."
+                    }
+                  }
+                },
+                {
+                  "id": "H4R26d",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Admin modal",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEF3C7"
+                    },
+                    "mZsC4": {
+                      "content": "MODAL",
+                      "fill": "#B45309"
+                    },
+                    "B1jld": {
+                      "content": "RN Modal",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Admin modal"
+                    },
+                    "Og6l2": {
+                      "content": "in admin screens"
+                    },
+                    "r7fk9d": {
+                      "content": "components/admin/admin-ui.tsx - AdminModal"
+                    },
+                    "cryqt": {
+                      "content": "Shared admin dialog (cards, packs, abilities, card backs)."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "dsnq9",
+          "name": "Section - Dev & E2E",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "x9omL",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ADEd2",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "Dev & E2E",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "ihQap",
+                  "name": "Section Count",
+                  "fill": "$primary",
+                  "content": "2",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "EC3ob",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "Test-only routes used by Maestro.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JY0jE",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "dempI",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "E2E auth bridge",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEE2E2"
+                    },
+                    "mZsC4": {
+                      "content": "DEV",
+                      "fill": "#B91C1C"
+                    },
+                    "B1jld": {
+                      "content": "test only",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "E2E auth bridge"
+                    },
+                    "Og6l2": {
+                      "content": "/e2e-auth"
+                    },
+                    "r7fk9d": {
+                      "content": "app/e2e-auth.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Injects a test session from a deep link, then redirects."
+                    }
+                  }
+                },
+                {
+                  "id": "FZdfF",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "E2E Speed Calculus",
+                  "width": 300,
+                  "height": "fit_content",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEE2E2"
+                    },
+                    "mZsC4": {
+                      "content": "DEV",
+                      "fill": "#B91C1C"
+                    },
+                    "B1jld": {
+                      "content": "test only",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "E2E Speed Calculus"
+                    },
+                    "Og6l2": {
+                      "content": "/e2e-speed-calculus"
+                    },
+                    "r7fk9d": {
+                      "content": "app/e2e-speed-calculus.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Deterministic Speed Calculus harness."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "WI9AY",
+      "x": 1464,
+      "y": 0,
+      "name": "Website views (React)",
+      "clip": true,
+      "width": 1344,
+      "fill": "#F0F7FF",
+      "cornerRadius": 24,
+      "layout": "vertical",
+      "gap": 40,
+      "padding": 48,
+      "children": [
+        {
+          "type": "frame",
+          "id": "v7SQG",
+          "name": "Board Header",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "text",
+              "id": "USttP",
+              "name": "Eyebrow",
+              "fill": "#1D4ED8",
+              "content": "ADVENTURE TIME TCG - VIEW INVENTORY",
+              "fontFamily": "$font-ui",
+              "fontSize": 12,
+              "fontWeight": "800",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "text",
+              "id": "n4fBy",
+              "name": "Board Title",
+              "fill": "$fg",
+              "content": "Website (React Router, served by Phoenix)",
+              "fontFamily": "$font-ui",
+              "fontSize": 40,
+              "fontWeight": "900"
+            },
+            {
+              "type": "text",
+              "id": "MFGzN",
+              "name": "Board Summary",
+              "fill": "$fg-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "46 views from apps/web/src/app.tsx. Parity label names the mobile counterpart, or \"web only\".",
+              "fontFamily": "$font-ui",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "vmBEJ",
+          "name": "Section - Public",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "M9WMmi",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "k1OoSq",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "Public",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "pKYCZ",
+                  "name": "Section Count",
+                  "fill": "#2563EB",
+                  "content": "9",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "VBFd7",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "PublicLayout - no session required.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ez6Uq",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "EPBbZ",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Landing",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Landing"
+                    },
+                    "Og6l2": {
+                      "content": "/",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/public/landing-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Marketing home and app download links."
+                    }
+                  }
+                },
+                {
+                  "id": "O3KWx",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Service status",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Service status"
+                    },
+                    "Og6l2": {
+                      "content": "/status",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/public/status-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Backend health and incidents."
+                    }
+                  }
+                },
+                {
+                  "id": "AT3Xd",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Privacy",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Privacy"
+                    },
+                    "Og6l2": {
+                      "content": "/privacy",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/public/privacy-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Privacy policy."
+                    }
+                  }
+                },
+                {
+                  "id": "d8Mpv",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Account deletion",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Account deletion"
+                    },
+                    "Og6l2": {
+                      "content": "/account-deletion",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/public/account-deletion-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Store-required deletion instructions."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eWHI9",
+              "name": "Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "YeVP2",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Verify email",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Verify email"
+                    },
+                    "Og6l2": {
+                      "content": "/email/verify",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/public/email-verify-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Email verification link target."
+                    }
+                  }
+                },
+                {
+                  "id": "XhdQh",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Reset password",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Reset password"
+                    },
+                    "Og6l2": {
+                      "content": "/password/reset",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/public/password-reset-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Password reset link target."
+                    }
+                  }
+                },
+                {
+                  "id": "vUqRF",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Sign in",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: /login",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Sign in"
+                    },
+                    "Og6l2": {
+                      "content": "/login",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/public/login-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Email and Google sign-in."
+                    }
+                  }
+                },
+                {
+                  "id": "nHbRL",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Create account",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Create account"
+                    },
+                    "Og6l2": {
+                      "content": "/register",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/public/register-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Sign-up and access request."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tt1Dz",
+              "name": "Row 3",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "gGnWZ",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Not found",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#F3F4F6"
+                    },
+                    "mZsC4": {
+                      "content": "FALLBACK",
+                      "fill": "#4B5563"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Not found"
+                    },
+                    "Og6l2": {
+                      "content": "/404 and *",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/public/not-found-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Explicit /404 plus the catch-all route."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "z46lk",
+          "name": "Section - Player",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "pqAeB",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "XSeta",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "Player",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "aUGDX",
+                  "name": "Section Count",
+                  "fill": "#2563EB",
+                  "content": "22",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "kNZ5d",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "AppLayout - signed-in player shell.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ShjON",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "yS91N",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Home",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: Home tab",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Home"
+                    },
+                    "Og6l2": {
+                      "content": "/home",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/core-pages.tsx - HomePage"
+                    },
+                    "cryqt": {
+                      "content": "Dashboard: balances and shortcuts."
+                    }
+                  }
+                },
+                {
+                  "id": "Or9s0",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Collection",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: Collection tab",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Collection"
+                    },
+                    "Og6l2": {
+                      "content": "/collection",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/core-pages.tsx - CollectionPage"
+                    },
+                    "cryqt": {
+                      "content": "Owned cards grid."
+                    }
+                  }
+                },
+                {
+                  "id": "sSIND",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Card detail",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "DETAIL",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "mobile: route sheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Card detail"
+                    },
+                    "Og6l2": {
+                      "content": "/collection/:cardId",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/core-pages.tsx - CardDetailPage"
+                    },
+                    "cryqt": {
+                      "content": "Single card view."
+                    }
+                  }
+                },
+                {
+                  "id": "R75f1h",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Packs",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: Packs tab",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Packs"
+                    },
+                    "Og6l2": {
+                      "content": "/packs",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/core-pages.tsx - PacksPage"
+                    },
+                    "cryqt": {
+                      "content": "Pack shop and opening."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "W2I0u3",
+              "name": "Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "r33pxr",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Gifts",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: hidden tab",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Gifts"
+                    },
+                    "Og6l2": {
+                      "content": "/gifts",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/core-pages.tsx - GiftsPage"
+                    },
+                    "cryqt": {
+                      "content": "Received and sent gifts."
+                    }
+                  }
+                },
+                {
+                  "id": "WM8V5",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Daily quests",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: Quests tab",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Daily quests"
+                    },
+                    "Og6l2": {
+                      "content": "/quests",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/quest-pages.tsx - QuestsPage"
+                    },
+                    "cryqt": {
+                      "content": "Quest hub."
+                    }
+                  }
+                },
+                {
+                  "id": "oCcDn",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Daily Numbers",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: redirect",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Daily Numbers"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/daily-numbers",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/quest-pages.tsx - DailyNumbersPage"
+                    },
+                    "cryqt": {
+                      "content": "Mode picker hub (mobile redirects instead)."
+                    }
+                  }
+                },
+                {
+                  "id": "VJ0Zq",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Daily Numbers play",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Daily Numbers play"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/daily-numbers/play",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/quest-pages.tsx - DailyNumbersPlayPage"
+                    },
+                    "cryqt": {
+                      "content": "Puzzle board."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "h3gHJ",
+              "name": "Row 3",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "m3WP5Q",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Daily Numbers archive",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Daily Numbers archive"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/daily-numbers/history",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/quest-pages.tsx - DailyNumbersHistoryPage"
+                    },
+                    "cryqt": {
+                      "content": "Past puzzles."
+                    }
+                  }
+                },
+                {
+                  "id": "xFDAH",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Speed Calculus",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Speed Calculus"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/speed-calculus",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/quest-pages.tsx - SpeedCalculusPage"
+                    },
+                    "cryqt": {
+                      "content": "Ranked mental-math run."
+                    }
+                  }
+                },
+                {
+                  "id": "Hk3Vr",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Calculus training",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Calculus training"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/speed-calculus/training",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/quest-pages.tsx - SpeedTrainingPage"
+                    },
+                    "cryqt": {
+                      "content": "Practice mode."
+                    }
+                  }
+                },
+                {
+                  "id": "dtU4j",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Daily Wordle",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Daily Wordle"
+                    },
+                    "Og6l2": {
+                      "content": "/quests/wordle",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/quest-pages.tsx - WordlePage"
+                    },
+                    "cryqt": {
+                      "content": "Wordle board."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ERzc0",
+              "name": "Row 4",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "wVYXs",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "PvP lobby",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: PvP tab",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "PvP lobby"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/pvp-pages.tsx - PvpLobbyPage"
+                    },
+                    "cryqt": {
+                      "content": "Matchmaking and active matches."
+                    }
+                  }
+                },
+                {
+                  "id": "Hy6P8",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "PvP loadouts",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "PvP loadouts"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp/loadouts",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/pvp-pages.tsx - PvpLoadoutsPage"
+                    },
+                    "cryqt": {
+                      "content": "Loadout builder."
+                    }
+                  }
+                },
+                {
+                  "id": "OUNJN",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Live battle",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "DETAIL",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Live battle"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp/match/:matchId",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/pvp-pages.tsx - PvpMatchPage"
+                    },
+                    "cryqt": {
+                      "content": "Battle board."
+                    }
+                  }
+                },
+                {
+                  "id": "LRvry",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Battle history",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Battle history"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp/history",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/pvp-pages.tsx - PvpHistoryPage"
+                    },
+                    "cryqt": {
+                      "content": "Finished matches."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hgyUF",
+              "name": "Row 5",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "TGVIu",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Battle replay",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "DETAIL",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Battle replay"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp/history/:matchId",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/pvp-pages.tsx - PvpReplayPage"
+                    },
+                    "cryqt": {
+                      "content": "Replay cursor over a match."
+                    }
+                  }
+                },
+                {
+                  "id": "K0wdhl",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Spectate",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Spectate"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp/spectate",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/pvp-pages.tsx - PvpSpectatePage"
+                    },
+                    "cryqt": {
+                      "content": "Live matches list."
+                    }
+                  }
+                },
+                {
+                  "id": "nIo2n",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Spectate match",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "DETAIL",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Spectate match"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp/spectate/:matchId",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/pvp-pages.tsx - PvpSpectateMatchPage"
+                    },
+                    "cryqt": {
+                      "content": "Read-only live battle."
+                    }
+                  }
+                },
+                {
+                  "id": "GooAY",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "PvP mechanics",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: route sheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "PvP mechanics"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp/mechanics",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/pvp-pages.tsx - PvpMechanicsPage"
+                    },
+                    "cryqt": {
+                      "content": "Rules explainer."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dZD43",
+              "name": "Row 6",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "J13Eq3",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Combat reference",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: route sheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Combat reference"
+                    },
+                    "Og6l2": {
+                      "content": "/pvp/reference",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/pvp-pages.tsx - PvpReferencePage"
+                    },
+                    "cryqt": {
+                      "content": "Ability glossary."
+                    }
+                  }
+                },
+                {
+                  "id": "CqCH2",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Settings",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: route sheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Settings"
+                    },
+                    "Og6l2": {
+                      "content": "/settings",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/player/settings-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Account and preferences."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "XIyxs",
+          "name": "Section - Admin",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "TUfXj",
+              "name": "Section Header",
+              "width": "fill_container",
+              "gap": 12,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "iyOdu",
+                  "name": "Section Title",
+                  "fill": "$fg",
+                  "content": "Admin",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 22,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "AsO9y",
+                  "name": "Section Count",
+                  "fill": "#2563EB",
+                  "content": "15",
+                  "fontFamily": "$font-mono",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "lpJds",
+                  "name": "Section Description",
+                  "fill": "$fg-muted",
+                  "content": "AppLayout admin - admin role required.",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GRYmI",
+              "name": "Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "eCPjE",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Operations overview",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile: redirect",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Operations overview"
+                    },
+                    "Og6l2": {
+                      "content": "/admin",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/overview-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Admin metrics landing."
+                    }
+                  }
+                },
+                {
+                  "id": "yLyPU",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Cards",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Cards"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/cards",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/cards-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Card catalog."
+                    }
+                  }
+                },
+                {
+                  "id": "OjNXs",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Card editor",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "DETAIL",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "mobile: route sheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Card editor"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/cards/:id",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/cards-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Edit a card."
+                    }
+                  }
+                },
+                {
+                  "id": "x01N3",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Featured cards",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Featured cards"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/featured",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/cards-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Featured on Home."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "uZYme",
+              "name": "Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "kAhPR",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Packs",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Packs"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/packs",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/catalog-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Pack catalog."
+                    }
+                  }
+                },
+                {
+                  "id": "fpbr8",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Pack editor",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "DETAIL",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Pack editor"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/packs/:id",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/catalog-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Edit a pack."
+                    }
+                  }
+                },
+                {
+                  "id": "M6GjW",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Card backs",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Card backs"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/card-backs",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/catalog-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Card back art."
+                    }
+                  }
+                },
+                {
+                  "id": "VandC",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Image assets",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Image assets"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/image-assets",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/catalog-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Uploaded art."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "BrWzS",
+              "name": "Row 3",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "x0S2D",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Abilities",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Abilities"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/abilities",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/abilities-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Ability catalog."
+                    }
+                  }
+                },
+                {
+                  "id": "Bv3Qq",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Ability editor",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "DETAIL",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "mobile: route sheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Ability editor"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/abilities/:id",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/abilities-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Edit an ability."
+                    }
+                  }
+                },
+                {
+                  "id": "PhMvh",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Users",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "mobile ✓",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "Users"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/users",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/users-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Player search."
+                    }
+                  }
+                },
+                {
+                  "id": "gKuuV",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "User detail",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#EDE9FE"
+                    },
+                    "mZsC4": {
+                      "content": "DETAIL",
+                      "fill": "#6D28D9"
+                    },
+                    "B1jld": {
+                      "content": "mobile: route sheet",
+                      "fill": "$fg-muted"
+                    },
+                    "zdmJh": {
+                      "content": "User detail"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/users/:id",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/users-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Edit a player."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "PUjfL",
+              "name": "Row 4",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "id": "dZvii",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Balance lab",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FCE7F3"
+                    },
+                    "mZsC4": {
+                      "content": "PAGE",
+                      "fill": "#BE185D"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Balance lab"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/balance",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/balance-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Combat balance simulator."
+                    }
+                  }
+                },
+                {
+                  "id": "VKBHJ",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Access requests",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEE2E2"
+                    },
+                    "mZsC4": {
+                      "content": "SUPER ADMIN",
+                      "fill": "#B91C1C"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Access requests"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/email-requests",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/users-pages.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Approve email access requests."
+                    }
+                  }
+                },
+                {
+                  "id": "gZFkU",
+                  "type": "ref",
+                  "ref": "P0t92E",
+                  "name": "Leaderboard integrity",
+                  "width": 300,
+                  "stroke": "#D6E4F5",
+                  "descendants": {
+                    "LmwJb": {
+                      "fill": "#FEE2E2"
+                    },
+                    "mZsC4": {
+                      "content": "SUPER ADMIN",
+                      "fill": "#B91C1C"
+                    },
+                    "B1jld": {
+                      "content": "web only",
+                      "fill": "#B45309"
+                    },
+                    "zdmJh": {
+                      "content": "Leaderboard integrity"
+                    },
+                    "Og6l2": {
+                      "content": "/admin/leaderboard-integrity",
+                      "fill": "#1D4ED8"
+                    },
+                    "r7fk9d": {
+                      "content": "pages/admin/leaderboard-integrity-page.tsx"
+                    },
+                    "cryqt": {
+                      "content": "Audit suspicious scores. Missing from route-manifest.ts."
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "tbQZC",
+      "x": 2928,
+      "y": 0,
+      "name": "Overview & parity",
+      "clip": true,
+      "width": 960,
+      "fill": "$surface",
+      "cornerRadius": 24,
+      "stroke": "$border",
+      "strokeWidth": 1,
+      "layout": "vertical",
+      "gap": 36,
+      "padding": 48,
+      "children": [
+        {
+          "type": "frame",
+          "id": "NhrmY",
+          "name": "Header",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "text",
+              "id": "oqqj8",
+              "name": "Eyebrow",
+              "fill": "$primary-strong",
+              "content": "ADVENTURE TIME TCG - VIEW INVENTORY",
+              "fontFamily": "$font-ui",
+              "fontSize": 12,
+              "fontWeight": "800",
+              "letterSpacing": 1.5
+            },
+            {
+              "type": "text",
+              "id": "YdW4l",
+              "name": "Title",
+              "fill": "$fg",
+              "content": "Overview & parity",
+              "fontFamily": "$font-ui",
+              "fontSize": 40,
+              "fontWeight": "900"
+            },
+            {
+              "type": "text",
+              "id": "b9gfG",
+              "name": "Summary",
+              "fill": "$fg-muted",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Snapshot of every view in the Expo app and the website on main @ a404cfa (2026-10-10). Boards to the left hold one card per view.",
+              "fontFamily": "$font-ui",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ssH7e",
+          "name": "Stats",
+          "width": "fill_container",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "RfIZw",
+              "name": "Stat mobile views",
+              "width": "fill_container",
+              "fill": "#FFF7FB",
+              "cornerRadius": 14,
+              "layout": "vertical",
+              "gap": 2,
+              "padding": [
+                16,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "IyCIk",
+                  "name": "Value",
+                  "fill": "#BE185D",
+                  "content": "57",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 40,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "x9J19",
+                  "name": "Label",
+                  "fill": "$fg-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "mobile views",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "mDlWi",
+              "name": "Stat mobile routes (4 redirects)",
+              "width": "fill_container",
+              "fill": "#FFF7FB",
+              "cornerRadius": 14,
+              "layout": "vertical",
+              "gap": 2,
+              "padding": [
+                16,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "rsmdo",
+                  "name": "Value",
+                  "fill": "#BE185D",
+                  "content": "43",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 40,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "ROe9r",
+                  "name": "Label",
+                  "fill": "$fg-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "mobile routes (4 redirects)",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "fFGeZ",
+              "name": "Stat in-screen overlays",
+              "width": "fill_container",
+              "fill": "#FFF7FB",
+              "cornerRadius": 14,
+              "layout": "vertical",
+              "gap": 2,
+              "padding": [
+                16,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "bGMDs",
+                  "name": "Value",
+                  "fill": "#0369A1",
+                  "content": "14",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 40,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "uNo4H",
+                  "name": "Label",
+                  "fill": "$fg-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "in-screen overlays",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "LCSxs",
+              "name": "Stat website routes",
+              "width": "fill_container",
+              "fill": "#FFF7FB",
+              "cornerRadius": 14,
+              "layout": "vertical",
+              "gap": 2,
+              "padding": [
+                16,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "SKs2S",
+                  "name": "Value",
+                  "fill": "#1D4ED8",
+                  "content": "46",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 40,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "h7Vl8",
+                  "name": "Label",
+                  "fill": "$fg-muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "website routes",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "dqgEm",
+          "name": "Legend",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "s710A",
+              "name": "Legend Title",
+              "fill": "$fg",
+              "content": "Kind legend",
+              "fontFamily": "$font-ui",
+              "fontSize": 20,
+              "fontWeight": "900"
+            },
+            {
+              "type": "frame",
+              "id": "a7ympr",
+              "name": "Legend Row 1",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "h5YWt",
+                  "name": "Legend TAB",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "T6n55I",
+                      "name": "Badge",
+                      "fill": "#DBEAFE",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "VIv1O",
+                          "name": "Badge Label",
+                          "fill": "#1D4ED8",
+                          "content": "TAB",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "eVure",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Bottom tab",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "h8cIK",
+                  "name": "Legend HIDDEN TAB",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ehpys",
+                      "name": "Badge",
+                      "fill": "#E0E7FF",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "mm6az",
+                          "name": "Badge Label",
+                          "fill": "#4338CA",
+                          "content": "HIDDEN TAB",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "uZgbg",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Tab with href: null",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "AvHeK",
+                  "name": "Legend SCREEN",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uyYAc",
+                      "name": "Badge",
+                      "fill": "#FCE7F3",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "t9Wx15",
+                          "name": "Badge Label",
+                          "fill": "#BE185D",
+                          "content": "SCREEN",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "Ey7VI",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Stack route",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tLHcL",
+              "name": "Legend Row 2",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Ij6vr",
+                  "name": "Legend ROUTE SHEET",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "M7ICu",
+                      "name": "Badge",
+                      "fill": "#EDE9FE",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "sDjZg",
+                          "name": "Badge Label",
+                          "fill": "#6D28D9",
+                          "content": "ROUTE SHEET",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "ajaqi",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "transparentModal + ModalSheetRoute",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Ihhpl",
+                  "name": "Legend SHEET",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "W4TgY8",
+                      "name": "Badge",
+                      "fill": "#E0F2FE",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Zx1K0",
+                          "name": "Badge Label",
+                          "fill": "#0369A1",
+                          "content": "SHEET",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "iSgfV",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "ModalBottomSheet in a screen",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "M3ZV6b",
+                  "name": "Legend MODAL",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "eMfxo",
+                      "name": "Badge",
+                      "fill": "#FEF3C7",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lYRsB",
+                          "name": "Badge Label",
+                          "fill": "#B45309",
+                          "content": "MODAL",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "K3LC52",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Modal / ThemedModal / battle sheet",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "j39z8",
+              "name": "Legend Row 3",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "xrnlC",
+                  "name": "Legend REDIRECT",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ytrEA",
+                      "name": "Badge",
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "S7G8z",
+                          "name": "Badge Label",
+                          "fill": "#4B5563",
+                          "content": "REDIRECT",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "Z6rTuS",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Route that only forwards",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "k3hJ3i",
+                  "name": "Legend DEV",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "xuFmu",
+                      "name": "Badge",
+                      "fill": "#FEE2E2",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "wOhlG",
+                          "name": "Badge Label",
+                          "fill": "#B91C1C",
+                          "content": "DEV",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZO9CM",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "E2E-only route",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "b2N6Zk",
+                  "name": "Legend PAGE",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SU1SJ",
+                      "name": "Badge",
+                      "fill": "#FCE7F3",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "xB2Ew",
+                          "name": "Badge Label",
+                          "fill": "#BE185D",
+                          "content": "PAGE",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "nzjCH",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Website page",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "aWjM5",
+              "name": "Legend Row 4",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "wUZEJ",
+                  "name": "Legend DETAIL",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "tTm1j",
+                      "name": "Badge",
+                      "fill": "#EDE9FE",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "UOXaX",
+                          "name": "Badge Label",
+                          "fill": "#6D28D9",
+                          "content": "DETAIL",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "O9g1MA",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Website page with :param",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PsH0s",
+                  "name": "Legend SUPER ADMIN",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "OHnqj",
+                      "name": "Badge",
+                      "fill": "#FEE2E2",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "PmUup",
+                          "name": "Badge Label",
+                          "fill": "#B91C1C",
+                          "content": "SUPER ADMIN",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "B0s7xc",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "SuperAdminRoute-gated",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "X4I0Iw",
+                  "name": "Legend FALLBACK",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "LIj1y",
+                      "name": "Badge",
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 999,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "M1Jd09",
+                          "name": "Badge Label",
+                          "fill": "#4B5563",
+                          "content": "FALLBACK",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 10,
+                          "fontWeight": "800",
+                          "letterSpacing": 0.8
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "hEVzv",
+                      "name": "Meaning",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "404 / catch-all",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "j5wTB",
+          "name": "Parity gaps",
+          "width": "fill_container",
+          "gap": 24,
+          "children": [
+            {
+              "type": "frame",
+              "id": "ZeUWO",
+              "name": "Mobile only (6)",
+              "width": "fill_container",
+              "fill": "#FAFAFA",
+              "cornerRadius": 14,
+              "layout": "vertical",
+              "gap": 8,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "M3iAxu",
+                  "name": "Column Title",
+                  "fill": "#BE185D",
+                  "content": "Mobile only (6)",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 18,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "t94V85",
+                  "name": "Rankings tab",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Rankings tab",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "bFnzw",
+                  "name": "Public profile",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Public profile",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "dacCC",
+                  "name": "Leaderboard help sheet",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Leaderboard help sheet",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "aiGPD",
+                  "name": "Perfect Timing quest",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Perfect Timing quest",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "JS1Nu",
+                  "name": "PvP card details sheet",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- PvP card details sheet",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "K8WJ3",
+                  "name": "Widget quests bridge",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Widget quests bridge",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JoXSf",
+              "name": "Website only (12)",
+              "width": "fill_container",
+              "fill": "#FAFAFA",
+              "cornerRadius": 14,
+              "layout": "vertical",
+              "gap": 8,
+              "padding": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "e0Ex7",
+                  "name": "Column Title",
+                  "fill": "#1D4ED8",
+                  "content": "Website only (12)",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 18,
+                  "fontWeight": "900"
+                },
+                {
+                  "type": "text",
+                  "id": "cTriS",
+                  "name": "Landing, Status, Privacy",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Landing, Status, Privacy",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "sBbBM",
+                  "name": "Account deletion",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Account deletion",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "Kz7t0",
+                  "name": "Verify email, Reset password",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Verify email, Reset password",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "xXyin",
+                  "name": "Create account",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Create account",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "qa1w4",
+                  "name": "Not found / catch-all",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Not found / catch-all",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "QaDVm",
+                  "name": "Admin pack editor",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Admin pack editor",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "GGuqb",
+                  "name": "Admin balance lab",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Admin balance lab",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "pFlId",
+                  "name": "Admin access requests",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Admin access requests",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "H2z9zM",
+                  "name": "Admin leaderboard integrity",
+                  "fill": "$fg",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "- Admin leaderboard integrity",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "DYdAl",
+          "name": "Drift notes",
+          "width": "fill_container",
+          "fill": "#FFFBEB",
+          "cornerRadius": 14,
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "RKK62",
+              "name": "Drift Title",
+              "fill": "#B45309",
+              "content": "Drift worth a look",
+              "fontFamily": "$font-ui",
+              "fontSize": 18,
+              "fontWeight": "900"
+            },
+            {
+              "type": "text",
+              "id": "A92dwY",
+              "name": "Note",
+              "fill": "$fg",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "- apps/web/src/route-manifest.ts has no /admin/leaderboard-integrity entry, so its page title falls back to \"Not found\".",
+              "lineHeight": 1.4,
+              "fontFamily": "$font-ui",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "HF9mu",
+              "name": "Note",
+              "fill": "$fg",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "- Daily Numbers hub: the website has a mode-picker page; mobile /quests/daily-numbers only redirects to play.",
+              "lineHeight": 1.4,
+              "fontFamily": "$font-ui",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "b3OeW",
+              "name": "Note",
+              "fill": "$fg",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "- Admin landing: the website shows an operations overview; mobile /admin redirects to cards.",
+              "lineHeight": 1.4,
+              "fontFamily": "$font-ui",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "PtX3b",
+              "name": "Note",
+              "fill": "$fg",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "- Mobile has no pack editor sheet; packs are edited inline via AdminModal.",
+              "lineHeight": 1.4,
+              "fontFamily": "$font-ui",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "bg": {
+      "type": "color",
+      "value": "#FFF0F5"
+    },
+    "surface": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "fg": {
+      "type": "color",
+      "value": "#4A3728"
+    },
+    "fg-muted": {
+      "type": "color",
+      "value": "#7A6A5E"
+    },
+    "primary": {
+      "type": "color",
+      "value": "#F472B6"
+    },
+    "primary-strong": {
+      "type": "color",
+      "value": "#BE185D"
+    },
+    "primary-tint": {
+      "type": "color",
+      "value": "#FCE7F3"
+    },
+    "border": {
+      "type": "color",
+      "value": "#F3D3E2"
+    },
+    "font-ui": {
+      "type": "string",
+      "value": "Nunito"
+    },
+    "font-mono": {
+      "type": "string",
+      "value": "JetBrains Mono"
+    }
+  },
+  "fileToken": "cf42e2be-0473-43c9-aa2a-c991cc31eaa2"
+}
