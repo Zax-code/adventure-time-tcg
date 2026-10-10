@@ -82,7 +82,6 @@ export function QuestDayCutoffModal({
           onPress={status === "error" ? onRetry : onContinue}
           disabled={status === "refreshing"}
           loading={status === "refreshing"}
-          fallbackAppearance={{ borderRadius: 16 }}
           style={{ width: "100%" }}
           testID={
             status === "refreshing"

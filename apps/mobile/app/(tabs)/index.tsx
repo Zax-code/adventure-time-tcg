@@ -96,7 +96,7 @@ function NotificationSettingsButton({
   return (
     <SecondaryButton
       onPress={onPress}
-      leadingAccessory={leadingAccessory}
+      icon={leadingAccessory}
       style={{ flex: 1 }}
     >
       {label}
@@ -411,17 +411,6 @@ function useHomeScreenView() {
               onPress={() => claimMutation.mutate()}
               disabled={!canClaim || claimMutation.isPending}
               loading={claimMutation.isPending}
-              fallbackAppearance={{
-                backgroundColor: tc.primaryDark,
-                borderColor: tc.primaryDark,
-                borderRadius: 999,
-                gradientColors: null,
-                foregroundColor: "#FFFFFF",
-                paddingHorizontal: 18,
-                paddingVertical: 12,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 15 } }}
               style={{ alignSelf: "stretch" }}
             >
               {canClaim ? t("home.claim") : t("home.claimed")}

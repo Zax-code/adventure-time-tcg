@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient } from "../src/lib/api";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
+import { Button } from "../src/components/ui/button";
+import { IconButton } from "../src/components/ui/icon-button";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
 import { getPvpMatchResultView } from "../src/features/pvp/match-result";
@@ -74,25 +76,11 @@ export default function PvpHistoryScreen() {
         style={{ paddingTop: insets.top + 8 }}
       >
         <View className="flex-row items-center gap-3">
-          <ThemedExpoButton
+          <IconButton
+            icon="chevron-back"
             onPress={() => router.push("/(tabs)/pvp")}
-            variant="ghost"
-            fallbackAppearance={{
-              backgroundColor: "transparent",
-              borderColor: "transparent",
-              borderRadius: 12,
-              foregroundColor: tc.fgMuted,
-              gradientColors: null,
-              minHeight: 36,
-              paddingHorizontal: 8,
-              paddingVertical: 8,
-            }}
-            style={{ minHeight: 36, minWidth: 36 }}
-          >
-            <View style={{ transform: [{ rotate: "180deg" }] }}>
-              <ChevronRightIcon size={20} color={tc.fgMuted} />
-            </View>
-          </ThemedExpoButton>
+            accessibilityLabel={t("common.errorStates.backAction")}
+          />
           <View>
             <Text className="font-nunito-extrabold text-2xl text-primaryDark">
               {t("pvp.matchHistory")}
@@ -159,28 +147,13 @@ export default function PvpHistoryScreen() {
             <Text className="mt-2 text-center font-nunito text-sm text-fgMuted">
               {t("pvp.noCompletedMatchesHint")}
             </Text>
-            <ThemedExpoButton
+            <Button
+              tone="primary"
               onPress={() => router.push("/(tabs)/pvp")}
-              preferFallback
-              variant="primary"
-              fallbackAppearance={{
-                backgroundColor: tc.primaryDark,
-                borderColor: tc.primaryDark,
-                borderRadius: 12,
-                foregroundColor: "#FFFFFF",
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 24,
-                paddingVertical: 12,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 14,
-                },
-              }}
               style={{ marginTop: 16 }}
             >
               {t("pvp.findBattle")}
-            </ThemedExpoButton>
+            </Button>
           </View>
         ) : (
           <View className="gap-3">

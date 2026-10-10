@@ -965,7 +965,6 @@ function useCollectionScreenView() {
         <PrimaryButton
           onPress={() => setShowStatsModal(false)}
           style={{ marginTop: 20 }}
-          fallbackAppearance={{ borderRadius: 16 }}
         >
           {t("common.close")}
         </PrimaryButton>
@@ -1034,7 +1033,6 @@ function useCollectionScreenView() {
         <PrimaryButton
           onPress={() => setShowSortModal(false)}
           style={{ marginTop: 16 }}
-          fallbackAppearance={{ borderRadius: 16 }}
         >
           {t("common.close")}
         </PrimaryButton>

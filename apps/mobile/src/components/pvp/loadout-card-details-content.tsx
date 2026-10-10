@@ -12,8 +12,6 @@ import {
   localizeTypeName,
 } from "../../lib/combat-i18n";
 import { getCardImageCacheKey, getCardImageUrl } from "../../lib/card-images";
-import { useThemeStore } from "../../stores/theme-store";
-import { THEME_COLORS } from "../../theme/themes";
 import { CARD_TYPE_COLORS } from "../theme";
 import { SwordsIcon } from "../icons";
 
@@ -96,7 +94,6 @@ export function LoadoutCardDetailsContent({
   onClose,
 }: LoadoutCardDetailsContentProps) {
   const { t, locale } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const typeColor = CARD_TYPE_COLORS[card.type] ?? CARD_TYPE_COLORS.Hero;
   const hpPct = 100;
   const abilities = [
@@ -280,20 +277,6 @@ export function LoadoutCardDetailsContent({
         {onClose ? (
           <PrimaryButton
             onPress={onClose}
-            fallbackAppearance={{
-              backgroundColor: tc.primaryDark,
-              borderColor: tc.primaryDark,
-              borderRadius: 16,
-              foregroundColor: "#FFFFFF",
-              gradientColors: null,
-              minHeight: 0,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              textStyle: {
-                fontFamily: "Nunito_700Bold",
-                fontSize: 14,
-              },
-            }}
             style={{ marginTop: 8 }}
           >
             {t("common.close")}

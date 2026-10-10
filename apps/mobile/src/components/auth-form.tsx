@@ -6,7 +6,6 @@ import {
   isSuccessResponse,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
-import Ionicons from "@react-native-vector-icons/ionicons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Google from "expo-auth-session/providers/google";
 import { SessionUrlProvider } from "expo-auth-session/build/SessionUrlProvider";
@@ -27,7 +26,7 @@ import { useLocaleStore } from "../stores/locale-store";
 import { useSessionStore } from "../stores/session-store";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
-import { PrimaryButton } from "./button";
+import { Button, PrimaryButton } from "./button";
 import { ThemedExpoTextInput } from "./expo-ui/themed-text-input";
 import { CardsIcon, PackIcon, QuestIcon } from "./icons";
 import { KeyboardScreenView } from "./keyboard-screen-view";
@@ -333,73 +332,43 @@ function configureNativeGoogleSignIn() {
 
 type SocialSignInProvider = "google" | "apple";
 
-function SocialProviderMark({ provider }: { provider: SocialSignInProvider }) {
-  const iconName = provider === "apple" ? "logo-apple" : "logo-google";
-
-  return <Ionicons name={iconName} size={24} color="white" />;
-}
-
 function SocialSignInButton({
   disabled,
   onPress,
   provider,
-  tc,
   t,
 }: {
   disabled: boolean;
   onPress: () => void;
   provider: SocialSignInProvider;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   t: (key: string) => string;
 }) {
-  const isGoogle = provider === "google";
-  const title = isGoogle
-    ? t("auth.actions.continueWithGoogle")
-    : t("auth.actions.continueWithApple");
-  const buttonColor = isGoogle ? tc.infoDark : tc.accentDark;
-  const disabledOpacity = disabled ? 0.52 : 1;
+  const title =
+    provider === "google"
+      ? t("auth.actions.continueWithGoogle")
+      : t("auth.actions.continueWithApple");
 
   return (
-    <Pressable
+    <Button
+      tone="ghost"
+      size="lg"
+      icon={provider === "apple" ? "logo-apple" : "logo-google"}
       accessibilityLabel={title}
-      accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
     >
-      {({ pressed }) => (
-        <View
-          className="min-h-[58px] flex-row items-center justify-center gap-3 rounded-[22px] border px-[18px] py-2.5"
-          style={{
-            backgroundColor: buttonColor,
-            borderColor: buttonColor,
-            opacity: disabledOpacity,
-            transform: [{ scale: pressed && !disabled ? 0.985 : 1 }],
-          }}
-        >
-          <SocialProviderMark provider={provider} />
-          <Text
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.84}
-            className="font-nunito-extrabold text-base text-white"
-          >
-            {title}
-          </Text>
-        </View>
-      )}
-    </Pressable>
+      {title}
+    </Button>
   );
 }
 
 function GoogleSignInButton({
   disabled,
   onPress,
-  tc,
   t,
 }: {
   disabled: boolean;
   onPress: () => void;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   t: (key: string) => string;
 }) {
   return (
@@ -407,7 +376,6 @@ function GoogleSignInButton({
       disabled={disabled}
       onPress={onPress}
       provider="google"
-      tc={tc}
       t={t}
     />
   );
@@ -416,12 +384,10 @@ function GoogleSignInButton({
 function AppleSignInButton({
   disabled,
   onPress,
-  tc,
   t,
 }: {
   disabled: boolean;
   onPress: () => void;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   t: (key: string) => string;
 }) {
   return (
@@ -429,7 +395,6 @@ function AppleSignInButton({
       disabled={disabled}
       onPress={onPress}
       provider="apple"
-      tc={tc}
       t={t}
     />
   );
@@ -443,7 +408,6 @@ function AppleAuthSection({
   setError,
   setSession,
   t,
-  tc,
 }: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
@@ -456,7 +420,6 @@ function AppleAuthSection({
     refreshToken: string;
   }) => Promise<void>;
   t: (key: string) => string;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 }) {
   const router = useRouter();
 
@@ -515,7 +478,6 @@ function AppleAuthSection({
     <AppleSignInButton
       disabled={loading}
       onPress={() => void submitApple()}
-      tc={tc}
       t={t}
     />
   );
@@ -529,7 +491,6 @@ function BrowserGoogleAuthSection({
   setGoogleLoading,
   setSession,
   t,
-  tc,
 }: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
@@ -542,7 +503,6 @@ function BrowserGoogleAuthSection({
     refreshToken: string;
   }) => Promise<void>;
   t: (key: string) => string;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 }) {
   const router = useRouter();
   const isExpoGo =
@@ -688,7 +648,6 @@ function BrowserGoogleAuthSection({
     <GoogleSignInButton
       disabled={!request || loading}
       onPress={() => void submitGoogle()}
-      tc={tc}
       t={t}
     />
   );
@@ -702,7 +661,6 @@ function NativeGoogleAuthSection({
   setGoogleLoading,
   setSession,
   t,
-  tc,
 }: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
@@ -715,7 +673,6 @@ function NativeGoogleAuthSection({
     refreshToken: string;
   }) => Promise<void>;
   t: (key: string) => string;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 }) {
   const router = useRouter();
 
@@ -786,7 +743,6 @@ function NativeGoogleAuthSection({
     <GoogleSignInButton
       disabled={loading}
       onPress={() => void submitGoogle()}
-      tc={tc}
       t={t}
     />
   );
@@ -1575,7 +1531,6 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                 setError={setError}
                 setSession={setSession}
                 t={t}
-                tc={tc}
               />
             ) : null}
 
@@ -1591,7 +1546,6 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                   setGoogleLoading={setGoogleLoading}
                   setSession={setSession}
                   t={t}
-                  tc={tc}
                 />
               ) : (
                 <BrowserGoogleAuthSection
@@ -1602,7 +1556,6 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                   setGoogleLoading={setGoogleLoading}
                   setSession={setSession}
                   t={t}
-                  tc={tc}
                 />
               )
             ) : null}
