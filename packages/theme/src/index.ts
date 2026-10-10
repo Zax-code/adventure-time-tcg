@@ -363,3 +363,7 @@ export function getThemeEffectCssVariables(
     [THEME_EFFECT_CSS_VARIABLE_NAMES.shadow]: SHADOW[themeName].float.color,
   };
 }
+
+// Label and icon color on filled primary, danger and selected surfaces
+// ($onPrimary in the spec). The same in every theme.
+export const ON_PRIMARY = "#FFFFFF";
