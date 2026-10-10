@@ -56,6 +56,7 @@ import {
   RANKINGS_TIED_PREVIEW_DATA,
   RANKINGS_TOP_SEVEN_PREVIEW_DATA,
 } from "./rankings-preview-data";
+import { PageTitle } from "../../components/ui/page-title";
 
 type MainPeriod = "daily" | "weekly" | "history";
 type LivePeriod = "today" | "yesterday" | "current_week" | "last_week";
@@ -257,19 +258,8 @@ export function RankingsScreen() {
         />
       }
     >
-      <View className="gap-1 px-1">
-        <View className="flex-row items-center gap-2">
-          <TrophyIcon size={30} color={tc.primaryDark} />
-          <Text
-            selectable
-            className="font-nunito-extrabold text-[32px] text-fg"
-          >
-            {t("rankings.title")}
-          </Text>
-        </View>
-        <Text selectable className="font-nunito text-[15px] text-fgMuted">
-          {t("rankings.subtitle")}
-        </Text>
+      <View className="gap-1">
+        <PageTitle title={t("rankings.title")} subtitle={t("rankings.subtitle")} />
         {isPreview ? (
           <Text className="font-nunito-bold text-xs text-primaryText">
             {t("rankings.previewLabel")}

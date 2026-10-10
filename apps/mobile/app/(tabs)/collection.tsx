@@ -42,6 +42,7 @@ import {
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { PrimaryButton } from "../../src/components/button";
+import { PageTitle } from "../../src/components/ui/page-title";
 import { SheetHeader } from "../../src/components/ui/sheet-header";
 import { getBackdropColor } from "../../src/components/ui/tokens";
 import { ThemedExpoTextInput } from "../../src/components/expo-ui/themed-text-input";
@@ -524,21 +525,7 @@ function useCollectionScreenView() {
 
   const listHeader = (
     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
-      {/* Title */}
-      <Text
-        style={{
-          fontSize: 30,
-          fontFamily: "Nunito_800ExtraBold",
-          color: tc.primaryDark,
-          textAlign: "center",
-          marginBottom: 12,
-          textShadowColor: "rgba(0,0,0,0.15)",
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 3,
-        }}
-      >
-        {t("collection.title")}
-      </Text>
+      <PageTitle title={t("collection.title")} className="mb-ds-3" />
 
       {/* Dust pill — centered */}
       <View style={{ alignItems: "center", marginBottom: 8 }}>

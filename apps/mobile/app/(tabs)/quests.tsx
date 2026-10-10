@@ -139,6 +139,7 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
+import { PageTitle } from "../../src/components/ui/page-title";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type SharingGroup =
@@ -1980,17 +1981,11 @@ function useQuestsScreenView() {
         showsVerticalScrollIndicator={false}
       >
         <View style={{ paddingTop: headerHeight + 12 }}>
-          <View className="mb-5">
-            <Text
-              accessibilityRole="header"
-              className="font-nunito-extrabold text-[28px] text-fg"
-            >
-              {t("quests.title")}
-            </Text>
-            <Text className="mt-1 font-nunito-semibold text-sm text-fgMuted">
-              {t("quests.hub.subtitle")}
-            </Text>
-          </View>
+          <PageTitle
+            title={t("quests.title")}
+            subtitle={t("quests.hub.subtitle")}
+            className="mb-5"
+          />
 
           {displayedQuests.quests.length > 0 ? (
             <QuestHubSummary
