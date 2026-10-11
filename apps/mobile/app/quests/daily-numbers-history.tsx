@@ -121,7 +121,7 @@ function ArchiveModeChip({
           `/quests/daily-numbers-play?archiveDate=${date}&mode=${modeSummary.mode}` as never,
         )
       }
-      className="flex-1 rounded-2xl border px-3 py-3"
+      className="flex-1 rounded-ds-md border px-3 py-3"
       style={{
         minWidth: 96,
         borderColor: statusTone.border,
@@ -242,7 +242,7 @@ export default function DailyNumbersHistoryScreen() {
             {history.days.map((day) => (
               <View
                 key={day.date}
-                className="rounded-2xl border bg-surface p-4"
+                className="rounded-ds-md border bg-surface p-4"
                 style={{ borderColor: tc.primaryBorder }}
               >
                 <Text className="font-nunito-extrabold text-lg text-fg">

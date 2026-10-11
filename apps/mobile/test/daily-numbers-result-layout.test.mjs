@@ -113,7 +113,7 @@ describe("Daily Numbers finish state layout", () => {
   it("separates every starting number into its own compact cell", () => {
     assert.match(
       resultDetailsSource,
-      /h-11 min-w-\[46px\].*rounded-xl border border-primaryBorder bg-surface/,
+      /h-11 min-w-\[46px\].*rounded-ds-sm border border-primaryBorder bg-surface/,
       "starting numbers should render in distinct themed cells",
     );
   });

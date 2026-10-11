@@ -53,6 +53,7 @@ import {
   type DailyNumbersStep,
   type DailyNumbersStepInput,
 } from "@adventure-time/api-client";
+import { ON_PRIMARY } from "@adventure-time/theme";
 
 import { PageErrorState } from "../../src/components/error-state";
 import {
@@ -442,12 +443,13 @@ function displayOperator(operator: Operator) {
   return operator === "*" ? "×" : operator === "/" ? "÷" : operator;
 }
 
+// Keypad Key metrics (board 02): 56 high, radius 16, 24/800 numbers.
 function getBoardNumberTextClass(compact: boolean) {
-  return compact ? "text-[22px] leading-[28px]" : "text-[25px] leading-[32px]";
+  return compact ? "text-[22px] leading-[28px]" : "text-[24px] leading-[29px]";
 }
 
 function getBoardTileHeightClass(compact: boolean) {
-  return compact ? "h-[58px]" : "h-16";
+  return compact ? "h-[52px]" : "h-[56px]";
 }
 
 const BOARD_TILE_WIDTH = "31.5%";
@@ -881,7 +883,7 @@ function MessageBanner({ message }: { message: MessageState }) {
       accessibilityRole="alert"
       entering={FadeIn.duration(180)}
       exiting={FadeOut.duration(140)}
-      className={`mb-3 rounded-xl px-3 py-2.5 ${message.type === "success" ? "bg-successTint" : "bg-dangerTint"}`}
+      className={`mb-3 rounded-ds-sm px-3 py-2.5 ${message.type === "success" ? "bg-successTint" : "bg-dangerTint"}`}
     >
       <Text
         className={`font-nunito-bold text-xs leading-4 ${message.type === "success" ? "text-successText" : "text-dangerText"}`}
@@ -943,13 +945,13 @@ function ModeTabs({
 
   return (
     <View
-      className="relative mb-4 flex-row gap-1.5 rounded-2xl p-1"
+      className="relative mb-4 flex-row gap-1.5 rounded-ds-md p-1"
       onLayout={handleLayout}
     >
       {tabWidth > 0 ? (
         <Animated.View
           pointerEvents="none"
-          className="absolute bottom-1 left-0 top-1 rounded-xl"
+          className="absolute bottom-1 left-0 top-1 rounded-ds-sm"
           style={[
             {
               width: tabWidth,
@@ -975,7 +977,7 @@ function ModeTabs({
               triggerSelectionHaptic();
               onSelectMode(mode);
             }}
-            className="min-h-[64px] flex-1 items-center justify-center rounded-xl px-1.5 py-2.5"
+            className="min-h-[64px] flex-1 items-center justify-center rounded-ds-sm px-1.5 py-2.5"
             style={({ pressed }) => ({
               opacity: pressed ? 0.72 : 1,
               zIndex: 1,
@@ -1407,7 +1409,7 @@ function ResultDetails({
         <View className="mt-2 flex-row flex-wrap items-center gap-2">
           {state.numbers.map((tile) => (
             <View
-              className="h-11 min-w-[46px] items-center justify-center rounded-xl border border-primaryBorder bg-surface px-2"
+              className="h-11 min-w-[46px] items-center justify-center rounded-ds-sm border border-primaryBorder bg-surface px-2"
               key={tile.id}
             >
               <Text
@@ -1540,7 +1542,7 @@ function FinishStatePanel({
     <View className="pt-1" testID="daily-numbers-result">
       <Animated.View
         entering={FadeIn.duration(220)}
-        className="relative mb-1 items-center overflow-hidden rounded-[28px] border px-4 pb-5 pt-5"
+        className="relative mb-1 items-center overflow-hidden rounded-ds-lg border px-4 pb-5 pt-5"
         style={{ backgroundColor: resultTint, borderColor: resultBorder }}
       >
         <Text
@@ -1897,19 +1899,17 @@ function AvailableNumbersGrid({
               <Pressable
                 onPress={() => onTilePress(tile.id)}
                 disabled={availability.disabled}
-                className={`${getBoardTileHeightClass(compact)} items-center justify-center overflow-hidden rounded-xl px-2 py-2`}
+                className={`${getBoardTileHeightClass(compact)} items-center justify-center overflow-hidden rounded-ds-md px-2 py-2`}
                 style={{
                   borderColor: availability.selected
-                    ? modeAccent.text
+                    ? tc.primary
                     : tile.source === "derived"
-                      ? tc.primaryStrong
-                      : "transparent",
-                  borderWidth: 2,
+                      ? tc.primaryText
+                      : tc.primaryBorder,
+                  borderWidth: 1,
                   backgroundColor: availability.selected
-                    ? modeAccent.bg
-                    : tile.source === "derived"
-                      ? tc.surface
-                      : tc.surface,
+                    ? tc.primary
+                    : tc.surface,
                   opacity:
                     committingTileIds.has(tile.id) ||
                     tile.id === committingResultId
@@ -1943,9 +1943,9 @@ function AvailableNumbersGrid({
                   className={`${boardNumberTextClass} text-center font-nunito-extrabold`}
                   style={{
                     color: availability.selected
-                      ? modeAccent.text
+                      ? ON_PRIMARY
                       : tile.source === "derived"
-                        ? tc.primaryStrong
+                        ? tc.primaryText
                         : tc.fg,
                     fontVariant: ["tabular-nums"],
                   }}
@@ -1996,14 +1996,12 @@ function OperatorPicker({
               key={operator}
               onPress={() => onOperatorPress(operator)}
               disabled={availability.disabled}
-              className={`${compact ? "min-h-[58px]" : "min-h-[64px]"} flex-1 items-center justify-center rounded-xl border px-2 py-2`}
+              className={`${compact ? "min-h-[52px]" : "min-h-[56px]"} flex-1 items-center justify-center rounded-ds-md border px-2 py-2`}
               style={{
-                borderColor: availability.selected
-                  ? tc.accentStrong
-                  : tc.primaryBorder,
+                borderColor: availability.selected ? tc.primary : tc.primaryTint,
                 backgroundColor: availability.selected
-                  ? tc.accentTint
-                  : tc.surface,
+                  ? tc.primary
+                  : tc.primaryTint,
                 opacity:
                   availability.disabled && !availability.selected
                     ? 0.2
@@ -2024,7 +2022,7 @@ function OperatorPicker({
               <Text
                 className={`${boardNumberTextClass} text-center font-nunito-extrabold`}
                 style={{
-                  color: availability.selected ? tc.accentStrong : tc.fg,
+                  color: availability.selected ? ON_PRIMARY : tc.primaryText,
                 }}
               >
                 {displayOperator(operator)}
@@ -2084,7 +2082,7 @@ function EquationResult({
             <Pressable
               onPress={onApplyStep}
               disabled={interactionLocked || committing}
-              className={`${resultSurfaceClassName} relative h-full w-full items-center justify-center rounded-xl border-2 px-2 py-2`}
+              className={`${resultSurfaceClassName} relative h-full w-full items-center justify-center rounded-ds-sm border-2 px-2 py-2`}
               style={({ pressed }) => ({
                 opacity:
                   interactionLocked && !committing ? 0.38 : pressed ? 0.76 : 1,
@@ -2388,7 +2386,7 @@ function ConsumedNumberTile({
 
   return (
     <Animated.View
-      className="absolute items-center justify-center rounded-xl border-2"
+      className="absolute items-center justify-center rounded-ds-sm border-2"
       style={[
         {
           left: rect.x,
@@ -2455,7 +2453,7 @@ function CommittedResultTile({
 
   return (
     <Animated.View
-      className="absolute items-center justify-center rounded-xl border-2 border-primaryStrong bg-surface"
+      className="absolute items-center justify-center rounded-ds-sm border-2 border-primaryStrong bg-surface"
       style={[
         {
           left: targetRect.x,
@@ -3773,7 +3771,7 @@ function DailyNumbersBoard({
       <MessageBanner message={controller.visibleMessage} />
       {controller.solutionHuntActive ? (
         <View
-          className="mb-4 rounded-2xl border border-infoBorder bg-infoTint px-4 py-3"
+          className="mb-4 rounded-ds-md border border-infoBorder bg-infoTint px-4 py-3"
           testID="daily-numbers-solution-hunt-playing"
         >
           <Text className="font-nunito-extrabold text-sm text-infoText">
