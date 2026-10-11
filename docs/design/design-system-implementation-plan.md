@@ -5,9 +5,9 @@ Turns `docs/design/design-system-proposal.pen` (summary in
 Each lot leaves the app shippable. No gameplay, contract, backend or data
 change is part of this plan.
 
-Status: lots 0 to 3 in review as a stack (`codex/ds-0-tokens` on #325,
-`codex/ds-1-primitives`, `codex/ds-2-headers`, `codex/ds-3-tab-screens`);
-lots 4 to 7 not started. Prerequisite: pull requests #324 (view inventory) and #325
+Status: lots 0 to 4 in review as a stack (`codex/ds-0-tokens` on #325,
+`codex/ds-1-primitives`, `codex/ds-2-headers`, `codex/ds-3-tab-screens`,
+`codex/ds-4-games`); lots 5 to 7 in progress. Prerequisite: pull requests #324 (view inventory) and #325
 (proposal) merged, or the branch based on #325.
 
 ## Ground rules
@@ -305,6 +305,30 @@ Lot 3 as built (one commit per screen):
 
 Acceptance: `.maestro/wordle-scroll-keyboard.yaml` and the PvP smoke flows
 pass; `npm run test:mobile:appium:speed-calculus:ios` still passes.
+
+Lot 4 as built:
+
+- `ui/game/` holds GameTile, GameKey, KeypadKey, GameHud and one state
+  palette (`game-state.ts`); the UI kit route renders every state.
+- Wordle tiles and keys take the GameCell palette and sizes (tiles 56/16,
+  keys 44/12, typed letters "filled"); key Pressables, hit slop and the flip
+  and shake animations are untouched.
+- Speed Calculus: keypad keys use the KeypadKey palette (digits default, ±
+  action, delete and clear operator, submit primary) on the existing
+  multitouch layer; the HUD follows the Game HUD anatomy with the animated
+  drain; round-over and pause overlays use the Dialog anatomy in place;
+  gradient Pressables are Buttons.
+- Daily Numbers number tiles and operators use the KeypadKey palette;
+  mode tabs keep their status line and animated indicator (SegmentedControl
+  has no second line).
+- Perfect Timing's mode switch is a SegmentedControl; quest game cards move
+  to the 24/16 radius scale; uppercase eyebrows use the overline role.
+- PvP: the battle board action buttons are IconButtons, the energy pill a
+  Chip, the action modal cards token-coloured; history stats are StatTiles
+  and its empty state a StatePanel. Every remaining `ThemedExpoButton`
+  outside admin became a Pressable row on the radius scale.
+- Shared loading and error states render the StatePanel anatomy;
+  `ThemedModal` matches the Dialog panel.
 
 ### Lot 5: admin
 
