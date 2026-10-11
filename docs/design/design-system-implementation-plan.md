@@ -5,9 +5,8 @@ Turns `docs/design/design-system-proposal.pen` (summary in
 Each lot leaves the app shippable. No gameplay, contract, backend or data
 change is part of this plan.
 
-Status: lot 0 in review (branch `codex/ds-0-tokens`, stacked on #325); lot 1
-in review (branch `codex/ds-1-primitives`, stacked on lot 0); lots 2 to 7 not
-started. Prerequisite: pull requests #324 (view inventory) and #325
+Status: lots 0 to 2 in review as a stack (`codex/ds-0-tokens` on #325,
+`codex/ds-1-primitives`, `codex/ds-2-headers`); lots 3 to 7 not started. Prerequisite: pull requests #324 (view inventory) and #325
 (proposal) merged, or the branch based on #325.
 
 ## Ground rules
@@ -204,6 +203,31 @@ Acceptance: every tab screen = AppHeader + PageTitle; every pushed screen =
 StackHeader at the same y; every sheet = SheetHeader. Maestro
 `view-inventory-screenshots.yaml` still passes (test ids unchanged).
 
+Lot 2 as built:
+
+- `ui/page-title.tsx`, `ui/stack-header.tsx` and `ui/sheet-header.tsx` are new.
+  AppHeader and the admin header share a `CoinChip` and IconButtons (Lucide
+  `coins`, `gift`, `shield`, `house`, `settings`); both tab bars share
+  `TabBarItem` in `bottom-tab-bar-frame.tsx` (Lucide `house`, `package`,
+  `swords`, `scroll-text`, `layers`, `trophy`; admin `layers`, `package`,
+  `copy`, `images`, `star`, `zap`, `users`). The selector no longer falls back
+  to Home on hidden tabs (Gifts).
+- PageTitle on Quests, Rankings, Collection, Gifts, Packs and the PvP hub with
+  their existing copy. Home keeps no title: the spec's "Good morning, Finn"
+  greeting is new copy, which this plan excludes.
+- StackHeader on Wordle, Daily Numbers play and history, Speed Calculus and
+  training, Perfect Timing (moved out of its ScrollView, so it now sits at
+  the same y), loadouts, match history, spectate and the public profile
+  (replacing the native stack header). Subtitles of history and spectate stay
+  as a centered muted line under the header. `pvp-match`, `pvp-replay`,
+  `pvp-spectate-match` and `pvp-card-details` are takeovers and keep their
+  chrome; `quests/daily-numbers.tsx` is a redirect.
+- SheetHeader in `ModalSheetRoute`, the dust guide, quest launch, quest recap,
+  quest order and pack preview sheets; the dust guide loses its icon tile.
+  Sheets use radius 28.
+- One backdrop token for ModalSheetRoute, every ModalBottomSheet scrim,
+  ThemedModal, AdminModal, BattleFullScreenSheet and the PvP confirm dialog.
+
 ### Lot 3: tab screens
 
 Migrate one screen per commit, matching board 04:
@@ -316,11 +340,11 @@ Acceptance: no hex literal in either `icons.tsx`.
 | Button implementations | 9 before; after lot 1: `ui/Button` (93 call sites incl. wrappers), `AdminButton` (41, lot 5), `ThemedExpoButton` (26 non-command or board/admin uses) | 1 |
 | Segmented-control implementations | 7 | 1 |
 | Stat-tile implementations | 7 | 1 |
-| Header implementations | 4 + 9 ad hoc | 3 |
-| Backdrop colors | 4 | 1 |
+| Header implementations | 4 + 9 ad hoc; after lot 2: AppHeader, StackHeader, SheetHeader (+ 4 PvP takeover chromes) | 3 |
+| Backdrop colors | 4; after lot 2: 1 token for every sheet and dialog | 1 |
 | Hex literals in web `theme.css` | 122 generated (lot 0; was 116 hand-copied) | generated |
 | Hex literals in `icons.tsx` (mobile + web) | 97 + 54 | 0 |
-| Tab label size | 9 | 11 |
+| Tab label size | 9; after lot 2: 11 | 11 |
 
 ## Risks
 
