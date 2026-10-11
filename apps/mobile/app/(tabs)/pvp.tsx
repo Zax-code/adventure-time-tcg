@@ -4,7 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import {
   ScrollView,
@@ -22,31 +21,28 @@ import {
 import { scheduleOnRN } from "react-native-worklets";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import BookOpen from "lucide-react-native/icons/book-open";
 import Check from "lucide-react-native/icons/check";
 import Eye from "lucide-react-native/icons/eye";
 import Layers from "lucide-react-native/icons/layers";
-import ScrollText from "lucide-react-native/icons/scroll-text";
+import Clock from "lucide-react-native/icons/clock";
+import RotateCcwClock from "lucide-react-native/icons/rotate-ccw-clock";
 import Swords from "lucide-react-native/icons/swords";
 import X from "lucide-react-native/icons/x";
+import Zap from "lucide-react-native/icons/zap";
 
 import { ApiClientError } from "@adventure-time/api-client";
 import { RADIUS } from "@adventure-time/theme";
 
 import { Button } from "../../src/components/ui/button";
-import { IconButton } from "../../src/components/ui/icon-button";
 import { ThemedExpoTextInput } from "../../src/components/expo-ui/themed-text-input";
 import { BattleFullScreenSheet } from "../../src/features/pvp/battle-full-screen-sheet";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { LoadingPanel } from "../../src/components/loading-state";
 import {
   CardsIcon,
-  ChevronRightIcon,
   CheckIcon,
-  ClockIcon,
-  SwordsIcon,
   UserPlusIcon,
 } from "../../src/components/icons";
 import { useFocusedRefetchInterval } from "../../src/hooks/use-focused-refetch-interval";
@@ -67,11 +63,13 @@ import {
   formatTurnTimeout,
   useMinuteNow,
 } from "../../src/features/pvp/turn-timeout";
-import { getPvpMatchResultView } from "../../src/features/pvp/match-result";
 import { Card } from "../../src/components/ui/card";
 import { Chip } from "../../src/components/ui/chip";
+import { IconTile } from "../../src/components/ui/icon-tile";
 import { ListRow } from "../../src/components/ui/list-row";
+import { Notice } from "../../src/components/ui/notice";
 import { PageTitle } from "../../src/components/ui/page-title";
+import { SectionHeader } from "../../src/components/ui/section-header";
 import { StatTile } from "../../src/components/ui/stat-tile";
 
 type ToastState = {
@@ -108,26 +106,6 @@ type PvpLobbyTurnStatus = {
   labelKey: string;
   tone: "viewer" | "opponent" | "unknown";
 };
-
-function SectionHeading({
-  title,
-  action,
-}: {
-  title: string;
-  action?: ReactNode;
-}) {
-  return (
-    <View className="flex-row items-center gap-ds-3">
-      <Text
-        accessibilityRole="header"
-        className="flex-1 font-nunito-extrabold text-ds-h2 text-fg"
-      >
-        {title}
-      </Text>
-      {action}
-    </View>
-  );
-}
 
 function getTimeAgo(
   dateStr: string,
@@ -344,6 +322,11 @@ function usePvpScreenView() {
     refetchOnMount: "always",
     refetchInterval: lobbyRefetchInterval,
   });
+  const { data: spectateQueryData } = useQuery({
+    queryKey: ["pvp-spectate"],
+    queryFn: () => apiClient.pvpSpectate(),
+    refetchInterval: lobbyRefetchInterval,
+  });
   const { data: loadoutsQueryData } = useQuery({
     queryKey: ["pvp-loadouts"],
     queryFn: () => apiClient.pvpLoadouts(),
@@ -424,27 +407,6 @@ function usePvpScreenView() {
     () => loadoutsQueryData?.loadouts ?? [],
     [loadoutsQueryData?.loadouts],
   );
-  const completedMatches = useMemo(
-    () =>
-      historyMatches
-        .filter((match) => match.status === "COMPLETED")
-        .slice(0, 5),
-    [historyMatches],
-  );
-  const sortedLoadouts = useMemo(
-    () =>
-      [...allLoadouts].sort((left, right) => {
-        const leftOrder = left.invalidCardIds.length === 0 ? 0 : 1;
-        const rightOrder = right.invalidCardIds.length === 0 ? 0 : 1;
-
-        if (leftOrder !== rightOrder) {
-          return leftOrder - rightOrder;
-        }
-
-        return left.name.localeCompare(right.name);
-      }),
-    [allLoadouts],
-  );
   const hasValidLoadout = validLoadouts.length > 0;
   const hasLoadouts = allLoadouts.length > 0;
   const inviteActionDisabled = !hasValidLoadout;
@@ -453,14 +415,10 @@ function usePvpScreenView() {
     : hasLoadouts
       ? t("pvp.allLoadoutsInvalid")
       : t("pvp.needLoadoutToInvite");
-  const pendingChallengeCount =
-    pendingReceivedInvites.length + pendingSentInvites.length;
-  const hasAnyData =
-    hasLoadouts ||
-    (invitesQueryData?.invites.length ?? 0) > 0 ||
-    (matchesQueryData?.matches.length ?? 0) > 0 ||
-    completedMatches.length > 0;
-
+  const spectateMatchCount = spectateQueryData?.matches.length ?? 0;
+  const wins = historyQueryData?.stats?.wins ?? 0;
+  const losses = historyQueryData?.stats?.losses ?? 0;
+  const draws = historyQueryData?.stats?.draws ?? 0;
   const interactionMap = useMemo(() => {
     const next: Record<string, "active" | "pending"> = {};
 
@@ -816,22 +774,173 @@ function usePvpScreenView() {
             <StatTile
               className="flex-1"
               tone="success"
-              label={t("pvp.liveMatches")}
+              label={t("pvp.hub.liveMatches")}
               value={activeMatches.length}
             />
             <StatTile
               className="flex-1"
               tone={pendingReceivedInvites.length > 0 ? "danger" : "primary"}
-              label={t("pvp.incomingChallenges")}
+              label={t("pvp.hub.incoming")}
               value={pendingReceivedInvites.length}
             />
             <StatTile
               className="flex-1"
               tone="accent"
-              label={t("pvp.myLoadouts")}
+              label={t("pvp.hub.myLoadouts")}
               value={validLoadouts.length}
             />
           </View>
+
+          {activeMatches.map((match, index) => {
+            const timeoutLabel = formatTurnTimeout(
+              match.turnExpiresAt,
+              t,
+              now,
+            );
+            const summary = getLobbyMatchSummary(match, currentPvpUserId, t);
+            const turnStatus = getLobbyTurnStatus(match, currentPvpUserId);
+            const turnParts = [
+              t(turnStatus.labelKey),
+              t("pvp.hub.turnShort", { count: match.currentTurn ?? 1 }),
+              ...(timeoutLabel
+                ? [t("pvp.hub.expiresIn", { remaining: timeoutLabel.remaining })]
+                : []),
+            ];
+
+            return (
+              <Pressable
+                key={match.id}
+                onPress={() => router.push(`/pvp-match?id=${match.id}`)}
+                testID={`pvp-active-match-card-${index}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${summary.title}. ${t(turnStatus.labelKey)}. ${t(
+                  "pvp.continueBattle",
+                )}`}
+              >
+                <Notice
+                  tone={turnStatus.isMyTurn ? "success" : "info"}
+                  icon={Zap}
+                  title={t("pvp.hub.activeBattle", { title: summary.title })}
+                  body={t("pvp.hub.activeBattleBody", {
+                    status: turnParts.join(" · "),
+                  })}
+                />
+              </Pressable>
+            );
+          })}
+
+          {pendingReceivedInvites.map((invite) => {
+            const selectedLoadoutId = acceptLoadoutMap[invite.id] ?? null;
+
+            return (
+              <Card
+                key={invite.id}
+                tone="danger"
+                testID={`pvp-incoming-invite-${invite.id}`}
+              >
+                <View className="flex-row items-center gap-ds-3">
+                  <IconTile icon={Swords} tone="danger" size={40} onTint />
+                  <View className="flex-1 gap-[2px]">
+                    <Text className="font-nunito-extrabold text-ds-body text-dangerText">
+                      {t("pvp.hub.incomingChallenge", {
+                        name:
+                          invite.inviterName ??
+                          `${invite.inviterId.slice(0, 12)}…`,
+                      })}
+                    </Text>
+                    <Text className="font-nunito text-ds-sm text-fg">
+                      {t("pvp.challengeBy", {
+                        time: getTimeAgo(invite.createdAt, t),
+                      })}
+                    </Text>
+                  </View>
+                </View>
+
+                {validLoadouts.length > 0 ? (
+                  <>
+                    <Text className="font-nunito-bold text-ds-sm text-fg">
+                      {t("pvp.chooseLoadoutAccept")}
+                    </Text>
+                    <View className="flex-row flex-wrap gap-ds-2">
+                      {validLoadouts.map((loadout) => (
+                        <Chip
+                          key={loadout.id}
+                          tone={
+                            selectedLoadoutId === loadout.id
+                              ? "selected"
+                              : "neutral"
+                          }
+                          label={loadout.name}
+                          accessibilityState={{
+                            selected: selectedLoadoutId === loadout.id,
+                          }}
+                          onPress={() =>
+                            setAcceptLoadoutMap((current) => ({
+                              ...current,
+                              [invite.id]: loadout.id,
+                            }))
+                          }
+                        />
+                      ))}
+                    </View>
+                    <View className="flex-row gap-ds-3">
+                      <Button
+                        tone="ghost"
+                        icon={X}
+                        onPress={() => declineMutation.mutate(invite.id)}
+                        style={{ flex: 1 }}
+                      >
+                        {t("pvp.lobby.decline")}
+                      </Button>
+                      <Button
+                        tone="primary"
+                        icon={Check}
+                        disabled={
+                          !selectedLoadoutId || acceptMutation.isPending
+                        }
+                        onPress={() => {
+                          const selectedLoadout = validLoadouts.find(
+                            (loadout) => loadout.id === selectedLoadoutId,
+                          );
+
+                          if (!selectedLoadout) {
+                            return;
+                          }
+
+                          acceptMutation.mutate({
+                            id: invite.id,
+                            cardIds: selectedLoadout.cardIds,
+                          });
+                        }}
+                        style={{ flex: 1 }}
+                        loading={acceptMutation.isPending}
+                      >
+                        {t("pvp.acceptBattle")}
+                      </Button>
+                    </View>
+                  </>
+                ) : (
+                  <View className="gap-ds-2">
+                    <Text className="font-nunito text-ds-sm text-fg">
+                      {hasLoadouts
+                        ? t("pvp.allLoadoutsInvalid")
+                        : t("pvp.createLoadoutToAccept")}
+                    </Text>
+                    <Button
+                      tone="ghost"
+                      size="sm"
+                      onPress={() => router.push("/pvp-loadouts")}
+                      style={{ alignSelf: "flex-start" }}
+                    >
+                      {hasLoadouts
+                        ? t("pvp.hub.editLoadouts")
+                        : t("pvp.hub.createLoadout")}
+                    </Button>
+                  </View>
+                )}
+              </Card>
+            );
+          })}
 
           <Card tone={inviteActionDisabled ? "neutral" : "primary"}>
             <View className="gap-[2px]">
@@ -840,7 +949,7 @@ function usePvpScreenView() {
                   inviteActionDisabled ? "text-fgMuted" : "text-fg"
                 }`}
               >
-                {t("pvp.sendChallenge")}
+                {t("pvp.hub.sendChallenge")}
               </Text>
               <Text className="font-nunito text-ds-body text-fgMuted">
                 {inviteActionHint}
@@ -850,14 +959,13 @@ function usePvpScreenView() {
               <Chip
                 tone={inviteActionDisabled ? "neutral" : "success"}
                 icon={inviteActionDisabled ? undefined : Check}
-                label={`${hasLoadouts ? validLoadouts.length : 0} ${t("pvp.loadoutReady").toLowerCase()}`}
+                label={t(
+                  validLoadouts.length === 1
+                    ? "pvp.hub.loadoutReadyOne"
+                    : "pvp.hub.loadoutReadyMany",
+                  { count: validLoadouts.length },
+                )}
               />
-              {pendingChallengeCount > 0 ? (
-                <Chip
-                  tone="accent"
-                  label={`${pendingChallengeCount} ${t("pvp.openChallenges").toLowerCase()}`}
-                />
-              ) : null}
             </View>
             <Button
               size="lg"
@@ -866,600 +974,98 @@ function usePvpScreenView() {
               onPress={openInviteSheet}
               testID="pvp-primary-action-card"
             >
-              {t("pvp.sendChallenge")}
+              {t("pvp.hub.sendChallenge")}
             </Button>
           </Card>
 
+          {pendingSentInvites.length > 0 ? (
+            <Card flush testID="pvp-sent-invites">
+              {pendingSentInvites.map((invite, index) => (
+                <ListRow
+                  key={invite.id}
+                  icon={Clock}
+                  iconTone="info"
+                  title={t("pvp.hub.sentInvite", {
+                    name:
+                      invite.inviteeName ??
+                      `${invite.inviteeId.slice(0, 12)}…`,
+                  })}
+                  meta={t("pvp.waitingResponse")}
+                  divider={index < pendingSentInvites.length - 1}
+                  trailingAction={{
+                    tone: "danger",
+                    icon: X,
+                    disabled: cancelInviteMutation.isPending,
+                    onPress: () => cancelInviteMutation.mutate(invite.id),
+                    testID: `pvp-cancel-invite-${invite.id}`,
+                    accessibilityLabel: t("common.cancel"),
+                  }}
+                />
+              ))}
+            </Card>
+          ) : null}
+
+          <SectionHeader title={t("pvp.hub.more")} />
           <Card flush>
             <ListRow
               icon={Layers}
               iconTone="accent"
-              title={hasLoadouts ? t("pvp.editLoadouts") : t("pvp.createLoadout")}
-              meta={t("pvp.manageLoadoutsHint")}
+              title={
+                hasLoadouts ? t("pvp.hub.editLoadouts") : t("pvp.hub.createLoadout")
+              }
+              meta={
+                hasLoadouts
+                  ? t(
+                      allLoadouts.length === 1
+                        ? "pvp.hub.savedTeamsOne"
+                        : "pvp.hub.savedTeamsMany",
+                      { count: allLoadouts.length },
+                    )
+                  : t("pvp.hub.noSavedTeams")
+              }
               chevron
               onPress={() => router.push("/pvp-loadouts")}
+              testID="pvp-open-loadouts-button"
             />
             <ListRow
               icon={Eye}
               iconTone="info"
               title={t("pvp.spectateOpen")}
-              meta={t("pvp.spectateHint")}
+              meta={t(
+                spectateMatchCount === 1
+                  ? "pvp.hub.liveMatchOne"
+                  : "pvp.hub.liveMatchMany",
+                { count: spectateMatchCount },
+              )}
               chevron
               onPress={() => router.push("/pvp-spectate" as never)}
+              testID="pvp-open-spectate-button"
+            />
+            <ListRow
+              icon={RotateCcwClock}
+              iconTone="primary"
+              title={t("pvp.hub.matchHistory")}
+              meta={
+                draws > 0
+                  ? t("pvp.hub.recordWithDraws", { wins, losses, draws })
+                  : t("pvp.hub.record", { wins, losses })
+              }
+              chevron
+              onPress={() => router.push("/pvp-history" as never)}
+              testID="pvp-history-button"
             />
             <ListRow
               icon={BookOpen}
               iconTone="secondary"
-              title={t("pvp.mechanics.open")}
-              meta={t("pvp.mechanics.intro")}
+              title={t("pvp.hub.howPvpWorks")}
+              meta={t("pvp.hub.howPvpWorksMeta")}
               chevron
+              divider={false}
               onPress={() => router.push("/pvp-mechanics")}
               testID="pvp-open-mechanics-button"
             />
-            <ListRow
-              icon={ScrollText}
-              iconTone="primary"
-              title={t("pvp.reference.open")}
-              meta={t("pvp.reference.intro")}
-              chevron
-              divider={false}
-              onPress={() => router.push("/pvp-reference")}
-              testID="pvp-open-reference-button"
-            />
           </Card>
         </View>
-
-        {pendingReceivedInvites.length > 0 ? (
-          <View className="mt-7 gap-3">
-            <SectionHeading
-              title={t("pvp.incomingChallenges")}
-              action={
-                <View className="rounded-full bg-dangerTint px-3 py-1">
-                  <Text className="font-nunito-bold text-xs text-dangerDark">
-                    {pendingReceivedInvites.length}
-                  </Text>
-                </View>
-              }
-            />
-            <View className="gap-4 rounded-[28px] border border-dangerBorder bg-dangerTint/80 p-4">
-              {pendingReceivedInvites.map((invite) => {
-                const selectedLoadoutId = acceptLoadoutMap[invite.id] ?? null;
-
-                return (
-                  <View
-                    key={invite.id}
-                    className="gap-3 rounded-[24px] border-2 border-dangerBorder bg-surface p-4"
-                  >
-                    <View className="flex-row items-center gap-3">
-                      <View
-                        style={{
-                          borderRadius: 20,
-                          overflow: "hidden",
-                          width: 40,
-                          height: 40,
-                        }}
-                      >
-                        <LinearGradient
-                          colors={[tc.danger, tc.dangerDark]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={{
-                            flex: 1,
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <SwordsIcon size={20} color="white" />
-                        </LinearGradient>
-                      </View>
-                      <View className="flex-1 gap-0.5">
-                        <Text className="font-nunito-bold text-fg">
-                          {invite.inviterName ??
-                            `${invite.inviterId.slice(0, 12)}…`}
-                        </Text>
-                        <Text className="font-nunito text-xs text-fgMuted">
-                          {t("pvp.challengeBy", {
-                            time: getTimeAgo(invite.createdAt, t),
-                          })}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {validLoadouts.length > 0 ? (
-                      <>
-                        <Text className="font-nunito-semibold text-xs text-primaryDark">
-                          {t("pvp.chooseLoadoutAccept")}
-                        </Text>
-                        <View className="gap-2">
-                          {validLoadouts.map((loadout) => (
-                            <Pressable
-                              key={loadout.id}
-                              onPress={() =>
-                                setAcceptLoadoutMap((current) => ({
-                                  ...current,
-                                  [invite.id]: loadout.id,
-                                }))
-                              }
-                              accessibilityRole="button"
-                              style={({ pressed }) => [
-                                {
-                                  borderRadius: RADIUS.md,
-                                  borderWidth: 1,
-                                  borderColor: selectedLoadoutId === loadout.id
-                                    ? tc.primary
-                                    : tc.primaryBorder,
-                                  backgroundColor: selectedLoadoutId === loadout.id
-                                    ? tc.primaryBg
-                                    : tc.surface,
-                                  paddingHorizontal: 12,
-                                  paddingVertical: 8,
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  opacity: pressed ? 0.85 : 1,
-                                },
-                              ]}
-                            >
-                              <Text className="text-center font-nunito-bold text-ds-sm" style={{ color: tc.fg }}>
-                                {loadout.name}
-                              </Text>
-                            </Pressable>
-                          ))}
-                        </View>
-                        <View className="flex-row gap-2">
-                          <Button
-                            tone="primary"
-                            icon={Check}
-                            disabled={
-                              !selectedLoadoutId || acceptMutation.isPending
-                            }
-                            onPress={() => {
-                              const selectedLoadout = validLoadouts.find(
-                                (loadout) => loadout.id === selectedLoadoutId,
-                              );
-
-                              if (!selectedLoadout) {
-                                return;
-                              }
-
-                              acceptMutation.mutate({
-                                id: invite.id,
-                                cardIds: selectedLoadout.cardIds,
-                              });
-                            }}
-                            style={{ flex: 1 }}
-                            loading={acceptMutation.isPending}
-                          >
-                            {t("pvp.acceptBattle")}
-                          </Button>
-                          <Button
-                            tone="ghost"
-                            icon={X}
-                            onPress={() =>
-                              declineMutation.mutate(invite.id)
-                            }
-                            style={{ flex: 1 }}
-                          >
-                            {t("pvp.lobby.decline")}
-                          </Button>
-                        </View>
-                      </>
-                    ) : (loadoutsQueryData?.loadouts.length ?? 0) > 0 ? (
-                      <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
-                        <Text className="font-nunito text-sm text-secondaryText">
-                          {t("pvp.allLoadoutsInvalid")}
-                        </Text>
-                        <Button
-                          tone="ghost"
-                          size="sm"
-                          onPress={() => router.push("/pvp-loadouts")}
-                          style={{ alignSelf: "flex-start", marginTop: 8 }}
-                        >
-                          {t("pvp.editLoadouts")}
-                        </Button>
-                      </View>
-                    ) : (
-                      <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
-                        <Text className="font-nunito text-sm text-secondaryText">
-                          {t("pvp.createLoadoutToAccept")}
-                        </Text>
-                        <Button
-                          tone="ghost"
-                          size="sm"
-                          onPress={() => router.push("/pvp-loadouts")}
-                          style={{ alignSelf: "flex-start", marginTop: 8 }}
-                        >
-                          {t("pvp.createLoadout")}
-                        </Button>
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        ) : null}
-
-        {activeMatches.length > 0 ? (
-          <View className="mt-7 gap-4">
-            <SectionHeading
-              title={t("pvp.activeBattles", { count: activeMatches.length })}
-            />
-            {activeMatches.map((match, index) => {
-              const timeoutLabel = formatTurnTimeout(
-                match.turnExpiresAt,
-                t,
-                now,
-              );
-              const summary = getLobbyMatchSummary(match, currentPvpUserId, t);
-              const turnStatus = getLobbyTurnStatus(match, currentPvpUserId);
-              const turnOwnerLabel = t(turnStatus.labelKey);
-              const isMyTurn = turnStatus.isMyTurn;
-              const isOpponentTurn = turnStatus.tone === "opponent";
-              const turnToneColor = isMyTurn
-                ? tc.successDark
-                : isOpponentTurn
-                  ? tc.infoDark
-                  : tc.fgMuted;
-              const turnBorderColor = isMyTurn
-                ? tc.successBorder
-                : isOpponentTurn
-                  ? tc.infoBorder
-                  : tc.primaryBorder;
-              const turnIconBgClassName = isMyTurn
-                ? "bg-successTint"
-                : isOpponentTurn
-                  ? "bg-infoTint"
-                  : "bg-surfaceMuted";
-              const turnTextClassName = isMyTurn
-                ? "text-successDark"
-                : isOpponentTurn
-                  ? "text-infoDark"
-                  : "text-fgMuted";
-              const turnPillClassName = isMyTurn
-                ? "bg-successTint"
-                : isOpponentTurn
-                  ? "bg-infoTint"
-                  : "bg-surfaceMuted";
-              const turnLabel = t("pvp.lobby.turn", {
-                count: match.currentTurn ?? 1,
-              });
-
-              return (
-                <Pressable
-                  key={match.id}
-                  onPress={() => router.push(`/pvp-match?id=${match.id}`)}
-                  testID={`pvp-active-match-card-${index}`}
-                  accessibilityLabel={`${summary.title}. ${turnOwnerLabel}. ${t(
-                    "pvp.continueBattle",
-                  )}`}
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    {
-                      borderRadius: RADIUS.lg,
-                      borderWidth: 1,
-                      borderColor: turnBorderColor,
-                      backgroundColor: tc.surface,
-                      paddingHorizontal: 18,
-                      paddingVertical: 18,
-                      minHeight: 132,
-                      opacity: pressed ? 0.85 : 1,
-                    },
-                  ]}
-                >
-                  <View className="gap-4">
-                    <View className="flex-row items-start gap-3">
-                      <View
-                        className={`h-14 w-14 items-center justify-center rounded-[22px] ${turnIconBgClassName}`}
-                      >
-                        <SwordsIcon size={26} color={turnToneColor} />
-                      </View>
-                      <View className="min-w-0 flex-1 gap-1">
-                        <Text
-                          className="font-nunito-extrabold text-lg leading-6 text-fg"
-                          numberOfLines={2}
-                        >
-                          {summary.title}
-                        </Text>
-                        <Text
-                          className={`font-nunito-bold text-sm ${turnTextClassName}`}
-                        >
-                          {turnOwnerLabel}
-                        </Text>
-                      </View>
-                      <View
-                        className={`rounded-full px-3 py-1.5 ${turnPillClassName}`}
-                      >
-                        <Text
-                          className={`font-nunito-extrabold text-xs ${turnTextClassName}`}
-                        >
-                          {turnLabel}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="flex-row flex-wrap gap-2">
-                      <View className="rounded-full bg-primaryTint px-3 py-1.5">
-                        <Text className="font-nunito-semibold text-xs text-primaryDark">
-                          {t("pvp.activeBattleTeams", {
-                            mine: summary.viewerLoadoutCount,
-                            theirs: summary.opponentLoadoutCount,
-                          })}
-                        </Text>
-                      </View>
-                      <View className="rounded-full bg-surfaceMuted px-3 py-1.5">
-                        <Text className="font-nunito-semibold text-xs text-fgMuted">
-                          {t("pvp.activeBattleUpdated", {
-                            time: getTimeAgo(match.updatedAt, t),
-                          })}
-                        </Text>
-                      </View>
-                      {timeoutLabel ? (
-                        <View className="rounded-full bg-infoTint px-3 py-1.5">
-                          <Text className="font-nunito-semibold text-xs text-infoDark">
-                            {timeoutLabel.shortLabel}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-
-                    <View className="min-h-12 flex-row items-center justify-center gap-2 rounded-2xl bg-successTint px-4 py-3">
-                      <Text className="font-nunito-extrabold text-base text-successDark">
-                        {t("pvp.continueBattle")}
-                      </Text>
-                      <ChevronRightIcon size={18} color={tc.successDark} />
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-
-        {pendingSentInvites.length > 0 ? (
-          <View className="mt-7 gap-3">
-            <SectionHeading
-              title={t("pvp.sentInvites", { count: pendingSentInvites.length })}
-            />
-            {pendingSentInvites.map((invite) => (
-              <View
-                key={invite.id}
-                className="flex-row items-center gap-3 rounded-[24px] border border-infoBorder bg-surface p-4"
-              >
-                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-infoTint">
-                  <ClockIcon size={20} color={tc.info} />
-                </View>
-                <View className="flex-1">
-                  <Text className="font-nunito-semibold text-fg">
-                    {invite.inviteeName ?? `${invite.inviteeId.slice(0, 12)}…`}
-                  </Text>
-                  <Text className="font-nunito text-xs text-fgMuted">
-                    {t("pvp.waitingResponse")}
-                  </Text>
-                </View>
-                <IconButton
-                  tone="danger"
-                  icon={X}
-                  disabled={cancelInviteMutation.isPending}
-                  onPress={() =>
-                    cancelInviteMutation.mutate(invite.id)
-                  }
-                  testID={`pvp-cancel-invite-${invite.id}`}
-                  accessibilityLabel={t("common.cancel")}
-                />
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        {completedMatches.length > 0 ? (
-          <View className="mt-8 gap-3">
-            <SectionHeading
-              title={t("pvp.recentBattles")}
-              action={
-                <Button
-                  tone="ghost"
-                  size="sm"
-                  onPress={() => router.push("/pvp-history" as never)}
-                  testID="pvp-history-button"
-                >
-                  {t("pvp.viewAllArrow")}
-                </Button>
-              }
-            />
-            {completedMatches.map((match) => {
-              const result = getPvpMatchResultView(match, currentPvpUserId);
-              const summary = getLobbyMatchSummary(match, currentPvpUserId, t);
-
-              return (
-                <Pressable
-                  key={match.id}
-                  onPress={() => {
-                    if (match.hasReplayData) {
-                      router.push(`/pvp-replay?id=${match.id}` as never);
-                    }
-                  }}
-                  disabled={!match.hasReplayData}
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    {
-                      borderRadius: RADIUS.lg,
-                      borderWidth: 1,
-                      borderColor: result.tone === "draw"
-                        ? tc.infoBorder
-                        : result.tone === "win"
-                          ? tc.successBorder
-                          : tc.dangerBorder,
-                      backgroundColor: tc.surface,
-                      paddingHorizontal: 12,
-                      paddingVertical: 12,
-                      opacity: !match.hasReplayData ? 0.6 : pressed ? 0.85 : 1,
-                    },
-                  ]}
-                >
-                  <View className="flex-row items-center gap-3">
-                    <Text
-                      className={`font-nunito-bold text-sm ${
-                        result.tone === "draw"
-                          ? "text-infoDark"
-                          : result.tone === "win"
-                            ? "text-successDark"
-                            : "text-dangerDark"
-                      }`}
-                    >
-                      {t(result.labelKey)}
-                    </Text>
-                    <Text
-                      className="min-w-0 flex-1 font-nunito text-sm text-fgMuted"
-                      numberOfLines={1}
-                    >
-                      {summary.title}
-                    </Text>
-                    <Text className="font-nunito-bold text-xs text-accent">
-                      {match.hasReplayData
-                        ? t("pvp.replayArrow")
-                        : t("pvp.noReplay")}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-
-        {!hasAnyData ? (
-          <View className="mt-7 overflow-hidden rounded-[28px] border border-primaryTint">
-            <LinearGradient
-              colors={[tc.primaryBg, tc.surface]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View className="items-center gap-3 px-6 py-8">
-                <View className="h-16 w-16 items-center justify-center rounded-3xl bg-primaryTint">
-                  <SwordsIcon size={34} color={tc.primaryDark} />
-                </View>
-                <Text className="text-center font-nunito-bold text-lg text-fg">
-                  {t("pvp.readyForBattle")}
-                </Text>
-                <Text className="text-center font-nunito text-sm text-fgMuted">
-                  {t("pvp.readyForBattleHint")}
-                </Text>
-              </View>
-            </LinearGradient>
-          </View>
-        ) : null}
-
-        {hasLoadouts ? (
-          <View className="mt-8 gap-3">
-            <SectionHeading
-              title={t("pvp.myLoadouts")}
-            />
-            {sortedLoadouts.map((loadout) => {
-              const isValid = loadout.invalidCardIds.length === 0;
-
-              return (
-                <View
-                  key={loadout.id}
-                  className={`rounded-[24px] border bg-surface/95 p-4 ${
-                    isValid ? "border-accentBorder" : "border-dangerBorder"
-                  }`}
-                >
-                  <View className="mb-3 flex-row items-center justify-between gap-3">
-                    <Text className="flex-1 font-nunito-bold text-fg">
-                      {loadout.name}
-                    </Text>
-                    <View
-                      className={`rounded-full px-3 py-1 ${
-                        isValid ? "bg-successTint" : "bg-dangerTint"
-                      }`}
-                    >
-                      <Text
-                        className={`font-nunito-bold text-xs ${
-                          isValid ? "text-successDark" : "text-dangerDark"
-                        }`}
-                      >
-                        {isValid
-                          ? t("pvp.loadoutReady")
-                          : t("pvp.loadoutNeedsFixes")}
-                      </Text>
-                    </View>
-                  </View>
-                  {!isValid ? (
-                    <View className="mb-3 flex-row items-center gap-2 rounded-2xl border border-dangerBorder bg-dangerTint px-3 py-2">
-                      <Text className="font-nunito-bold text-sm text-dangerDark">
-                        {t("pvp.invalidLoadout", {
-                          count: loadout.invalidCardIds.length,
-                        })}
-                      </Text>
-                    </View>
-                  ) : null}
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 8 }}
-                  >
-                    <View className="flex-row gap-1">
-                      {loadout.cardIds.map((cardId, index) => {
-                        const isInvalid =
-                          loadout.invalidCardIds.includes(cardId);
-                        const card = loadout.cards.find(
-                          (entry) => entry.id === cardId,
-                        );
-
-                        return isInvalid ? (
-                          <View
-                            key={`${loadout.id}-${cardId}-${index}`}
-                            className="h-16 w-12 shrink-0 items-center justify-center rounded-lg border-2 border-dangerBorder bg-dangerTint"
-                          >
-                            <Text className="font-nunito-bold text-lg text-danger">
-                              ?
-                            </Text>
-                          </View>
-                        ) : (
-                          <View
-                            key={`${loadout.id}-${cardId}-${index}`}
-                            className={`h-16 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${
-                              index < 3
-                                ? "border-success"
-                                : "border-primaryTint"
-                            }`}
-                          >
-                            {card?.imageAssetId ? (
-                              <Image
-                                source={{
-                                  uri: getCardImageUrl(card.imageAssetId),
-                                  cacheKey: getCardImageCacheKey(
-                                    card.imageAssetId,
-                                  ),
-                                }}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                                style={{ width: "100%", height: "100%" }}
-                              />
-                            ) : (
-                              <View className="h-full w-full items-center justify-center bg-surfaceMuted px-1">
-                                <Text
-                                  className="text-center font-nunito-bold text-[10px] text-fgMuted"
-                                  numberOfLines={2}
-                                >
-                                  {card?.name ?? "?"}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </ScrollView>
-                  <Text className="mt-2 font-nunito text-xs text-fgMuted">
-                    {isValid
-                      ? t("pvp.manageLoadoutsHint")
-                      : t("pvp.firstThreeActive")}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        ) : null}
         <View style={{ height: bottomContentPadding }} />
       </ScrollView>
 

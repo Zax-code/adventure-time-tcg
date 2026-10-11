@@ -41,7 +41,7 @@ export function getAnswerBoxPalette(
   return {
     background: tc.surface,
     border: tc.primaryBorder,
-    text: tc.primaryDark,
-    placeholder: withAlpha(tc.primaryDark, "38"),
+    text: tc.fg,
+    placeholder: tc.muted,
   };
 }

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
-  Modal,
   Pressable,
   ScrollView,
+  type StyleProp,
   Text,
   View,
+  type ViewStyle,
 } from "react-native";
 import {
   cancelAnimation,
@@ -16,13 +17,14 @@ import {
   withDelay,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
 import { captureRef } from "react-native-view-shot";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import Delete from "lucide-react-native/icons/delete";
+import Info from "lucide-react-native/icons/info";
 
 import { ApiClientError } from "@adventure-time/api-client";
 import type {
@@ -36,13 +38,14 @@ import { apiClient } from "../../src/lib/api";
 import { ShareIcon } from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { Dialog } from "../../src/components/ui/dialog";
+import { GameHud } from "../../src/components/ui/game/game-hud";
+import { GameKey } from "../../src/components/ui/game/game-key";
 import { GAME_CELL_CLASS, type GameCellState } from "../../src/components/ui/game/game-state";
+import { SegmentedControl } from "../../src/components/ui/segmented-control";
+import { StackHeader } from "../../src/components/ui/stack-header";
 import { QuestActionButton } from "../../src/features/quests/quest-action-button";
 import { navigateBackFromQuest } from "../../src/features/quests/quest-navigation";
-import {
-  QuestScreenDescription,
-  QuestScreenHeader,
-} from "../../src/features/quests/quest-screen-header";
 import {
   DEFAULT_QUEST_TIME_ZONE,
   isCurrentQuestDay,
@@ -79,6 +82,12 @@ const KEY_HIT_SLOP = {
   left: KEY_TOUCH_PADDING_X,
   right: KEY_TOUCH_PADDING_X,
 } as const;
+// Game Key widths on board 04: letters 32, Enter 56, Delete 44, 4 apart.
+const KEY_GAP = 4;
+const LETTER_KEY_UNITS = 32;
+const ENTER_KEY_UNITS = 56;
+const DELETE_KEY_UNITS = 44;
+const KEY_HEIGHT = 40;
 const WORDLE_REMOVE_MS = 160;
 const WORDLE_REVEAL_HALF_MS = 260;
 const WORDLE_REVEAL_STAGGER_MS = 90;
@@ -123,16 +132,26 @@ function getWordleQuestType(locale: WordleLocale) {
   return locale === "fr" ? "wordle_daily_fr" : "wordle_daily_en";
 }
 
-function cellState(state?: LetterState): GameCellState {
-  return state ?? "empty";
-}
+const HELP_LEGEND = [
+  { state: "correct", letter: "A", key: "quests.wordle.helpCorrect" },
+  { state: "present", letter: "B", key: "quests.wordle.helpPresent" },
+  { state: "absent", letter: "C", key: "quests.wordle.helpAbsent" },
+] as const satisfies readonly {
+  state: GameCellState;
+  letter: string;
+  key: string;
+}[];
 
-function keyBgBorderClass(state?: LetterState): string {
-  return GAME_CELL_CLASS[cellState(state)].container;
-}
-
-function keyLetterClass(state?: LetterState): string {
-  return GAME_CELL_CLASS[cellState(state)].text;
+function keyPressStyle(
+  pressed: boolean,
+  width: number | undefined,
+): StyleProp<ViewStyle> {
+  return {
+    width,
+    height: KEY_HEIGHT,
+    opacity: pressed ? 0.82 : undefined,
+    transform: [{ scale: pressed ? 0.96 : 1 }],
+  };
 }
 
 export default function WordleScreen() {
@@ -184,6 +203,7 @@ function useWordleScreenView() {
     null | "rollover" | "admin"
   >(null);
   const [definitionModalVisible, setDefinitionModalVisible] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
   const [expandedDefinitionWord, setExpandedDefinitionWord] = useState<
     string | null
   >(null);
@@ -671,12 +691,6 @@ function useWordleScreenView() {
     [inputLocked, handleRemoveAnimationEnd, replaceCurrentGuess],
   );
 
-  const clearRow = useCallback(() => {
-    if (inputLocked) return;
-    clearCurrentGuess();
-    triggerShake();
-  }, [clearCurrentGuess, inputLocked, triggerShake]);
-
   const patchWordleCaches = useCallback(
     (result: WordleSubmitResponse, nextGuesses: GuessResult[]) => {
       const questId = questVersionRef.current;
@@ -981,9 +995,10 @@ function useWordleScreenView() {
   const activateKey = useCallback(
     (keyId: string) => {
       if (keyId === "CLEAR") {
+        // Delete removes one letter, like a backspace; removeLetter owns the
+        // haptic and the tile remove animation.
         if (rowClearDisabled) return;
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        clearRow();
+        removeLetter();
       } else if (keyId === "SUBMIT") {
         if (submitLocked) return;
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -998,7 +1013,7 @@ function useWordleScreenView() {
       rowClearDisabled,
       submitLocked,
       inputLocked,
-      clearRow,
+      removeLetter,
       submitGuess,
       addLetter,
     ],
@@ -1118,20 +1133,132 @@ function useWordleScreenView() {
     );
   }
 
-  const attemptsClass = solved
-    ? "text-successDark"
-    : gameOver
-      ? "text-dangerDark"
-      : "text-primaryStrong";
+  const languageOptions = WORDLE_LANGUAGE_OPTIONS.map((option) => ({
+    value: option,
+    label:
+      option === "fr"
+        ? t("quests.wordle.frenchWords")
+        : t("quests.wordle.englishWords"),
+    testID: `wordle-language-${option}`,
+  }));
+
+  const maxRowKeys = Math.max(...keyboardRows.map((row) => row.length));
+  const keyWidth =
+    rowContainerWidth > 0
+      ? Math.floor(
+          (rowContainerWidth - (maxRowKeys - 1) * KEY_GAP) / maxRowKeys,
+        )
+      : 0;
+
+  const renderLetterKey = (letter: string) => {
+    const pressed = activeKeySet.has(letter) && !inputLocked;
+    return (
+      <GameKey
+        key={letter}
+        label={letter}
+        state={keyboardState[letter] ?? "empty"}
+        accessibilityLabel={`wordle-key-${letter}`}
+        disabled={inputLocked}
+        hitSlop={KEY_HIT_SLOP}
+        onPress={() => {
+          activateKey(letter);
+        }}
+        onPressIn={() => {
+          setKeyPressed(letter, true);
+        }}
+        onPressOut={() => {
+          setKeyPressed(letter, false);
+        }}
+        style={keyPressStyle(pressed, keyWidth || undefined)}
+        testID={`wordle-key-${letter}`}
+      />
+    );
+  };
+
+  const renderActionKeys = (letterCount: number) => {
+    const deleteWidth = keyWidth
+      ? Math.round((keyWidth * DELETE_KEY_UNITS) / LETTER_KEY_UNITS)
+      : undefined;
+    const enterWidth =
+      keyWidth && deleteWidth
+        ? Math.min(
+            Math.round((keyWidth * ENTER_KEY_UNITS) / LETTER_KEY_UNITS),
+            rowContainerWidth -
+              letterCount * keyWidth -
+              deleteWidth -
+              (letterCount + 1) * KEY_GAP,
+          )
+        : undefined;
+    const enterPressed = activeKeySet.has("SUBMIT") && !submitLocked;
+    const deletePressed = activeKeySet.has("CLEAR") && !rowClearDisabled;
+
+    return {
+      enter: (
+        <GameKey
+          key="SUBMIT"
+          kind="enter"
+          label={submitting ? "…" : t("quests.wordle.enter")}
+          accessibilityLabel="wordle-key-SUBMIT"
+          disabled={submitLocked}
+          hitSlop={KEY_HIT_SLOP}
+          onPress={() => {
+            activateKey("SUBMIT");
+          }}
+          onPressIn={() => {
+            setKeyPressed("SUBMIT", true);
+          }}
+          onPressOut={() => {
+            setKeyPressed("SUBMIT", false);
+          }}
+          style={keyPressStyle(enterPressed, enterWidth)}
+          testID="wordle-key-SUBMIT"
+        />
+      ),
+      delete: (
+        <GameKey
+          key="CLEAR"
+          kind="delete"
+          label={t("quests.wordle.delete")}
+          icon={Delete}
+          accessibilityLabel="wordle-key-CLEAR"
+          disabled={rowClearDisabled}
+          hitSlop={KEY_HIT_SLOP}
+          onPress={() => {
+            activateKey("CLEAR");
+          }}
+          onPressIn={() => {
+            setKeyPressed("CLEAR", true);
+          }}
+          onPressOut={() => {
+            setKeyPressed("CLEAR", false);
+          }}
+          style={keyPressStyle(deletePressed, deleteWidth)}
+          testID="wordle-key-CLEAR"
+        />
+      ),
+    };
+  };
+
+  const showStatus =
+    message !== null ||
+    (gameOver && !solved && targetWord !== null) ||
+    claimableQuest !== null ||
+    gameOver;
 
   return (
     <View className="flex-1 bg-bg" style={THEME_VARS[themeName]}>
       <View style={{ paddingTop: insets.top }}>
-        <QuestScreenHeader
+        <StackHeader
           title={t("quests.wordle.title")}
           backLabel={t("quests.wordle.backToQuests")}
           backTestID="wordle-back"
-          fallbackHref="/(tabs)/quests"
+          onBack={() => navigateBackFromQuest(router, "/(tabs)/quests")}
+          trailing={{
+            icon: Info,
+            accessibilityLabel: t("quests.wordle.helpButton"),
+            onPress: () => setHelpVisible(true),
+            testID: "wordle-help-button",
+          }}
         />
       </View>
 
@@ -1139,335 +1266,196 @@ function useWordleScreenView() {
         className="flex-1 bg-bg"
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingVertical: 16,
-          gap: 16,
+          paddingTop: 12,
+          paddingBottom: 24,
+          gap: 12,
         }}
-        contentInset={{ bottom: insets.bottom + 8 }}
-        scrollIndicatorInsets={{ bottom: insets.bottom + 8 }}
+        contentInset={{ bottom: insets.bottom }}
+        scrollIndicatorInsets={{ bottom: insets.bottom }}
         keyboardShouldPersistTaps="handled"
       >
-        <QuestScreenDescription>
-          {t("quests.wordle.subtitle")}
-        </QuestScreenDescription>
+        <SegmentedControl
+          options={languageOptions}
+          value={wordleLanguage}
+          onChange={handleWordleLanguageChange}
+          testID="wordle-language"
+        />
 
-        <View className="rounded-2xl border-2 border-primaryTint bg-surface p-4 shadow shadow-black/10">
-          <Text className="mb-3 text-center text-ds-overline font-nunito-bold uppercase tracking-[1px] text-fgMuted">
-            {t("quests.wordle.languageLabel")}
-          </Text>
-          <View className="flex-row gap-3">
-            {WORDLE_LANGUAGE_OPTIONS.map((option) => {
-              const selected = wordleLanguage === option;
-              return (
-                <Pressable
-                  key={option}
-                  onPress={() => handleWordleLanguageChange(option)}
-                  className={`flex-1 rounded-2xl border-2 px-4 py-3 ${selected ? "border-primary bg-primaryTint" : "border-primaryTint bg-bg"}`}
-                >
-                  <Text
-                    className={`text-center text-sm font-nunito-bold ${selected ? "text-primaryStrong" : "text-fg"}`}
-                  >
-                    {option === "fr"
-                      ? t("quests.wordle.frenchWords")
-                      : t("quests.wordle.englishWords")}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+        <GameHud
+          testID="wordle-hud"
+          left={{
+            value: `${solved ? attemptsUsed : attemptsLeft} / ${MAX_ATTEMPTS}`,
+            label: solved
+              ? t("quests.wordle.attemptsUsed")
+              : t("quests.wordle.attempts"),
+            testID: "wordle-attempts",
+          }}
+          right={
+            currentWordleQuest
+              ? {
+                  value: currentWordleQuest.reward,
+                  label: t("quests.wordle.reward"),
+                  testID: "wordle-reward",
+                }
+              : undefined
+          }
+          progress={attemptsUsed / MAX_ATTEMPTS}
+        />
 
-        {/* ── Board card ──────────────────────────────────────────────────── */}
-        <View className="bg-surface rounded-2xl border-2 border-primaryTint p-4 gap-4 shadow shadow-black/10">
-          {/* Attempts row */}
-          <View className="flex-row justify-between">
-            <Text className={`text-[13px] font-nunito-bold ${attemptsClass}`}>
-              {solved
-                ? t("quests.wordle.attemptsUsed")
-                : t("quests.wordle.attempts")}
-            </Text>
-            <Text className={`text-[13px] font-nunito-bold ${attemptsClass}`}>
-              {solved ? attemptsUsed : attemptsLeft} / {MAX_ATTEMPTS}
-            </Text>
-          </View>
+        {/* ── Board ───────────────────────────────────────────────────────── */}
+        <View className="items-center gap-[6px]">
+          {Array.from({ length: MAX_ATTEMPTS }).map((_, rowIndex) => {
+            const rowGuess = guesses[rowIndex];
+            const isActiveRow = rowIndex === attemptsUsed && !rowGuess;
+            const letters: string[] = rowGuess
+              ? rowGuess.guess.split("")
+              : isActiveRow
+                ? currentGuess.map((l) => l?.toUpperCase() ?? "")
+                : Array<string>(WORD_LENGTH).fill("");
 
-          {/* Grid */}
-          <View className="gap-4">
-            {Array.from({ length: MAX_ATTEMPTS }).map((_, rowIndex) => {
-              const rowGuess = guesses[rowIndex];
-              const isActiveRow = rowIndex === attemptsUsed && !rowGuess;
-              const letters: string[] = rowGuess
-                ? rowGuess.guess.split("")
-                : isActiveRow
-                  ? currentGuess.map((l) => l?.toUpperCase() ?? "")
-                  : Array<string>(WORD_LENGTH).fill("");
+            const rowTiles = (
+              <View className="flex-row gap-[6px]">
+                {letters.map((letter, colIndex) => {
+                  const removingLetter = isActiveRow
+                    ? removingCells[colIndex]
+                    : undefined;
+                  const displayLetter = removingLetter ?? letter;
+                  const evalState = getTileState(rowIndex, colIndex);
+                  const tileState: GameCellState =
+                    evalState ?? (displayLetter ? "filled" : "empty");
+                  const bgBorderCls = GAME_CELL_CLASS[tileState].container;
+                  const letterCls = GAME_CELL_CLASS[tileState].text;
+                  const isAnimatingRow = animatingRows.has(rowIndex);
+                  const isRemovingCell = removingLetter != null;
 
-              const rowTiles = (
-                <View className="flex-row gap-2">
-                  {letters.map((letter, colIndex) => {
-                    const removingLetter = isActiveRow
-                      ? removingCells[colIndex]
-                      : undefined;
-                    const displayLetter = removingLetter ?? letter;
-                    const evalState = getTileState(rowIndex, colIndex);
-                    const tileState: GameCellState =
-                      evalState ?? (displayLetter ? "filled" : "empty");
-                    const bgBorderCls = GAME_CELL_CLASS[tileState].container;
-                    const letterCls = GAME_CELL_CLASS[tileState].text;
-                    const isAnimatingRow = animatingRows.has(rowIndex);
-                    const isRemovingCell = removingLetter != null;
-
-                    const isTappable =
-                      isActiveRow &&
-                      !!letter &&
-                      !isRemovingCell &&
-                      !inputLocked;
-                    return (
-                      <Pressable
-                        key={`${rowIndex}-${colIndex}`}
-                        style={{ flex: 1, height: 56 }}
-                        onPress={
-                          isTappable ? () => removeLetter(colIndex) : undefined
-                        }
-                        disabled={!isTappable}
-                      >
-                        <WordleTile
-                          bgBorderCls={bgBorderCls}
-                          isActiveLetter={isActiveRow && !!letter}
-                          isAnimatingRow={isAnimatingRow}
-                          isRemovingCell={isRemovingCell}
-                          letter={displayLetter}
-                          letterCls={letterCls}
-                          rowFlipAnim={rowFlipAnims[rowIndex][colIndex]}
-                        />
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              );
-
-              if (isActiveRow) {
-                return (
-                  <WordleActiveRow key={rowIndex} shakeAnim={shakeAnim}>
-                    {rowTiles}
-                  </WordleActiveRow>
-                );
-              }
-
-              return <View key={rowIndex}>{rowTiles}</View>;
-            })}
-          </View>
-
-          {/* Message */}
-          {message !== null && (
-            <Text
-              accessibilityLiveRegion="polite"
-              accessibilityRole="alert"
-              className="text-center font-nunito-bold text-[13px] text-primaryStrong"
-            >
-              {message}
-            </Text>
-          )}
-
-          {/* Revealed word on loss */}
-          {gameOver && !solved && targetWord !== null && (
-            <Text className="text-[13px] font-nunito-bold text-center text-dangerDark">
-              {t("quests.wordle.revealedWord", { word: targetWord })}
-            </Text>
-          )}
-
-          {claimableQuest ? (
-            <QuestActionButton
-              tone="secondary"
-              label={t("quests.wordle.claimReward", {
-                reward: claimableQuest.reward,
-              })}
-              onPress={() => {
-                claimQuestMutation.mutate(claimableQuest.id);
-              }}
-              loading={
-                claimQuestMutation.isPending &&
-                claimQuestMutation.variables === claimableQuest.id
-              }
-              loadingMode="inline"
-              accessibilityLabel={t("quests.wordle.claimReward", {
-                reward: claimableQuest.reward,
-              })}
-              testID="wordle-claim-reward"
-            />
-          ) : null}
-
-          {gameOver ? (
-            <QuestActionButton
-              tone="ghost"
-              label={
-                isSharing
-                  ? t("quests.wordle.sharePreparing")
-                  : t("quests.wordle.shareResult")
-              }
-              onPress={() => {
-                void handleShareResult();
-              }}
-              loading={isSharing}
-              loadingMode="inline"
-              leadingIcon={ShareIcon}
-              testID="wordle-share-result"
-            />
-          ) : null}
-
-          {canShowDefinition ? (
-            <Pressable
-              onPress={() => setDefinitionModalVisible(true)}
-              className="items-center rounded-xl border-2 border-primaryTint bg-bg px-4 py-3"
-            >
-              <Text className="text-sm font-nunito-bold text-primaryStrong">
-                {t("quests.wordle.showDefinition")}
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        {/* ── Keyboard card ───────────────────────────────────────────────── */}
-        <View className="rounded-ds-lg border border-primaryBorder bg-surface p-ds-3">
-          <View
-            onLayout={(e) => setRowContainerWidth(e.nativeEvent.layout.width)}
-            className="gap-2"
-          >
-            {(() => {
-              const KEY_GAP = 6;
-              const maxRowKeys = Math.max(...keyboardRows.map((r) => r.length));
-              const keyWidth =
-                rowContainerWidth > 0
-                  ? Math.floor(
-                      (rowContainerWidth - (maxRowKeys - 1) * KEY_GAP) /
-                        maxRowKeys,
-                    )
-                  : 0;
-
-              return keyboardRows.map((row, rowIdx) => (
-                <View key={row} className={rowIdx > 0 ? "mt-1" : undefined}>
-                  <View className="flex-row justify-center gap-1.5">
-                    {row.split("").map((letter) => {
-                      const kState = keyboardState[letter];
-                      const pressed =
-                        activeKeySet.has(letter) && !inputLocked;
-                      const keyCls = keyBgBorderClass(kState);
-                      const keyStyle = {
-                        width: keyWidth || undefined,
-                        opacity: inputLocked ? 0.45 : pressed ? 0.82 : 1,
-                        transform: [{ scale: pressed ? 0.96 : 1 }],
-                      };
-
-                      return (
-                        <Pressable
-                          key={letter}
-                          accessibilityLabel={`wordle-key-${letter}`}
-                          accessibilityRole="button"
-                          className={`h-[44px] rounded-ds-sm border items-center justify-center ${keyCls}`}
-                          disabled={inputLocked}
-                          hitSlop={KEY_HIT_SLOP}
-                          onPress={() => {
-                            activateKey(letter);
-                          }}
-                          onPressIn={() => {
-                            setKeyPressed(letter, true);
-                          }}
-                          onPressOut={() => {
-                            setKeyPressed(letter, false);
-                          }}
-                          style={keyStyle}
-                          testID={`wordle-key-${letter}`}
-                        >
-                          <Text
-                            className={`text-ds-body font-nunito-extrabold ${keyLetterClass(kState)}`}
-                          >
-                            {letter}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-              ));
-            })()}
-          </View>
-
-          <View className="mt-ds-3 h-px bg-primaryBorder" />
-          {/* Clear + Submit row */}
-          <View className="mt-3 flex-row gap-2">
-            <Pressable
-              accessibilityLabel="wordle-key-CLEAR"
-              accessibilityRole="button"
-              className="flex-1 h-[44px] rounded-ds-sm border border-primaryBorder bg-surface items-center justify-center"
-              disabled={rowClearDisabled}
-              hitSlop={KEY_HIT_SLOP}
-              onPress={() => {
-                activateKey("CLEAR");
-              }}
-              onPressIn={() => {
-                setKeyPressed("CLEAR", true);
-              }}
-              onPressOut={() => {
-                setKeyPressed("CLEAR", false);
-              }}
-              style={{
-                opacity: rowClearDisabled
-                  ? 0.4
-                  : activeKeySet.has("CLEAR")
-                    ? 0.82
-                    : 1,
-                transform: [
-                  {
-                    scale:
-                      activeKeySet.has("CLEAR") && !rowClearDisabled
-                        ? 0.96
-                        : 1,
-                  },
-                ],
-              }}
-              testID="wordle-key-CLEAR"
-            >
-              <Text className="text-ds-sm font-nunito-extrabold text-fg">
-                {t("quests.wordle.clear")}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityLabel="wordle-key-SUBMIT"
-              accessibilityRole="button"
-              className="flex-1 h-[44px] rounded-ds-sm overflow-hidden bg-primary"
-              disabled={submitLocked}
-              hitSlop={KEY_HIT_SLOP}
-              onPress={() => {
-                activateKey("SUBMIT");
-              }}
-              onPressIn={() => {
-                setKeyPressed("SUBMIT", true);
-              }}
-              onPressOut={() => {
-                setKeyPressed("SUBMIT", false);
-              }}
-              style={{
-                opacity: submitLocked
-                  ? 0.4
-                  : activeKeySet.has("SUBMIT")
-                    ? 0.88
-                    : 1,
-                transform: [
-                  {
-                    scale:
-                      activeKeySet.has("SUBMIT") && !submitLocked ? 0.96 : 1,
-                  },
-                ],
-              }}
-              testID="wordle-key-SUBMIT"
-            >
-              <View className="flex-1 items-center justify-center">
-                <Text className="text-ds-sm font-nunito-extrabold text-white">
-                  {submitting ? "…" : t("quests.wordle.submit")}
-                </Text>
+                  const isTappable =
+                    isActiveRow &&
+                    !!letter &&
+                    !isRemovingCell &&
+                    !inputLocked;
+                  return (
+                    <Pressable
+                      key={`${rowIndex}-${colIndex}`}
+                      className="h-[50px] w-[50px]"
+                      onPress={
+                        isTappable ? () => removeLetter(colIndex) : undefined
+                      }
+                      disabled={!isTappable}
+                    >
+                      <WordleTile
+                        bgBorderCls={bgBorderCls}
+                        isActiveLetter={isActiveRow && !!letter}
+                        isAnimatingRow={isAnimatingRow}
+                        isRemovingCell={isRemovingCell}
+                        letter={displayLetter}
+                        letterCls={letterCls}
+                        rowFlipAnim={rowFlipAnims[rowIndex][colIndex]}
+                      />
+                    </Pressable>
+                  );
+                })}
               </View>
-            </Pressable>
+            );
+
+            if (isActiveRow) {
+              return (
+                <WordleActiveRow key={rowIndex} shakeAnim={shakeAnim}>
+                  {rowTiles}
+                </WordleActiveRow>
+              );
+            }
+
+            return <View key={rowIndex}>{rowTiles}</View>;
+          })}
+        </View>
+
+        {showStatus ? (
+          <View className="gap-ds-3">
+            {message !== null ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                accessibilityRole="alert"
+                className="text-center font-nunito-bold text-ds-sm text-primaryText"
+              >
+                {message}
+              </Text>
+            ) : null}
+
+            {gameOver && !solved && targetWord !== null ? (
+              <Text className="text-center font-nunito-bold text-ds-sm text-dangerDark">
+                {t("quests.wordle.revealedWord", { word: targetWord })}
+              </Text>
+            ) : null}
+
+            {claimableQuest ? (
+              <QuestActionButton
+                tone="secondary"
+                label={t("quests.wordle.claimReward", {
+                  reward: claimableQuest.reward,
+                })}
+                onPress={() => {
+                  claimQuestMutation.mutate(claimableQuest.id);
+                }}
+                loading={
+                  claimQuestMutation.isPending &&
+                  claimQuestMutation.variables === claimableQuest.id
+                }
+                loadingMode="inline"
+                accessibilityLabel={t("quests.wordle.claimReward", {
+                  reward: claimableQuest.reward,
+                })}
+                testID="wordle-claim-reward"
+              />
+            ) : null}
+
+            {gameOver ? (
+              <View className="flex-row gap-ds-3">
+                <QuestActionButton
+                  tone="ghost"
+                  label={
+                    isSharing
+                      ? t("quests.wordle.sharePreparing")
+                      : t("quests.wordle.shareResult")
+                  }
+                  onPress={() => {
+                    void handleShareResult();
+                  }}
+                  loading={isSharing}
+                  loadingMode="inline"
+                  leadingIcon={ShareIcon}
+                  style={{ flex: 1 }}
+                  testID="wordle-share-result"
+                />
+                <QuestActionButton
+                  tone="ghost"
+                  label={t("quests.wordle.showDefinition")}
+                  onPress={() => setDefinitionModalVisible(true)}
+                  style={{ flex: 1 }}
+                  testID="wordle-show-definition"
+                />
+              </View>
+            ) : null}
           </View>
+        ) : null}
+
+        {/* ── Keyboard ────────────────────────────────────────────────────── */}
+        <View
+          onLayout={(e) => setRowContainerWidth(e.nativeEvent.layout.width)}
+          className="gap-[6px]"
+        >
+          {keyboardRows.map((row, rowIdx) => {
+            const isLastRow = rowIdx === keyboardRows.length - 1;
+            const letterKeys = row.split("").map(renderLetterKey);
+            const actionKeys = isLastRow ? renderActionKeys(row.length) : null;
+
+            return (
+              <View key={row} className="flex-row justify-center gap-ds-1">
+                {actionKeys?.enter}
+                {letterKeys}
+                {actionKeys?.delete}
+              </View>
+            );
+          })}
         </View>
 
         {/* Offscreen, capture-friendly share card. Rendered (not display:none)
@@ -1487,128 +1475,118 @@ function useWordleScreenView() {
             </View>
           </View>
         ) : null}
-
-        <Modal
-          visible={definitionModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setDefinitionModalVisible(false)}
-        >
-          <View className="flex-1 bg-black/45 items-center justify-center p-4">
-            <View className="bg-surface rounded-2xl border-2 border-primaryTint p-5 w-full max-w-[360px] shadow shadow-black/20">
-              <Text className="text-lg font-nunito-extrabold text-primaryStrong">
-                {t("quests.wordle.definitionTitle")}
-              </Text>
-
-              {definitionQueryIsLoading && !definitionQueryData ? (
-                <Text className="mt-3 text-sm leading-5 font-nunito text-primaryStrong">
-                  {t("quests.wordle.definitionLoading")}
-                </Text>
-              ) : null}
-
-              {definitionQueryError && !definitionQueryData ? (
-                <Text className="mt-3 text-sm leading-5 font-nunito text-dangerDark">
-                  {t("quests.wordle.definitionError")}
-                </Text>
-              ) : null}
-
-              {definitionQueryData ? (
-                <FlatList
-                  className="mt-3 max-h-[320px]"
-                  contentContainerStyle={{ gap: 10 }}
-                  data={definitionQueryData.variants}
-                  keyExtractor={(variant) => variant.displayWord}
-                  ListHeaderComponent={
-                    <View className="gap-3">
-                      <View className="rounded-2xl border border-primaryTint bg-bg px-3 py-2">
-                        <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-fgMuted">
-                          {t("quests.wordle.definitionWordLabel")}
-                        </Text>
-                        <Text className="mt-1 text-base font-nunito-extrabold text-primaryStrong">
-                          {definitionQueryData.word}
-                        </Text>
-                      </View>
-
-                      {definitionQueryData.variants.length > 1 ? (
-                        <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-fgMuted">
-                          {t("quests.wordle.definitionChoicesLabel")}
-                        </Text>
-                      ) : null}
-                    </View>
-                  }
-                  renderItem={renderDefinitionVariant}
-                />
-              ) : null}
-
-              <Pressable
-                onPress={() => setDefinitionModalVisible(false)}
-                className="mt-5 h-11 rounded-xl overflow-hidden"
-              >
-                <LinearGradient
-                  colors={[tc.primary, tc.primaryDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    flex: 1,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text className="text-sm font-nunito-bold text-white">
-                    {t("quests.wordle.definitionClose")}
-                  </Text>
-                </LinearGradient>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
-
-        {/* ── Reset modal ─────────────────────────────────────────────────── */}
-        <Modal
-          visible={resetModalKind !== null}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setResetModalKind(null)}
-        >
-          <View className="flex-1 bg-black/45 items-center justify-center p-4">
-            <View className="bg-surface rounded-2xl border-2 border-primaryTint p-5 w-full max-w-[360px] shadow shadow-black/20">
-              <Text className="text-lg font-nunito-extrabold text-primaryStrong">
-                {resetModalKind === "admin"
-                  ? t("quests.wordle.adminResetTitle")
-                  : t("quests.wordle.resetTitle")}
-              </Text>
-              <Text className="mt-2 text-sm leading-5 font-nunito text-primaryStrong">
-                {resetModalKind === "admin"
-                  ? t("quests.wordle.adminResetBody", {
-                      name:
-                        resetByNameRef.current ??
-                        (locale === "fr" ? "un administrateur" : "an admin"),
-                    })
-                  : t("quests.wordle.resetBody")}
-              </Text>
-              <Pressable
-                onPress={() => setResetModalKind(null)}
-                className="mt-5 h-11 rounded-xl overflow-hidden"
-              >
-                <LinearGradient
-                  colors={[tc.primary, tc.primaryDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    flex: 1,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text className="text-sm font-nunito-bold text-white">
-                    {t("quests.wordle.resetCta")}
-                  </Text>
-                </LinearGradient>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
       </ScrollView>
+
+      <Dialog
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        icon={Info}
+        title={t("quests.wordle.helpTitle")}
+        body={t("quests.wordle.helpBody")}
+        confirm={{
+          label: t("quests.wordle.helpClose"),
+          onPress: () => setHelpVisible(false),
+          testID: "wordle-help-close",
+        }}
+        testID="wordle-help-dialog"
+      >
+        <View className="gap-ds-2">
+          {HELP_LEGEND.map(({ state, letter, key }) => (
+            <View key={state} className="flex-row items-center gap-ds-3">
+              <View
+                className={`h-[32px] w-[32px] items-center justify-center rounded-ds-sm border ${GAME_CELL_CLASS[state].container}`}
+              >
+                <Text
+                  className={`font-nunito-extrabold text-ds-body ${GAME_CELL_CLASS[state].text}`}
+                >
+                  {letter}
+                </Text>
+              </View>
+              <Text className="flex-1 font-nunito text-ds-sm text-fg">
+                {t(key)}
+              </Text>
+            </View>
+          ))}
+          <Text className="font-nunito text-ds-sm text-fgMuted">
+            {t("quests.wordle.helpKeys")}
+          </Text>
+        </View>
+      </Dialog>
+
+      <Dialog
+        visible={definitionModalVisible}
+        onClose={() => setDefinitionModalVisible(false)}
+        title={t("quests.wordle.definitionTitle")}
+        confirm={{
+          label: t("quests.wordle.definitionClose"),
+          onPress: () => setDefinitionModalVisible(false),
+        }}
+        testID="wordle-definition-dialog"
+      >
+        {definitionQueryIsLoading && !definitionQueryData ? (
+          <Text className="text-center font-nunito text-ds-sm text-fgMuted">
+            {t("quests.wordle.definitionLoading")}
+          </Text>
+        ) : null}
+
+        {definitionQueryError && !definitionQueryData ? (
+          <Text className="text-center font-nunito text-ds-sm text-dangerDark">
+            {t("quests.wordle.definitionError")}
+          </Text>
+        ) : null}
+
+        {definitionQueryData ? (
+          <FlatList
+            className="max-h-[320px]"
+            contentContainerStyle={{ gap: 10 }}
+            data={definitionQueryData.variants}
+            keyExtractor={(variant) => variant.displayWord}
+            ListHeaderComponent={
+              <View className="gap-ds-3">
+                <View className="rounded-ds-md border border-primaryBorder bg-bg px-ds-3 py-ds-2">
+                  <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-fgMuted">
+                    {t("quests.wordle.definitionWordLabel")}
+                  </Text>
+                  <Text className="mt-1 text-base font-nunito-extrabold text-primaryText">
+                    {definitionQueryData.word}
+                  </Text>
+                </View>
+
+                {definitionQueryData.variants.length > 1 ? (
+                  <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-fgMuted">
+                    {t("quests.wordle.definitionChoicesLabel")}
+                  </Text>
+                ) : null}
+              </View>
+            }
+            renderItem={renderDefinitionVariant}
+          />
+        ) : null}
+      </Dialog>
+
+      {/* ── Reset dialog ──────────────────────────────────────────────────── */}
+      <Dialog
+        visible={resetModalKind !== null}
+        onClose={() => setResetModalKind(null)}
+        title={
+          resetModalKind === "admin"
+            ? t("quests.wordle.adminResetTitle")
+            : t("quests.wordle.resetTitle")
+        }
+        body={
+          resetModalKind === "admin"
+            ? t("quests.wordle.adminResetBody", {
+                name:
+                  resetByNameRef.current ??
+                  (locale === "fr" ? "un administrateur" : "an admin"),
+              })
+            : t("quests.wordle.resetBody")
+        }
+        confirm={{
+          label: t("quests.wordle.resetCta"),
+          onPress: () => setResetModalKind(null),
+        }}
+      />
     </View>
   );
 }

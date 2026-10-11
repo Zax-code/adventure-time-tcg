@@ -1,10 +1,30 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useShallow } from "zustand/react/shallow";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import Ionicons from "@react-native-vector-icons/ionicons";
+import type { LucideIcon } from "lucide-react-native";
+import Activity from "lucide-react-native/icons/activity";
+import Bell from "lucide-react-native/icons/bell";
+import Camera from "lucide-react-native/icons/camera";
+import Candy from "lucide-react-native/icons/candy";
+import CircleCheck from "lucide-react-native/icons/circle-check";
+import ExternalLink from "lucide-react-native/icons/external-link";
+import Footprints from "lucide-react-native/icons/footprints";
+import Gift from "lucide-react-native/icons/gift";
+import HeartPulse from "lucide-react-native/icons/heart-pulse";
+import Hourglass from "lucide-react-native/icons/hourglass";
+import KeyRound from "lucide-react-native/icons/key-round";
+import Lock from "lucide-react-native/icons/lock";
+import LogOut from "lucide-react-native/icons/log-out";
+import Moon from "lucide-react-native/icons/moon";
+import RefreshCw from "lucide-react-native/icons/refresh-cw";
+import Snowflake from "lucide-react-native/icons/snowflake";
+import Sunrise from "lucide-react-native/icons/sunrise";
+import Swords from "lucide-react-native/icons/swords";
+import Trash from "lucide-react-native/icons/trash";
+import Watch from "lucide-react-native/icons/watch";
 import {
   ActivityIndicator,
   Alert,
@@ -17,14 +37,28 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { RADIUS } from "@adventure-time/theme";
 
-import { Button } from "../src/components/ui/button";
-import { ThemedExpoSwitch } from "../src/components/expo-ui/themed-switch";
-import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
+import { ON_PRIMARY } from "@adventure-time/theme";
+
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
 import { KeyboardScreenView } from "../src/components/keyboard-screen-view";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
+import { Button } from "../src/components/ui/button";
+import { Card } from "../src/components/ui/card";
+import { Chip } from "../src/components/ui/chip";
+import { IconTile } from "../src/components/ui/icon-tile";
+import { Input } from "../src/components/ui/input";
+import { Notice } from "../src/components/ui/notice";
+import { SectionHeader } from "../src/components/ui/section-header";
+import { SegmentedControl } from "../src/components/ui/segmented-control";
+import { ICON_STROKE_WIDTH } from "../src/components/ui/tokens";
+import {
+  CardTitle,
+  CompactStat,
+  SelectList,
+  SelectRow,
+  ToggleRow,
+} from "../src/features/settings/settings-rows";
 import { useTranslation } from "../src/i18n";
 import {
   apiClient,
@@ -37,7 +71,6 @@ import {
   getNotificationPermissionStatus,
 } from "../src/lib/app-notifications";
 import { connectFitbit } from "../src/lib/fitbit";
-import type { IoniconName } from "../src/lib/ionicons";
 import {
   openDeviceHealthSetup,
   syncDeviceStepsNow,
@@ -51,18 +84,32 @@ import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 const LANGUAGE_OPTIONS = ["en", "fr"] as const;
 const STEP_SOURCE_OPTIONS = ["device_health", "fitbit"] as const;
 const THEME_OPTIONS: ThemeName[] = ["candy", "ice", "nightosphere"];
-const SETTINGS_SYNC_RAIL_WIDTH = 308;
+const THEME_ICONS: Record<ThemeName, LucideIcon> = {
+  candy: Candy,
+  ice: Snowflake,
+  nightosphere: Moon,
+};
 const PRIVACY_POLICY_URL = `${API_BASE_URL}/privacy`;
 const ACCOUNT_DELETION_URL = `${API_BASE_URL}/account-deletion`;
 
 type StepSource = (typeof STEP_SOURCE_OPTIONS)[number];
-type ToneName = "primary" | "success" | "danger" | "neutral";
 type NotificationPreferenceKey =
   | "dailyReset"
   | "stepGoal"
   | "pvpInvite"
   | "pvpTurn"
   | "giftReceived";
+
+const NOTIFICATION_ROWS: {
+  key: NotificationPreferenceKey;
+  icon: LucideIcon;
+}[] = [
+  { key: "dailyReset", icon: Sunrise },
+  { key: "stepGoal", icon: Footprints },
+  { key: "pvpInvite", icon: Swords },
+  { key: "pvpTurn", icon: Hourglass },
+  { key: "giftReceived", icon: Gift },
+];
 
 function getStepSourceLabel({
   healthSystemLabel,
@@ -312,13 +359,11 @@ function useSettingsScreenView() {
     stepSync.notificationPermissionStatus === "granted"
       ? t("settings.notificationsEnabledHelp")
       : t("settings.notificationsDisabledHelp");
-  const syncTone: ToneName = prefersFitbit
+  const syncHealthy = prefersFitbit
     ? fitbitConnected
-      ? "success"
-      : "neutral"
-    : stepSync.healthPermissionStatus === "granted"
-      ? "success"
-      : "neutral";
+    : stepSync.healthPermissionStatus === "granted";
+  const notificationsGranted =
+    stepSync.notificationPermissionStatus === "granted";
   const syncSummary = prefersFitbit
     ? fitbitConnected
       ? t("settings.fitbitConnectedHelp")
@@ -566,1284 +611,546 @@ function useSettingsScreenView() {
     >
       <KeyboardScreenView style={THEME_VARS[themeName]}>
         <View className="flex-1 bg-bg">
-
           <ScrollView
             ref={scrollViewRef}
             {...KEYBOARD_AWARE_SCROLL_PROPS}
             className="flex-1"
             contentContainerStyle={{
-              paddingTop: 20,
-              paddingHorizontal: 20,
-              paddingBottom: 32,
+              padding: 16,
+              paddingBottom: 40,
             }}
             contentInset={{ bottom: insets.bottom }}
             scrollIndicatorInsets={{ bottom: insets.bottom }}
           >
-            <View className="gap-6">
-              <View className="gap-4">
-                <View
-                  className="rounded-3xl border border-primaryBorder px-5 py-5"
-                  style={{
-                    backgroundColor: tc.surface,
-                    boxShadow: "0px 3px 8px rgba(0, 0, 0, 0.04)",
-                  }}
-                >
-                  <View className="gap-4">
-                    <View className="flex-row items-center gap-4">
-                      <Pressable
-                        onPress={() =>
-                          editing
-                            ? uploadAvatarMutation.mutate()
-                            : undefined
-                        }
-                        disabled={!editing || uploadAvatarMutation.isPending}
-                        className="relative"
-                      >
-                        {avatarUri ? (
-                          <Image
-                            source={{
-                              uri: avatarUri,
-                              headers: { Authorization: `Bearer ${accessToken}` },
-                            }}
-                            style={{
-                              width: 84,
-                              height: 84,
-                              borderRadius: 42,
-                              borderWidth: 2,
-                              borderColor: tc.primaryBorder,
-                            }}
-                            contentFit="cover"
-                          />
-                        ) : (
-                          <View
-                            className="items-center justify-center rounded-full bg-primary"
-                            style={{
-                              width: 84,
-                              height: 84,
-                              borderWidth: 2,
-                              borderColor: tc.primaryBorder,
-                            }}
-                          >
-                            <Text className="font-nunito-extrabold text-3xl text-white">
-                              {user?.displayName?.[0]?.toUpperCase() ?? "?"}
-                            </Text>
-                          </View>
-                        )}
-                        {editing ? (
-                          <View
-                            className="absolute bottom-0 right-0 h-7 w-7 items-center justify-center rounded-full"
-                            style={{
-                              backgroundColor: tc.primaryDark,
-                              borderWidth: 2,
-                              borderColor: tc.surface,
-                            }}
-                          >
-                            {uploadAvatarMutation.isPending ? (
-                              <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                              <Ionicons name="camera" size={14} color="#fff" />
-                            )}
-                          </View>
-                        ) : null}
-                      </Pressable>
-
-                      <View className="flex-1 gap-1">
-                        <Text
-                          className="font-nunito-extrabold text-2xl text-fg"
-                          numberOfLines={1}
-                        >
-                          {user?.displayName ?? user?.email ?? ""}
-                        </Text>
-                        <Text className="font-nunito text-sm text-fgMuted">
-                          {user?.email}
-                        </Text>
-                        <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                          {editing
-                            ? t("settings.profileEditTip")
-                            : t("settings.accountIntro")}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {editing ? (
-                      <View className="gap-3">
-                        <ThemedExpoTextInput
-                          value={displayNameInput}
-                          onChangeText={setDisplayNameInput}
-                          placeholder={t("settings.displayNamePlaceholder")}
-                          autoFocus
-                          hostStyle={{ width: "100%" }}
-                          style={{
-                            backgroundColor: tc.surface,
-                            borderColor: tc.primaryBorder,
-                            borderRadius: 16,
-                            borderWidth: 1,
-                            height: 52,
-                            paddingHorizontal: 16,
-                            width: "100%",
-                          }}
-                          textStyle={{
-                            color: tc.fg,
-                            fontFamily: "Nunito-SemiBold",
-                            fontSize: 16,
-                          }}
-                        />
-                        <View className="flex-row gap-3">
-                          <View className="flex-1">
-                        <SettingsActionButton
-                          testID="settings-profile-cancel-edit"
-                          onPress={() => {
-                            setEditing(false);
-                            setDisplayNameInput(user?.displayName ?? "");
-                              }}
-                              variant="secondary"
-                            >
-                              {t("settings.cancelEdit")}
-                            </SettingsActionButton>
-                          </View>
-                          <View className="flex-1">
-                            <SettingsActionButton
-                              testID="settings-profile-save-display-name"
-                              onPress={() =>
-                                updateDisplayNameMutation.mutate(
-                                  displayNameValue,
-                                )
-                              }
-                              disabled={!canSaveDisplayName}
-                              loading={updateDisplayNameMutation.isPending}
-                              variant="primary"
-                            >
-                              {t("settings.saveDisplayName")}
-                            </SettingsActionButton>
-                          </View>
-                        </View>
-                      </View>
+            <View className="gap-ds-3">
+              <Card>
+                <View className="flex-row items-center gap-ds-3">
+                  <Pressable
+                    onPress={() =>
+                      editing ? uploadAvatarMutation.mutate() : undefined
+                    }
+                    disabled={!editing || uploadAvatarMutation.isPending}
+                    accessibilityRole={editing ? "button" : undefined}
+                    accessibilityLabel={
+                      editing ? t("settings.profileEditTip") : undefined
+                    }
+                    className="relative"
+                  >
+                    {avatarUri ? (
+                      <Image
+                        source={{
+                          uri: avatarUri,
+                          headers: { Authorization: `Bearer ${accessToken}` },
+                        }}
+                        style={{ width: 56, height: 56, borderRadius: 28 }}
+                        contentFit="cover"
+                      />
                     ) : (
-                      <View className="w-full pt-1">
-                        <SettingsActionButton
-                          testID="settings-profile-edit"
-                          onPress={() => {
-                            setDisplayNameInput(user?.displayName ?? "");
-                            setEditing(true);
-                          }}
-                          variant="secondary"
-                        >
-                          {t("settings.edit")}
-                        </SettingsActionButton>
+                      <View className="h-[56px] w-[56px] items-center justify-center rounded-ds-pill bg-primary">
+                        <Text className="font-nunito-extrabold text-[24px] leading-[33px] text-white">
+                          {user?.displayName?.[0]?.toUpperCase() ?? "?"}
+                        </Text>
                       </View>
                     )}
-
-                    <View className="flex-row gap-3">
-                      <View className="flex-1">
-                        <SummaryChip
-                          label={t("settings.language")}
-                          value={
-                            currentLanguage === "fr"
-                              ? t("settings.french")
-                              : t("settings.english")
-                          }
-                          tone="neutral"
-                          tc={tc}
-                        />
+                    {editing ? (
+                      <View className="absolute -bottom-1 -right-1 h-[24px] w-[24px] items-center justify-center rounded-ds-pill border-2 border-surface bg-primaryDark">
+                        {uploadAvatarMutation.isPending ? (
+                          <ActivityIndicator size="small" color={ON_PRIMARY} />
+                        ) : (
+                          <Camera
+                            size={12}
+                            color={ON_PRIMARY}
+                            strokeWidth={ICON_STROKE_WIDTH}
+                          />
+                        )}
                       </View>
-                      <View className="flex-1">
-                        <SummaryChip
-                          label={t("settings.theme")}
-                          value={t(`settings.themeNames.${themeName}`)}
-                          tone="primary"
-                          tc={tc}
-                        />
-                      </View>
-                      <View className="flex-1">
-                        <SummaryChip
-                          label={t("settings.stepSource")}
-                          value={currentStepSourceLabel}
-                          tone="neutral"
-                          tc={tc}
-                        />
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              </View>
+                    ) : null}
+                  </Pressable>
 
-            <View className="gap-4">
-              <SectionHeader
-                icon="sparkles-outline"
-                title={t("settings.preferencesTitle")}
-                description={t("settings.preferencesIntro")}
-                tc={tc}
-              />
-
-              <SurfaceCard tc={tc}>
-                <View className="gap-3">
-                  <View className="gap-1">
-                    <Text className="font-nunito-bold text-lg text-fg">
-                      {t("settings.language")}
-                    </Text>
-                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                      {t("settings.languageHelp")}
-                    </Text>
-                  </View>
-                  <View className="flex-row gap-3">
-                    {LANGUAGE_OPTIONS.map((language) => {
-                      const selected = currentLanguage === language;
-                      return (
-                        <ChoiceCard
-                          key={language}
-                          selected={selected}
-                          disabled={updateLanguageMutation.isPending}
-                          testID={`settings-language-${language}`}
-                          onPress={() =>
-                            updateLanguageMutation.mutate(language)
-                          }
-                          tc={tc}
-                        >
-                          <View className="gap-2">
-                            <View className="flex-row items-center justify-between">
-                              <Text
-                                className={`font-nunito-bold text-base ${
-                                  selected ? "text-accentStrong" : "text-fg"
-                                }`}
-                              >
-                                {language === "fr"
-                                  ? t("settings.french")
-                                  : t("settings.english")}
-                              </Text>
-                              {selected ? (
-                                <Ionicons
-                                  name="checkmark-circle"
-                                  size={18}
-                                  color={tc.primaryText}
-                                />
-                              ) : null}
-                            </View>
-                            <Text className="font-nunito text-xs uppercase text-fgMuted">
-                              {language.toUpperCase()}
-                            </Text>
-                          </View>
-                        </ChoiceCard>
-                      );
-                    })}
-                  </View>
-                </View>
-              </SurfaceCard>
-
-              <SurfaceCard tc={tc}>
-                <View className="gap-4">
-                  <View className="gap-1">
-                    <Text className="font-nunito-bold text-lg text-fg">
-                      {t("settings.theme")}
-                    </Text>
-                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                      {t("settings.themeHelp")}
-                    </Text>
-                  </View>
-                  <View className="gap-3">
-                    {THEME_OPTIONS.map((name) => {
-                      const selected = themeName === name;
-                      return (
-                        <ChoiceCard
-                          key={name}
-                          selected={selected}
-                          testID={`settings-theme-${name}`}
-                          onPress={() => void setTheme(name)}
-                          tc={tc}
-                        >
-                          <View className="flex-row items-center gap-3">
-                            <ThemePreview themeName={name} />
-                            <View className="flex-1">
-                              <Text
-                                className={`font-nunito-bold text-base ${
-                                  selected ? "text-primaryStrong" : "text-fg"
-                                }`}
-                                testID={`settings-theme-${name}-label`}
-                              >
-                                {t(`settings.themeNames.${name}`)}
-                              </Text>
-                              <Text
-                                className="font-nunito text-sm text-fgMuted"
-                                testID={`settings-theme-${name}-preview`}
-                              >
-                                {t("settings.themePreview")}
-                              </Text>
-                            </View>
-                            {selected ? (
-                              <Ionicons
-                                name="checkmark-circle"
-                                size={20}
-                                color={tc.primaryText}
-                              />
-                            ) : null}
-                          </View>
-                        </ChoiceCard>
-                      );
-                    })}
-                  </View>
-                </View>
-              </SurfaceCard>
-            </View>
-
-            <View className="gap-4">
-              <SectionHeader
-                icon="footsteps-outline"
-                title={t("settings.activityTitle")}
-                description={t("settings.activityIntro")}
-                tc={tc}
-              />
-
-              <SurfaceCard tc={tc}>
-                <View className="gap-4">
-                  <View className="gap-1">
-                    <Text className="font-nunito-bold text-lg text-fg">
-                      {t("settings.stepSource")}
-                    </Text>
-                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                      {t("settings.stepSourceHelp")}
-                    </Text>
-                  </View>
-                  <View className="gap-3">
-                    {STEP_SOURCE_OPTIONS.map((source) => {
-                      const selected = currentStepSource === source;
-                      const isFitbitSource = source === "fitbit";
-                      return (
-                        <ChoiceCard
-                          key={source}
-                          selected={selected}
-                          disabled={updateSourceMutation.isPending}
-                          testID={`settings-step-source-${source}`}
-                          onPress={() => {
-                            if (isFitbitSource) {
-                              void handleChooseFitbit();
-                              return;
-                            }
-
-                            setFitbitError(null);
-                            updateSourceMutation.mutate("device_health");
-                          }}
-                          tc={tc}
-                        >
-                          <View className="gap-2">
-                            <View className="flex-row items-center justify-between gap-3">
-                              <View className="flex-1 gap-1">
-                                <Text
-                                  className="font-nunito-bold text-base text-fg"
-                                >
-                                  {getStepSourceLabel({
-                                    healthSystemLabel,
-                                    source,
-                                    t,
-                                  })}
-                                </Text>
-                                <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                                  {isFitbitSource
-                                    ? fitbitConnected
-                                      ? t("settings.fitbitConnectedHelp")
-                                      : t("settings.fitbitHelp")
-                                    : t("settings.useDeviceHealth", {
-                                        healthSystem: healthSystemLabel,
-                                      })}
-                                </Text>
-                              </View>
-                              {selected ? (
-                                <View className="self-stretch items-center justify-center">
-                                  <Ionicons
-                                    name="checkmark-circle"
-                                    size={20}
-                                    color={tc.primaryText}
-                                  />
-                                </View>
-                              ) : null}
-                            </View>
-                          </View>
-                        </ChoiceCard>
-                      );
-                    })}
-                  </View>
-                </View>
-              </SurfaceCard>
-
-              <SurfaceCard tc={tc}>
-                <View className="gap-5">
-                  <View className="gap-1">
-                    <Text className="font-nunito-bold text-lg text-fg">
-                      {t("settings.syncOverview")}
-                    </Text>
-                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                      {syncSummary}
-                    </Text>
-                  </View>
-
-                  <View
-                    className="self-center w-full"
-                    style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
-                  >
-                    <ToneBanner tone={syncTone} tc={tc}>
-                      <View className="flex-row items-center justify-between gap-3">
-                        <View className="flex-1 gap-1">
-                          <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
-                            {syncStatusLabel}
-                          </Text>
-                          <Text className="font-nunito-extrabold text-xl text-fg">
-                            {syncStatusValue}
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name={syncTone === "success" ? "checkmark-circle" : "pulse"}
-                          size={24}
-                          color={toneColors(tc, syncTone).text}
-                        />
-                      </View>
-                    </ToneBanner>
-                  </View>
-
-                  <View className="gap-3 rounded-[26px] bg-surfaceMuted p-3">
-                    <View className="flex-row gap-3">
-                      <StatTile
-                        label={t("settings.latestSyncedLabel")}
-                        value={t("settings.stepCountValue", {
-                          count: stepQueryData?.latest?.stepCount ?? 0,
-                        })}
-                        tone="neutral"
-                        tc={tc}
-                      />
-                      <StatTile
-                        label={t("settings.deviceTodayLabel")}
-                        value={t("settings.stepCountValue", {
-                          count: stepSync.deviceStepCount ?? 0,
-                        })}
-                        tone="neutral"
-                        tc={tc}
-                      />
-                    </View>
-                    <View className="flex-row gap-3">
-                      <StatTile
-                        label={t("settings.recordedFor")}
-                        value={recordedForDate ?? "—"}
-                        tone="neutral"
-                        tc={tc}
-                      />
-                      <StatTile
-                        label={t("settings.lastUpdated")}
-                        value={latestSyncedDate ?? "—"}
-                        tone="neutral"
-                        tc={tc}
-                      />
-                    </View>
-                  </View>
-
-                  <View
-                    className="self-center w-full flex-row gap-3"
-                    style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
-                  >
-                    <View className="flex-1">
-                      <SummaryChip
-                        label={t("settings.sourceLabel")}
-                        value={latestStepSourceLabel}
-                        tone="neutral"
-                        tc={tc}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <SummaryChip
-                        label={t("settings.goalNotificationsLabel")}
-                        value={notificationStatusLabel}
-                        tone="neutral"
-                        tc={tc}
-                      />
-                    </View>
-                  </View>
-
-                  {stepSync.lastError ? (
-                    <ToneBanner tone="danger" tc={tc}>
-                      <Text className="font-nunito-semibold text-sm leading-5 text-dangerText">
-                        {stepSync.lastError}
-                      </Text>
-                    </ToneBanner>
-                  ) : null}
-
-                  {fitbitError ? (
-                    <ToneBanner tone="danger" tc={tc}>
-                      <Text className="font-nunito-semibold text-sm leading-5 text-dangerText">
-                        {fitbitError}
-                      </Text>
-                    </ToneBanner>
-                  ) : null}
-
-                  <View
-                    className="self-center w-full"
-                    style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
-                  >
-                    <SettingsActionButton
-                      testID="settings-step-sync-action"
-                      onPress={() => {
-                        void handleStepAction();
-                      }}
-                      loading={stepSync.isSyncing || isConnectingFitbit}
-                      variant="surface"
+                  <View className="flex-1 gap-[2px]">
+                    <Text
+                      className="font-nunito-extrabold text-ds-h3 text-fg"
+                      numberOfLines={1}
                     >
-                      {stepActionLabel}
-                    </SettingsActionButton>
+                      {user?.displayName ?? user?.email ?? ""}
+                    </Text>
+                    <Text
+                      className="font-nunito text-ds-sm text-fgMuted"
+                      numberOfLines={1}
+                    >
+                      {user?.email}
+                    </Text>
                   </View>
+
+                  {editing ? null : (
+                    <Button
+                      tone="ghost"
+                      size="sm"
+                      testID="settings-profile-edit"
+                      onPress={() => {
+                        setDisplayNameInput(user?.displayName ?? "");
+                        setEditing(true);
+                      }}
+                    >
+                      {t("settings.edit")}
+                    </Button>
+                  )}
                 </View>
-              </SurfaceCard>
-            </View>
 
-            <View
-              className="gap-4"
-              onLayout={(event) => {
-                notificationsSectionYRef.current = event.nativeEvent.layout.y;
+                {editing ? (
+                  <View className="gap-ds-3">
+                    <Text className="font-nunito text-ds-sm text-fgMuted">
+                      {t("settings.profileEditTip")}
+                    </Text>
+                    <Input
+                      value={displayNameInput}
+                      onChangeText={setDisplayNameInput}
+                      placeholder={t("settings.displayNamePlaceholder")}
+                      autoFocus
+                    />
+                    <View className="flex-row gap-ds-3">
+                      <Button
+                        tone="ghost"
+                        size="sm"
+                        className="flex-1"
+                        testID="settings-profile-cancel-edit"
+                        onPress={() => {
+                          setEditing(false);
+                          setDisplayNameInput(user?.displayName ?? "");
+                        }}
+                      >
+                        {t("settings.cancelEdit")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        testID="settings-profile-save-display-name"
+                        onPress={() =>
+                          updateDisplayNameMutation.mutate(displayNameValue)
+                        }
+                        disabled={!canSaveDisplayName}
+                        loading={updateDisplayNameMutation.isPending}
+                      >
+                        {t("settings.saveDisplayName")}
+                      </Button>
+                    </View>
+                  </View>
+                ) : null}
 
-                if (params.section === "notifications") {
-                  scrollToNotificationsSection();
-                }
-              }}
-            >
+                <View className="flex-row gap-ds-3">
+                  <CompactStat
+                    label={t("settings.language")}
+                    value={t(`settings.languageNames.${currentLanguage}`)}
+                  />
+                  <CompactStat
+                    label={t("settings.theme")}
+                    value={t(`settings.themeNames.${themeName}`)}
+                  />
+                  <CompactStat
+                    label={t("settings.stepsLabel")}
+                    value={currentStepSourceLabel}
+                  />
+                </View>
+              </Card>
+
               <SectionHeader
-                icon="notifications-outline"
-                title={t("settings.notificationsTitle")}
-                description={t("settings.notificationsIntro")}
-                tc={tc}
+                title={t("settings.preferencesTitle")}
+                subtitle={t("settings.preferencesIntro")}
               />
 
-              <SurfaceCard tc={tc}>
-                <View className="gap-5">
-                  <View className="gap-1">
-                    <Text className="font-nunito-bold text-lg text-fg">
+              <Card>
+                <CardTitle>{t("settings.language")}</CardTitle>
+                <SegmentedControl
+                  value={currentLanguage}
+                  onChange={(language) => {
+                    if (
+                      language === currentLanguage ||
+                      updateLanguageMutation.isPending
+                    ) {
+                      return;
+                    }
+                    updateLanguageMutation.mutate(language);
+                  }}
+                  options={LANGUAGE_OPTIONS.map((language) => ({
+                    value: language,
+                    label: t(`settings.languageNames.${language}`),
+                    testID: `settings-language-${language}`,
+                  }))}
+                />
+              </Card>
+
+              <Card>
+                <CardTitle>{t("settings.theme")}</CardTitle>
+                <SelectList>
+                  {THEME_OPTIONS.map((name, index) => (
+                    <SelectRow
+                      key={name}
+                      icon={THEME_ICONS[name]}
+                      title={t(`settings.themeNames.${name}`)}
+                      meta={t(`settings.themeDescriptions.${name}`)}
+                      selected={themeName === name}
+                      divider={index < THEME_OPTIONS.length - 1}
+                      testID={`settings-theme-${name}`}
+                      titleTestID={`settings-theme-${name}-label`}
+                      onPress={() => void setTheme(name)}
+                    />
+                  ))}
+                </SelectList>
+              </Card>
+
+              <SectionHeader
+                className="mt-ds-3"
+                title={t("settings.activityTitle")}
+                subtitle={t("settings.activityIntro")}
+              />
+
+              <Card>
+                <View className="gap-[2px]">
+                  <CardTitle>{t("settings.stepSource")}</CardTitle>
+                  <Text className="font-nunito text-ds-sm text-fgMuted">
+                    {t("settings.stepSourceHelp")}
+                  </Text>
+                </View>
+                <SelectList>
+                  {STEP_SOURCE_OPTIONS.map((source, index) => {
+                    const isFitbitSource = source === "fitbit";
+                    return (
+                      <SelectRow
+                        key={source}
+                        icon={isFitbitSource ? Watch : HeartPulse}
+                        title={getStepSourceLabel({
+                          healthSystemLabel,
+                          source,
+                          t,
+                        })}
+                        meta={
+                          isFitbitSource
+                            ? fitbitConnected
+                              ? t("settings.fitbitConnectedHelp")
+                              : t("settings.fitbitHelp")
+                            : t("settings.useDeviceHealth", {
+                                healthSystem: healthSystemLabel,
+                              })
+                        }
+                        selected={currentStepSource === source}
+                        disabled={updateSourceMutation.isPending}
+                        divider={index < STEP_SOURCE_OPTIONS.length - 1}
+                        testID={`settings-step-source-${source}`}
+                        onPress={() => {
+                          if (isFitbitSource) {
+                            void handleChooseFitbit();
+                            return;
+                          }
+
+                          setFitbitError(null);
+                          updateSourceMutation.mutate("device_health");
+                        }}
+                      />
+                    );
+                  })}
+                </SelectList>
+              </Card>
+
+              <Card>
+                <View className="gap-[2px]">
+                  <CardTitle>{t("settings.syncOverview")}</CardTitle>
+                  <Text className="font-nunito text-ds-sm text-fgMuted">
+                    {syncSummary}
+                  </Text>
+                </View>
+
+                <Notice
+                  tone={syncHealthy ? "success" : "info"}
+                  icon={syncHealthy ? CircleCheck : Activity}
+                  title={`${syncStatusLabel} · ${syncStatusValue}`}
+                />
+
+                <View className="flex-row gap-ds-3">
+                  <CompactStat
+                    label={t("settings.latestSyncedLabel")}
+                    value={t("settings.stepCountValue", {
+                      count: stepQueryData?.latest?.stepCount ?? 0,
+                    })}
+                  />
+                  <CompactStat
+                    label={t("settings.deviceTodayLabel")}
+                    value={t("settings.stepCountValue", {
+                      count: stepSync.deviceStepCount ?? 0,
+                    })}
+                  />
+                </View>
+                <View className="flex-row gap-ds-3">
+                  <CompactStat
+                    label={t("settings.recordedFor")}
+                    value={recordedForDate ?? "—"}
+                  />
+                  <CompactStat
+                    label={t("settings.lastUpdated")}
+                    value={latestSyncedDate ?? "—"}
+                  />
+                </View>
+                <View className="flex-row gap-ds-3">
+                  <CompactStat
+                    label={t("settings.sourceLabel")}
+                    value={latestStepSourceLabel}
+                  />
+                  <CompactStat
+                    label={t("settings.goalNotificationsLabel")}
+                    value={notificationStatusLabel}
+                  />
+                </View>
+
+                {stepSync.lastError ? (
+                  <Notice tone="danger" title={stepSync.lastError} />
+                ) : null}
+
+                {fitbitError ? <Notice tone="danger" title={fitbitError} /> : null}
+
+                <Button
+                  tone="ghost"
+                  size="md"
+                  icon={RefreshCw}
+                  testID="settings-step-sync-action"
+                  onPress={() => {
+                    void handleStepAction();
+                  }}
+                  loading={stepSync.isSyncing || isConnectingFitbit}
+                >
+                  {stepActionLabel}
+                </Button>
+              </Card>
+
+              <View
+                className="mt-ds-3 gap-ds-3"
+                onLayout={(event) => {
+                  notificationsSectionYRef.current = event.nativeEvent.layout.y;
+
+                  if (params.section === "notifications") {
+                    scrollToNotificationsSection();
+                  }
+                }}
+              >
+                <SectionHeader
+                  title={t("settings.notificationsTitle")}
+                  subtitle={t("settings.notificationsIntro")}
+                />
+
+                <Card>
+                  <View className="gap-[2px]">
+                    <CardTitle>
                       {t("settings.notificationsPreferencesTitle")}
-                    </Text>
-                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                    </CardTitle>
+                    <Text className="font-nunito text-ds-sm text-fgMuted">
                       {t("settings.notificationsPreferencesHelp")}
                     </Text>
                   </View>
 
-                  <ToneBanner
-                    tone={
-                      stepSync.notificationPermissionStatus === "granted"
-                        ? "success"
-                        : "neutral"
-                    }
-                    tc={tc}
+                  <Notice
+                    tone={notificationsGranted ? "success" : "info"}
+                    icon={Bell}
+                    title={`${t("settings.notificationsPermissionLabel")} · ${notificationStatusLabel}`}
+                    body={notificationPermissionSummary}
                   >
-                    <View className="gap-4">
-                      <View className="gap-1">
-                        <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
-                          {t("settings.notificationsPermissionLabel")}
-                        </Text>
-                        <Text className="font-nunito-extrabold text-xl text-fg">
-                          {notificationStatusLabel}
-                        </Text>
-                        <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                          {notificationPermissionSummary}
-                        </Text>
-                      </View>
+                    {notificationsGranted ? null : (
+                      <Button
+                        tone="ghost"
+                        size="sm"
+                        testID="settings-notification-permission-action"
+                        onPress={() => void handleNotificationPermissionAction()}
+                      >
+                        {notificationPermissionCta}
+                      </Button>
+                    )}
+                  </Notice>
 
-                      {stepSync.notificationPermissionStatus !== "granted" ? (
-                        <View className="self-start">
-                          <SettingsActionButton
-                            fullWidth={false}
-                            testID="settings-notification-permission-action"
-                            onPress={() => void handleNotificationPermissionAction()}
-                            variant="secondary"
-                          >
-                            {notificationPermissionCta}
-                          </SettingsActionButton>
-                        </View>
-                      ) : null}
-                    </View>
-                  </ToneBanner>
-
-                  <View className="gap-3">
-                    <SettingsToggleRow
-                      title={t("settings.notificationOptions.dailyReset.title")}
-                      description={t(
-                        "settings.notificationOptions.dailyReset.description",
-                      )}
-                      testIDPrefix="settings-notification-dailyReset"
-                      value={notificationPreferences.dailyReset}
-                      disabled={updateNotificationPreferencesMutation.isPending}
-                      onToggle={(value) => {
-                        void handleNotificationPreferenceToggle("dailyReset", value);
-                      }}
-                      tc={tc}
-                    />
-                    <SettingsToggleRow
-                      title={t("settings.notificationOptions.stepGoal.title")}
-                      description={t(
-                        "settings.notificationOptions.stepGoal.description",
-                      )}
-                      testIDPrefix="settings-notification-stepGoal"
-                      value={notificationPreferences.stepGoal}
-                      disabled={updateNotificationPreferencesMutation.isPending}
-                      onToggle={(value) => {
-                        void handleNotificationPreferenceToggle("stepGoal", value);
-                      }}
-                      tc={tc}
-                    />
-                    <SettingsToggleRow
-                      title={t("settings.notificationOptions.pvpInvite.title")}
-                      description={t(
-                        "settings.notificationOptions.pvpInvite.description",
-                      )}
-                      testIDPrefix="settings-notification-pvpInvite"
-                      value={notificationPreferences.pvpInvite}
-                      disabled={updateNotificationPreferencesMutation.isPending}
-                      onToggle={(value) => {
-                        void handleNotificationPreferenceToggle("pvpInvite", value);
-                      }}
-                      tc={tc}
-                    />
-                    <SettingsToggleRow
-                      title={t("settings.notificationOptions.pvpTurn.title")}
-                      description={t(
-                        "settings.notificationOptions.pvpTurn.description",
-                      )}
-                      testIDPrefix="settings-notification-pvpTurn"
-                      value={notificationPreferences.pvpTurn}
-                      disabled={updateNotificationPreferencesMutation.isPending}
-                      onToggle={(value) => {
-                        void handleNotificationPreferenceToggle("pvpTurn", value);
-                      }}
-                      tc={tc}
-                    />
-                    <SettingsToggleRow
-                      title={t("settings.notificationOptions.giftReceived.title")}
-                      description={t(
-                        "settings.notificationOptions.giftReceived.description",
-                      )}
-                      testIDPrefix="settings-notification-giftReceived"
-                      value={notificationPreferences.giftReceived}
-                      disabled={updateNotificationPreferencesMutation.isPending}
-                      onToggle={(value) => {
-                        void handleNotificationPreferenceToggle("giftReceived", value);
-                      }}
-                      tc={tc}
-                    />
-                  </View>
+                  <SelectList>
+                    {NOTIFICATION_ROWS.map(({ key, icon }, index) => (
+                      <ToggleRow
+                        key={key}
+                        icon={icon}
+                        title={t(`settings.notificationOptions.${key}.title`)}
+                        description={t(
+                          `settings.notificationOptions.${key}.description`,
+                        )}
+                        testIDPrefix={`settings-notification-${key}`}
+                        value={notificationPreferences[key]}
+                        disabled={updateNotificationPreferencesMutation.isPending}
+                        divider={index < NOTIFICATION_ROWS.length - 1}
+                        onToggle={(value) => {
+                          void handleNotificationPreferenceToggle(key, value);
+                        }}
+                      />
+                    ))}
+                  </SelectList>
 
                   {notificationError ? (
-                    <ToneBanner tone="danger" tc={tc}>
-                      <Text className="font-nunito-semibold text-sm leading-5 text-dangerText">
-                        {notificationError}
-                      </Text>
-                    </ToneBanner>
+                    <Notice tone="danger" title={notificationError} />
                   ) : null}
-                </View>
-              </SurfaceCard>
-            </View>
+                </Card>
+              </View>
 
-            <View className="gap-4">
               <SectionHeader
-                icon="shield-checkmark-outline"
+                className="mt-ds-3"
                 title={t("settings.sessionTitle")}
-                description={t("settings.sessionIntro")}
-                tc={tc}
+                subtitle={t("settings.sessionIntro")}
               />
-              <SurfaceCard tc={tc}>
-                <View className="gap-4">
-                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                    {t("settings.sessionHelp")}
-                  </Text>
-                  <View className="gap-4 rounded-[24px] bg-surfaceMuted p-4">
-                    <View className="gap-2">
-                      <View className="flex-row items-center justify-between gap-3">
-                        <View className="flex-1 gap-1">
-                          <Text className="font-nunito-bold text-lg text-fg">
-                            {t("settings.passwordTitle")}
-                          </Text>
-                          <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                            {hasPasswordAuth
-                              ? t("settings.passwordChangeHelp")
-                              : t("settings.passwordCreateHelp")}
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name={hasPasswordAuth ? "key" : "key-outline"}
-                          size={22}
-                          color={tc.primaryText}
-                        />
-                      </View>
 
-                      {authMethodChips.length > 0 ? (
-                        <View className="flex-row flex-wrap gap-2">
-                          {authMethodChips.map((label) => (
-                            <View
-                              key={label}
-                              className="rounded-full border border-primaryBorder bg-surface px-3 py-1"
-                            >
-                              <Text className="font-nunito-bold text-xs text-primaryText">
-                                {label}
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      ) : null}
-                    </View>
-
-                    <View className="gap-3">
-                      {hasPasswordAuth ? (
-                        <ThemedExpoTextInput
-                          value={currentPasswordInput}
-                          onChangeText={(value) => {
-                            setCurrentPasswordInput(value);
-                            setPasswordStatus(null);
-                          }}
-                          placeholder={t("settings.currentPasswordPlaceholder")}
-                          autoComplete="current-password"
-                          secureTextEntry
-                          testID="settings-current-password-input"
-                          hostStyle={{ width: "100%" }}
-                          style={{
-                            backgroundColor: tc.surface,
-                            borderColor: tc.primaryBorder,
-                            borderRadius: 16,
-                            borderWidth: 1,
-                            height: 48,
-                            paddingHorizontal: 14,
-                            width: "100%",
-                          }}
-                          textStyle={{
-                            color: tc.fg,
-                            fontFamily: "Nunito-SemiBold",
-                            fontSize: 15,
-                          }}
-                        />
-                      ) : null}
-                      <ThemedExpoTextInput
-                        value={newPasswordInput}
-                        onChangeText={(value) => {
-                          setNewPasswordInput(value);
-                          setPasswordStatus(null);
-                        }}
-                        placeholder={t("settings.newPasswordPlaceholder")}
-                        autoComplete="new-password"
-                        secureTextEntry
-                        testID="settings-new-password-input"
-                        hostStyle={{ width: "100%" }}
-                        style={{
-                          backgroundColor: tc.surface,
-                          borderColor: tc.primaryBorder,
-                          borderRadius: 16,
-                          borderWidth: 1,
-                          height: 48,
-                          paddingHorizontal: 14,
-                          width: "100%",
-                        }}
-                        textStyle={{
-                          color: tc.fg,
-                          fontFamily: "Nunito-SemiBold",
-                          fontSize: 15,
-                        }}
-                      />
-                      <ThemedExpoTextInput
-                        value={confirmPasswordInput}
-                        onChangeText={(value) => {
-                          setConfirmPasswordInput(value);
-                          setPasswordStatus(null);
-                        }}
-                        placeholder={t("settings.confirmNewPasswordPlaceholder")}
-                        autoComplete="new-password"
-                        secureTextEntry
-                        testID="settings-confirm-password-input"
-                        hostStyle={{ width: "100%" }}
-                        style={{
-                          backgroundColor: tc.surface,
-                          borderColor: tc.primaryBorder,
-                          borderRadius: 16,
-                          borderWidth: 1,
-                          height: 48,
-                          paddingHorizontal: 14,
-                          width: "100%",
-                        }}
-                        textStyle={{
-                          color: tc.fg,
-                          fontFamily: "Nunito-SemiBold",
-                          fontSize: 15,
-                        }}
-                      />
-                    </View>
-
-                    {passwordStatus ? (
-                      <ToneBanner
-                        tone={passwordStatus.type === "success" ? "success" : "danger"}
-                        tc={tc}
-                      >
-                        <Text
-                          className="font-nunito-semibold text-sm leading-5"
-                          style={{
-                            color:
-                              passwordStatus.type === "success"
-                                ? tc.successText
-                                : tc.dangerText,
-                          }}
-                        >
-                          {passwordStatus.message}
-                        </Text>
-                      </ToneBanner>
-                    ) : null}
-
-                    <SettingsActionButton
-                      testID="settings-password-submit"
-                      onPress={handlePasswordSubmit}
-                      disabled={passwordSubmitDisabled}
-                      loading={changePasswordMutation.isPending}
-                      variant="primary"
-                    >
+              <Card>
+                <View className="flex-row items-center gap-ds-3">
+                  <IconTile icon={KeyRound} />
+                  <View className="flex-1 gap-[2px]">
+                    <CardTitle>{t("settings.passwordTitle")}</CardTitle>
+                    <Text className="font-nunito text-ds-sm text-fgMuted">
                       {hasPasswordAuth
-                        ? t("settings.changePasswordAction")
-                        : t("settings.createPasswordAction")}
-                    </SettingsActionButton>
+                        ? t("settings.passwordChangeHelp")
+                        : t("settings.passwordCreateHelp")}
+                    </Text>
                   </View>
-                  <SettingsActionButton
-                    testID="settings-logout-action"
-                    onPress={() =>
-                      void clearAppSession().then(() => router.replace("/login"))
-                    }
-                    variant="danger"
-                  >
-                    <View
-                      className="h-[15px] flex-row items-center justify-center"
-                      style={{ gap: 8 }}
-                    >
-                      <View className="size-[15px] items-center justify-center">
-                        <Ionicons
-                          name="log-out"
-                          size={14}
-                          color="#FFFFFF"
-                          style={{ transform: [{ translateY: -2 }] }}
-                        />
-                      </View>
-                      <Text
-                        style={{
-                          color: "#FFFFFF",
-                          fontFamily: "Nunito_700Bold",
-                          fontSize: 13,
-                          lineHeight: 15,
-                        }}
-                      >
-                        {t("home.logout")}
-                      </Text>
-                    </View>
-                  </SettingsActionButton>
                 </View>
-              </SurfaceCard>
-            </View>
 
-            <View className="gap-4">
+                {authMethodChips.length > 0 ? (
+                  <View className="flex-row flex-wrap gap-ds-2">
+                    {authMethodChips.map((label) => (
+                      <Chip key={label} label={label} tone="neutral" />
+                    ))}
+                  </View>
+                ) : null}
+
+                {hasPasswordAuth ? (
+                  <Input
+                    value={currentPasswordInput}
+                    onChangeText={(value) => {
+                      setCurrentPasswordInput(value);
+                      setPasswordStatus(null);
+                    }}
+                    placeholder={t("settings.currentPasswordPlaceholder")}
+                    autoComplete="current-password"
+                    secureTextEntry
+                    icon={Lock}
+                    testID="settings-current-password-input"
+                  />
+                ) : null}
+                <Input
+                  value={newPasswordInput}
+                  onChangeText={(value) => {
+                    setNewPasswordInput(value);
+                    setPasswordStatus(null);
+                  }}
+                  placeholder={t("settings.newPasswordPlaceholder")}
+                  autoComplete="new-password"
+                  secureTextEntry
+                  icon={Lock}
+                  testID="settings-new-password-input"
+                />
+                <Input
+                  value={confirmPasswordInput}
+                  onChangeText={(value) => {
+                    setConfirmPasswordInput(value);
+                    setPasswordStatus(null);
+                  }}
+                  placeholder={t("settings.confirmNewPasswordPlaceholder")}
+                  autoComplete="new-password"
+                  secureTextEntry
+                  icon={Lock}
+                  testID="settings-confirm-password-input"
+                />
+
+                {passwordStatus ? (
+                  <Notice
+                    tone={passwordStatus.type === "success" ? "success" : "danger"}
+                    title={passwordStatus.message}
+                  />
+                ) : null}
+
+                <Button
+                  size="md"
+                  testID="settings-password-submit"
+                  onPress={handlePasswordSubmit}
+                  disabled={passwordSubmitDisabled}
+                  loading={changePasswordMutation.isPending}
+                >
+                  {hasPasswordAuth
+                    ? t("settings.changePasswordAction")
+                    : t("settings.createPasswordAction")}
+                </Button>
+              </Card>
+
+              <Card>
+                <Text className="font-nunito text-ds-sm text-fgMuted">
+                  {t("settings.sessionHelp")}
+                </Text>
+                <Button
+                  tone="danger"
+                  size="md"
+                  icon={LogOut}
+                  testID="settings-logout-action"
+                  onPress={() =>
+                    void clearAppSession().then(() => router.replace("/login"))
+                  }
+                >
+                  {t("home.logout")}
+                </Button>
+              </Card>
+
               <SectionHeader
-                icon="lock-closed-outline"
+                className="mt-ds-3"
                 title={t("settings.privacyTitle")}
-                description={t("settings.privacyIntro")}
-                tc={tc}
+                subtitle={t("settings.privacyIntro")}
               />
-              <SurfaceCard tc={tc}>
-                <View className="gap-4">
-                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                    {t("settings.privacyHelp")}
-                  </Text>
-                  <View className="gap-3">
-                    <SettingsActionButton
-                      testID="settings-privacy-policy-action"
-                      onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
-                      variant="secondary"
-                    >
-                      {t("settings.openPrivacyPolicy")}
-                    </SettingsActionButton>
-                    <SettingsActionButton
-                      testID="settings-account-deletion-info-action"
-                      onPress={() => void Linking.openURL(ACCOUNT_DELETION_URL)}
-                      variant="secondary"
-                    >
-                      {t("settings.openAccountDeletionInfo")}
-                    </SettingsActionButton>
-                  </View>
-                </View>
-              </SurfaceCard>
 
-              <SurfaceCard tc={tc}>
-                <View className="gap-4">
-                  <View className="gap-1">
-                    <Text className="font-nunito-bold text-lg text-dangerDark">
-                      {t("settings.deleteAccountTitle")}
-                    </Text>
-                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                      {t("settings.deleteAccountHelp")}
-                    </Text>
-                  </View>
-                  {deleteAccountMutation.error ? (
-                    <ToneBanner tone="danger" tc={tc}>
-                      <Text className="font-nunito-semibold text-sm leading-5 text-dangerText">
-                        {t("settings.deleteAccountFailed")}
-                      </Text>
-                    </ToneBanner>
-                  ) : null}
-                  <SettingsActionButton
-                    testID="settings-delete-account-action"
-                    onPress={confirmDeleteAccount}
-                    loading={deleteAccountMutation.isPending}
-                    variant="danger"
-                  >
-                    {t("settings.deleteAccountAction")}
-                  </SettingsActionButton>
+              <Card>
+                <Text className="font-nunito text-ds-sm text-fgMuted">
+                  {t("settings.privacyHelp")}
+                </Text>
+                <Button
+                  tone="ghost"
+                  size="md"
+                  icon={ExternalLink}
+                  testID="settings-privacy-policy-action"
+                  onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+                >
+                  {t("settings.openPrivacyPolicy")}
+                </Button>
+                <Button
+                  tone="ghost"
+                  size="md"
+                  icon={ExternalLink}
+                  testID="settings-account-deletion-info-action"
+                  onPress={() => void Linking.openURL(ACCOUNT_DELETION_URL)}
+                >
+                  {t("settings.openAccountDeletionInfo")}
+                </Button>
+              </Card>
+
+              <Card tone="danger">
+                <View className="gap-[2px]">
+                  <Text className="font-nunito-extrabold text-ds-h3 text-dangerText">
+                    {t("settings.deleteAccountTitle")}
+                  </Text>
+                  <Text className="font-nunito text-ds-sm text-fg">
+                    {t("settings.deleteAccountHelp")}
+                  </Text>
                 </View>
-              </SurfaceCard>
+                {deleteAccountMutation.error ? (
+                  <Notice tone="danger" title={t("settings.deleteAccountFailed")} />
+                ) : null}
+                <Button
+                  tone="danger"
+                  size="md"
+                  icon={Trash}
+                  testID="settings-delete-account-action"
+                  onPress={confirmDeleteAccount}
+                  loading={deleteAccountMutation.isPending}
+                >
+                  {t("settings.deleteAccountAction")}
+                </Button>
+              </Card>
             </View>
-          </View>
           </ScrollView>
         </View>
       </KeyboardScreenView>
     </ModalSheetRoute>
   );
-}
-
-function SectionHeader({
-  description,
-  icon,
-  tc,
-  title,
-}: {
-  description: string;
-  icon: IoniconName;
-  tc: (typeof THEME_COLORS)[ThemeName];
-  title: string;
-}) {
-  return (
-    <View className="flex-row items-start gap-3 px-1">
-      <Ionicons name={icon} size={20} color={tc.primaryText} />
-      <View className="flex-1 gap-1">
-        <Text className="font-nunito-bold text-xl text-fg">{title}</Text>
-        <Text className="font-nunito text-sm leading-5 text-fgMuted">
-          {description}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-const SurfaceCard = surfaceCard;
-
-function surfaceCard({
-  children,
-  tc,
-}: {
-  children: ReactNode;
-  tc: (typeof THEME_COLORS)[ThemeName];
-}) {
-  return (
-    <View
-      className="rounded-3xl border border-primaryBorder bg-surface p-5"
-      style={{
-        boxShadow: "0px 3px 8px rgba(0, 0, 0, 0.04)",
-      }}
-    >
-      {children}
-    </View>
-  );
-}
-
-const ChoiceCard = choiceCard;
-
-function choiceCard({
-  children,
-  disabled,
-  onPress,
-  selected,
-  testID,
-  tc,
-}: {
-  children: ReactNode;
-  disabled?: boolean;
-  onPress: () => void;
-  selected: boolean;
-  testID?: string;
-  tc: (typeof THEME_COLORS)[ThemeName];
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      testID={testID}
-      accessibilityRole="button"
-      style={({ pressed }) => [
-        {
-          borderRadius: RADIUS.lg,
-          borderWidth: 1,
-          borderColor: tc.primaryBorder,
-          backgroundColor: selected ? tc.primaryBg : tc.surface,
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          opacity: disabled ? 0.6 : pressed ? 0.85 : 1,
-        },
-        {
-        flex: 1,
-        opacity: disabled ? 0.65 : 1,
-      },
-      ]}
-    >
-      {children}
-    </Pressable>
-  );
-}
-
-const ThemePreview = themePreview;
-
-function themePreview({ themeName }: { themeName: ThemeName }) {
-  const preview = THEME_COLORS[themeName];
-
-  return (
-    <View className="flex-row gap-1">
-      <View
-        className="h-4 w-4 rounded-full"
-        style={{ backgroundColor: preview.primary }}
-      />
-      <View
-        className="h-4 w-4 rounded-full"
-        style={{ backgroundColor: preview.secondary }}
-      />
-      <View
-        className="h-4 w-4 rounded-full"
-        style={{ backgroundColor: preview.accent }}
-      />
-    </View>
-  );
-}
-
-const SummaryChip = summaryChip;
-
-function summaryChip({
-  label,
-  tc,
-  tone,
-  value,
-}: {
-  label: string;
-  tc: (typeof THEME_COLORS)[ThemeName];
-  tone: ToneName;
-  value: string;
-}) {
-  const colors = toneColors(tc, tone);
-
-  return (
-    <View
-      className="min-w-[104px] rounded-2xl px-4 py-3"
-      style={{
-        backgroundColor: colors.bg,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <Text className="font-nunito-semibold text-xs text-fgMuted">{label}</Text>
-      <Text
-        className="mt-1 font-nunito-bold text-sm"
-        style={{ color: colors.text }}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-const SettingsToggleRow = settingsToggleRow;
-
-function settingsToggleRow({
-  description,
-  disabled,
-  onToggle,
-  testIDPrefix,
-  tc,
-  title,
-  value,
-}: {
-  description: string;
-  disabled?: boolean;
-  onToggle: (nextValue: boolean) => void;
-  testIDPrefix?: string;
-  tc: (typeof THEME_COLORS)[ThemeName];
-  title: string;
-  value: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={() => onToggle(!value)}
-      disabled={disabled}
-      accessibilityRole="button"
-      style={({ pressed }) => [
-        {
-          borderRadius: RADIUS.lg,
-          borderWidth: 1,
-          borderColor: tc.primaryBorder,
-          backgroundColor: tc.surfaceMuted,
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          opacity: disabled ? 0.6 : pressed ? 0.85 : 1,
-        },
-        { opacity: disabled ? 0.65 : 1 },
-      ]}
-    >
-      <View className="relative min-h-[60px] justify-center">
-        <View className="gap-1 pr-24">
-          <Text
-            className="font-nunito-bold text-base text-fg"
-            testID={testIDPrefix ? `${testIDPrefix}-title` : undefined}
-          >
-            {title}
-          </Text>
-          <Text
-            className="font-nunito text-sm leading-5 text-fgMuted"
-            testID={testIDPrefix ? `${testIDPrefix}-description` : undefined}
-          >
-            {description}
-          </Text>
-        </View>
-        <View className="absolute inset-y-0 right-0 justify-center">
-          <ThemedExpoSwitch
-            disabled={disabled}
-            onValueChange={onToggle}
-            value={value}
-          />
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-const StatTile = statTile;
-
-function statTile({
-  label,
-  tc,
-  tone,
-  value,
-}: {
-  label: string;
-  tc: (typeof THEME_COLORS)[ThemeName];
-  tone: ToneName;
-  value: string;
-}) {
-  const colors = toneColors(tc, tone);
-
-  return (
-    <View
-      className="flex-1 rounded-3xl p-4"
-      style={{
-        backgroundColor: colors.bg,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
-        {label}
-      </Text>
-      <Text
-        className="mt-2 font-nunito-extrabold text-lg"
-        style={{ color: colors.text }}
-        numberOfLines={2}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-const ToneBanner = toneBanner;
-
-function toneBanner({
-  children,
-  tc,
-  tone,
-}: {
-  children: ReactNode;
-  tc: (typeof THEME_COLORS)[ThemeName];
-  tone: ToneName;
-}) {
-  const colors = toneColors(tc, tone);
-
-  return (
-    <View
-      className="rounded-3xl p-4"
-      style={{
-        backgroundColor: colors.bg,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      {children}
-    </View>
-  );
-}
-
-const SettingsActionButton = settingsActionButton;
-
-function settingsActionButton({
-  children,
-  disabled,
-  fullWidth = true,
-  leadingAccessory,
-  loading,
-  onPress,
-  testID,
-  variant,
-}: {
-  children: ReactNode;
-  disabled?: boolean;
-  fullWidth?: boolean;
-  leadingAccessory?: ReactNode;
-  loading?: boolean;
-  onPress: () => void;
-  testID?: string;
-  variant: "primary" | "secondary" | "surface" | "danger";
-}) {
-  return (
-    <Button
-      tone={
-        variant === "danger"
-          ? "danger"
-          : variant === "primary"
-            ? "primary"
-            : "ghost"
-      }
-      size="sm"
-      icon={leadingAccessory ? () => leadingAccessory : undefined}
-      onPress={onPress}
-      disabled={disabled}
-      loading={loading}
-      testID={testID}
-      style={fullWidth ? { width: "100%" } : undefined}
-    >
-      {children}
-    </Button>
-  );
-}
-
-function toneColors(tc: (typeof THEME_COLORS)[ThemeName], tone: ToneName) {
-  switch (tone) {
-    case "success":
-      return {
-        bg: tc.successTint,
-        border: tc.successBorder,
-        text: tc.successText,
-      };
-    case "danger":
-      return {
-        bg: tc.dangerTint,
-        border: tc.dangerBorder,
-        text: tc.dangerText,
-      };
-    case "neutral":
-      return {
-        bg: tc.surfaceMuted,
-        border: tc.primaryBorder,
-        text: tc.fg,
-      };
-    case "primary":
-    default:
-      return {
-        bg: tc.primaryBg,
-        border: tc.primaryBorder,
-        text: tc.primaryText,
-      };
-  }
 }
 
 function settingsErrorMessage(error: unknown, fallback: string) {

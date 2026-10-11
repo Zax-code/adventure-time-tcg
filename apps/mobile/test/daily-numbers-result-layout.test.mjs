@@ -32,18 +32,18 @@ describe("Daily Numbers equation result layout", () => {
   it("keeps 1000 and 10000 in a dedicated full-width text lane", () => {
     assert.match(
       equationResultSource,
-      /className=\{`\$\{boardNumberTextClass\} w-full /,
+      /className=\{`\$\{BOARD_NUMBER_TEXT_CLASS\} w-full /,
       "the result number should own the tile width before native font fitting",
     );
     assert.match(
       equationResultSource,
-      /className="absolute inset-y-0 right-2/,
+      /className="absolute bottom-0\.5 right-1\.5"/,
       "the action arrow should not consume result-number layout width",
     );
     assert.match(
       equationResultSource,
-      /adjustsFontSizeToFit=\{String\(previewState\.result\)\.length > 4\}/,
-      "four-digit results should keep normal tile typography while longer results may auto-fit",
+      /adjustsFontSizeToFit=\{String\(previewState\.result\)\.length > 3\}/,
+      "three-digit results should keep normal tile typography while longer results auto-fit the selection tile",
     );
   });
 

@@ -33,8 +33,10 @@ tags:
     id: wordle-key-T
 - waitForAnimationToEnd
 - takeScreenshot: wordle-qwert-after-scroll
+# Delete is a backspace: remove each typed letter.
 - tapOn:
     id: wordle-key-CLEAR
+    repeat: 5
 
 - tapOn:
     id: wordle-key-Y
@@ -49,8 +51,10 @@ tags:
     id: wordle-key-P
 - waitForAnimationToEnd
 - takeScreenshot: wordle-yuiop-after-scroll
+# Delete is a backspace: remove each typed letter.
 - tapOn:
     id: wordle-key-CLEAR
+    repeat: 5
 
 - tapOn:
     id: wordle-key-A
@@ -64,8 +68,10 @@ tags:
     id: wordle-key-G
 - waitForAnimationToEnd
 - takeScreenshot: wordle-asdfg-after-scroll
+# Delete is a backspace: remove each typed letter.
 - tapOn:
     id: wordle-key-CLEAR
+    repeat: 5
 
 - tapOn:
     id: wordle-key-H
@@ -79,8 +85,10 @@ tags:
     id: wordle-key-Z
 - waitForAnimationToEnd
 - takeScreenshot: wordle-hjklz-after-scroll
+# Delete is a backspace: remove each typed letter.
 - tapOn:
     id: wordle-key-CLEAR
+    repeat: 5
 
 - tapOn:
     id: wordle-key-X
@@ -94,13 +102,16 @@ tags:
     id: wordle-key-N
 - waitForAnimationToEnd
 - takeScreenshot: wordle-xcvbn-after-scroll
+# Delete is a backspace: remove each typed letter.
 - tapOn:
     id: wordle-key-CLEAR
+    repeat: 5
 
 - tapOn:
     id: wordle-key-M
 - waitForAnimationToEnd
 - takeScreenshot: wordle-m-after-scroll
+# Delete is a backspace: remove each typed letter.
 - tapOn:
     id: wordle-key-CLEAR
 

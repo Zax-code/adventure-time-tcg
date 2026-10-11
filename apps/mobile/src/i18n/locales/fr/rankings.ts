@@ -4,7 +4,7 @@ const rankings = {
   previewLabel: "Aperçu du classement",
   loadingTitle: "Rassemblement des aventuriers",
   loadingBody: "Chargement des derniers classements provisoires et clôturés.",
-  liveProvisional: "En direct · Provisoire",
+  liveProvisional: "En direct · provisoire",
   final: "Final",
   provisionalHint:
     "Les résultats évoluent à mesure que les parties sont validées.",
@@ -15,13 +15,15 @@ const rankings = {
   viewDays: "Voir les résultats quotidiens",
   hideDays: "Masquer les résultats quotidiens",
   scoringHelp: "Comment fonctionne le classement",
-  profileTapHint: "Touche un aventurier pour voir ses couronnes et ses succès",
-  placements: {
-    first: "1re place",
-    second: "2e place",
-    third: "3e place",
-    tied: "Égalité entre {count} joueurs",
-  },
+  emptyTitle: "Pas encore de classement",
+  emptyBodyDay:
+    "Un seul résultat validé suffit pour apparaître. Termine une quête aujourd'hui pour entrer dans le classement du jour.",
+  emptyBodyWeek:
+    "Un seul résultat validé suffit pour apparaître. Termine une quête aujourd'hui pour entrer dans le classement de la semaine.",
+  emptyAction: "Aller aux quêtes",
+  points: "{points} pts",
+  you: "Toi",
+  youWithResult: "Toi · {result}",
   historyTitle: "Historique des classements",
   historyBody:
     "Aucun jour ni aucune semaine de compétition clôturés pour le moment.",

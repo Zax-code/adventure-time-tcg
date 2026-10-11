@@ -1,111 +1,49 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  FlatList,
-  InteractionManager,
-  Pressable,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
-import Ionicons from "@react-native-vector-icons/ionicons";
+import { InteractionManager, ScrollView, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import Circle from "lucide-react-native/icons/circle";
+import Crown from "lucide-react-native/icons/crown";
+import Diamond from "lucide-react-native/icons/diamond";
+import Gem from "lucide-react-native/icons/gem";
+import Leaf from "lucide-react-native/icons/leaf";
+import Sparkles from "lucide-react-native/icons/sparkles";
+import type { LucideIcon } from "lucide-react-native";
 
 import type { AdminCardsResponse } from "@adventure-time/api-client";
 
 import { CardTile } from "../../src/components/card-tile";
 import {
   AdminButton,
-  AdminChip,
   AdminEmptyState,
-  AdminHero,
   AdminLoadingState,
   AdminModal,
-  AdminNotice,
-  AdminPanel,
   AdminSearchInput,
-  AdminSectionTitle,
-  AdminStat,
 } from "../../src/components/admin/admin-ui";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-aware-scroll-props";
+import { Card } from "../../src/components/ui/card";
+import { ListRow } from "../../src/components/ui/list-row";
+import { Notice } from "../../src/components/ui/notice";
+import { SectionHeader } from "../../src/components/ui/section-header";
+import { StatTile } from "../../src/components/ui/stat-tile";
+import type { Tone } from "../../src/components/ui/tokens";
 import { useTranslation } from "../../src/i18n";
 import { prefetchCardImages } from "../../src/lib/card-images";
 import { apiClient } from "../../src/lib/api";
-import { useThemeStore } from "../../src/stores/theme-store";
-import { THEME_COLORS } from "../../src/theme/themes";
 
-const GRID_GAP = 12;
-const SCREEN_SIDE_PADDING = 16;
-const COLLECTION_SIDE_PADDING = 12;
 const CONTENT_BOTTOM_PADDING = 132;
 
 type AdminCard = AdminCardsResponse["cards"][number];
 
-type CardRow = {
-  id: string;
-  left: AdminCard;
-  right?: AdminCard;
+// Row icon tile per rarity: Legendary crown on yellow, Epic gem on purple.
+const RARITY_ICON: Record<string, { icon: LucideIcon; tone: Tone }> = {
+  Legendary: { icon: Crown, tone: "secondary" },
+  Epic: { icon: Gem, tone: "accent" },
+  Rare: { icon: Diamond, tone: "info" },
+  Uncommon: { icon: Leaf, tone: "success" },
+  Common: { icon: Circle, tone: "primary" },
 };
-
-type CardsListItem =
-  | { id: string; type: "active-header" }
-  | { id: string; type: "active-row"; row: CardRow }
-  | { id: string; type: "archived-header" }
-  | { id: string; type: "archived-row"; row: CardRow };
-
-const keyExtractor = (item: CardsListItem) => item.id;
-
-function getTwoColumnWidth(screenWidth: number) {
-  const availableWidth =
-    screenWidth - SCREEN_SIDE_PADDING * 2 - COLLECTION_SIDE_PADDING * 2;
-
-  return Math.floor((availableWidth - GRID_GAP) / 2);
-}
-
-function chunkCards(cards: AdminCard[]) {
-  const rows: CardRow[] = [];
-
-  for (let index = 0; index < cards.length; index += 2) {
-    rows.push({
-      id: `row-${cards[index].id}-${cards[index + 1]?.id ?? "empty"}`,
-      left: cards[index],
-      right: cards[index + 1],
-    });
-  }
-
-  return rows;
-}
-
-function SectionHeader({
-  title,
-  subtitle,
-  open,
-  onPress,
-  tint = "default",
-}: {
-  title: string;
-  subtitle: string;
-  open: boolean;
-  onPress: () => void;
-  tint?: "default" | "secondary" | "accent";
-}) {
-  return (
-    <AdminPanel tint={tint}>
-      <Pressable onPress={onPress} className="gap-3">
-        <View className="flex-row items-center justify-between gap-3">
-          <AdminSectionTitle title={title} subtitle={subtitle} />
-          <Ionicons
-            name="chevron-down"
-            size={20}
-            style={{
-              transform: [{ rotate: open ? "180deg" : "0deg" }],
-            }}
-          />
-        </View>
-      </Pressable>
-    </AdminPanel>
-  );
-}
+const FALLBACK_RARITY_ICON = { icon: Sparkles, tone: "primary" as Tone };
 
 export default function AdminCardsScreen() {
   return useAdminCardsScreenView();
@@ -114,18 +52,17 @@ export default function AdminCardsScreen() {
 function useAdminCardsScreenView() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { width } = useWindowDimensions();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedArchivedCardId, setSelectedArchivedCardId] = useState<
     string | null
   >(null);
-  const [isActiveCardsOpen, setIsActiveCardsOpen] = useState(true);
-  const [isArchivedCardsOpen, setIsArchivedCardsOpen] = useState(false);
-  const { themeName } = useThemeStore();
-  const tc = THEME_COLORS[themeName];
 
-  const { data: cardsQueryData, error: cardsQueryError, isLoading: cardsQueryIsLoading } = useQuery({
+  const {
+    data: cardsQueryData,
+    error: cardsQueryError,
+    isLoading: isCardsLoading,
+  } = useQuery({
     queryKey: ["admin-cards"],
     queryFn: () => apiClient.adminCards(),
   });
@@ -133,7 +70,7 @@ function useAdminCardsScreenView() {
     queryKey: ["admin-rarities"],
     queryFn: () => apiClient.rarities(),
   });
-  const featureMutation = useMutation({
+  const restoreMutation = useMutation({
     mutationFn: ({
       cardId,
       isArchived,
@@ -146,19 +83,17 @@ function useAdminCardsScreenView() {
     },
   });
 
-  const tileWidth = getTwoColumnWidth(width);
   const cards = useMemo(
     () => cardsQueryData?.cards ?? [],
     [cardsQueryData?.cards],
   );
-  const isCardsLoading = cardsQueryIsLoading;
   const cardsError =
     cardsQueryError instanceof Error ? cardsQueryError.message : null;
 
   const derived = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const active: AdminCard[] = [];
-    const archived: AdminCard[] = [];
+    const visible: AdminCard[] = [];
+    const visibleArchived: AdminCard[] = [];
     const rarityCounts = new Map<string, number>();
     const cardById = new Map<string, AdminCard>();
     let allActiveCount = 0;
@@ -191,15 +126,15 @@ function useAdminCardsScreenView() {
       }
 
       if (card.isArchived) {
-        archived.push(card);
+        visibleArchived.push(card);
       } else {
-        active.push(card);
+        visible.push(card);
       }
     }
 
+    // Live cards first, archived cards at the end of the catalog.
     return {
-      activeCards: active,
-      archivedCards: archived,
+      catalog: [...visible, ...visibleArchived],
       allActiveCount,
       allArchivedCount,
       featuredCount,
@@ -207,6 +142,18 @@ function useAdminCardsScreenView() {
       cardById,
     };
   }, [cards, searchQuery]);
+
+  const rarityBreakdown = useMemo(
+    () =>
+      [...(raritiesQueryData?.rarities ?? [])]
+        .sort((left, right) => left.dropRate - right.dropRate)
+        .map(
+          (rarity) =>
+            `${rarity.name} ${derived.rarityCounts.get(rarity.id) ?? 0}`,
+        )
+        .join(" · "),
+    [derived.rarityCounts, raritiesQueryData?.rarities],
+  );
 
   const selectedArchivedCard = selectedArchivedCardId
     ? (derived.cardById.get(selectedArchivedCardId) ?? null)
@@ -233,167 +180,67 @@ function useAdminCardsScreenView() {
     return () => handle.cancel();
   }, [prefetchKey]);
 
-  const listData = useMemo(() => {
-    const items: CardsListItem[] = [
-      { id: "active-header", type: "active-header" },
-    ];
-
-    if (isActiveCardsOpen) {
-      chunkCards(derived.activeCards).forEach((row) => {
-        items.push({ id: `active-${row.id}`, type: "active-row", row });
-      });
-    }
-
-    items.push({ id: "archived-header", type: "archived-header" });
-
-    if (isArchivedCardsOpen) {
-      chunkCards(derived.archivedCards).forEach((row) => {
-        items.push({ id: `archived-${row.id}`, type: "archived-row", row });
-      });
-    }
-
-    return items;
-  }, [
-    derived.activeCards,
-    derived.archivedCards,
-    isActiveCardsOpen,
-    isArchivedCardsOpen,
-  ]);
-
   const openCardEditor = useCallback(
     (mode: "create" | "edit", cardId?: string) => {
       router.push({
         pathname: "/admin-card-editor",
         params: cardId ? { mode, cardId } : { mode },
-      } as any);
+      } as never);
     },
     [router],
   );
 
-  const renderCardRow = useCallback(
-    (row: CardRow, archived: boolean) => (
-      <View className="mt-3 flex-row justify-between gap-3 px-3">
-        <View
-          className="items-center"
-          style={{ width: tileWidth, opacity: archived ? 0.7 : 1 }}
-        >
-          <CardTile
-            card={row.left}
-            fitContainer
-            onPress={() =>
-              archived
-                ? setSelectedArchivedCardId(row.left.id)
-                : openCardEditor("edit", row.left.id)
-            }
-          />
-        </View>
-        {row.right ? (
-          <View
-            className="items-center"
-            style={{ width: tileWidth, opacity: archived ? 0.7 : 1 }}
-          >
-            <CardTile
-              card={row.right}
-              fitContainer
-              onPress={() =>
-                archived
-                  ? setSelectedArchivedCardId(row.right!.id)
-                  : openCardEditor("edit", row.right!.id)
-              }
-            />
-          </View>
-        ) : (
-          <View style={{ width: tileWidth }} />
-        )}
-      </View>
-    ),
-    [openCardEditor, tileWidth],
-  );
+  const isReady = !isCardsLoading && !cardsError;
 
-  const renderItem = useCallback(
-    ({ item }: { item: CardsListItem }) => {
-      if (item.type === "active-header") {
-        return (
+  return (
+    <>
+      <ScrollView
+        {...KEYBOARD_AWARE_SCROLL_PROPS}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: CONTENT_BOTTOM_PADDING,
+          gap: 12,
+        }}
+      >
+        <Card>
           <SectionHeader
-            title={t("admin.cards.activeTitle", {
-              count: String(derived.activeCards.length),
-            })}
-            subtitle={t("admin.cards.activeSubtitle")}
-            open={isActiveCardsOpen}
-            onPress={() => setIsActiveCardsOpen((current) => !current)}
-            tint="accent"
+            title={t("admin.cards.title")}
+            subtitle={t("admin.cards.subtitle")}
+            action={{
+              label: t("admin.cards.create"),
+              onPress: () => openCardEditor("create"),
+              testID: "admin-cards-create-button",
+            }}
           />
-        );
-      }
-
-      if (item.type === "archived-header") {
-        return (
-          <SectionHeader
-            title={t("admin.cards.archivedTitle", {
-              count: String(derived.archivedCards.length),
-            })}
-            subtitle={t("admin.cards.archivedSubtitle")}
-            open={isArchivedCardsOpen}
-            onPress={() => setIsArchivedCardsOpen((current) => !current)}
-            tint="secondary"
-          />
-        );
-      }
-
-      if (item.type === "active-row") {
-        return renderCardRow(item.row, false);
-      }
-
-      return renderCardRow(item.row, true);
-    },
-    [
-      derived.activeCards.length,
-      derived.archivedCards.length,
-      isActiveCardsOpen,
-      isArchivedCardsOpen,
-      renderCardRow,
-      t,
-    ],
-  );
-
-  const listHeader = useMemo(
-    () => (
-      <View className="gap-4">
-        <AdminHero
-          title={t("admin.cards.title")}
-          subtitle={t("admin.cards.subtitle")}
-          actions={
-            <AdminButton
-              label={t("admin.cards.createCard")}
-              icon="add"
-              onPress={() => openCardEditor("create")}
-            />
-          }
-        >
-          <View className="flex-row flex-wrap gap-3">
-            <AdminStat
+          <View className="flex-row gap-ds-3">
+            <StatTile
+              className="flex-1"
+              tone="accent"
               label={t("admin.cards.activeLabel")}
               value={String(derived.allActiveCount)}
-              tone="accent"
             />
-            <AdminStat
+            <StatTile
+              className="flex-1"
+              tone="secondary"
               label={t("admin.cards.archivedLabel")}
               value={String(derived.allArchivedCount)}
-              tone="warning"
             />
           </View>
-          <View className="flex-row flex-wrap gap-3">
-            <AdminStat
+          <View className="flex-row items-start gap-ds-3">
+            <StatTile
+              className="flex-1"
+              tone="info"
               label={t("admin.cards.featuredLabel")}
               value={String(derived.featuredCount)}
-              tone="info"
             />
-            <AdminStat
+            <StatTile
+              className="flex-1"
               label={t("admin.cards.resultsLabel")}
-              value={String(
-                derived.activeCards.length + derived.archivedCards.length,
-              )}
-              helper={
+              value={String(derived.catalog.length)}
+              caption={
                 searchQuery
                   ? t("admin.cards.filteredResults")
                   : t("admin.cards.totalCatalog")
@@ -405,131 +252,93 @@ function useAdminCardsScreenView() {
             onChangeText={setSearchQuery}
             placeholder={t("admin.cards.searchPlaceholder")}
           />
-        </AdminHero>
+        </Card>
 
         {cardsError ? (
-          <AdminPanel>
-            <Text className="font-nunito-bold text-[13px] text-dangerText">
-              {cardsError}
-            </Text>
-          </AdminPanel>
-        ) : isCardsLoading ? (
-          <AdminPanel>
+          <Notice tone="danger" title={t("admin.cards.loadFailed")} body={cardsError} />
+        ) : null}
+
+        {isCardsLoading ? (
+          <Card>
             <AdminLoadingState
               title={t("admin.cards.loading")}
               body={t("common.loadingStates.adminBody")}
               icon="albums"
             />
-          </AdminPanel>
-        ) : (
-          <>
-            <AdminPanel>
-              <AdminSectionTitle
-                title={t("admin.cards.rarityBreakdown")}
-                subtitle={t("admin.cards.rarityBreakdownSubtitle")}
-              />
-              <View className="mt-3 flex-row flex-wrap gap-2">
-                {(raritiesQueryData?.rarities ?? []).map((rarity) => (
-                  <AdminChip
-                    key={rarity.id}
-                    label={`${rarity.name}: ${derived.rarityCounts.get(rarity.id) ?? 0}`}
-                    tone="default"
-                  />
-                ))}
-              </View>
-            </AdminPanel>
-            <AdminNotice
-              title={t("admin.cards.activeHintTitle")}
-              body={t("admin.cards.activeHintBody")}
-              tone="info"
-              icon="create-outline"
-            />
-          </>
-        )}
-
-        {!isCardsLoading &&
-        !cardsError &&
-        !derived.activeCards.length &&
-        !derived.archivedCards.length ? (
-          <AdminPanel>
-            <AdminEmptyState
-              icon="albums"
-              title={t("admin.cards.emptyTitle")}
-              body={t("admin.cards.noActiveBody")}
-            />
-          </AdminPanel>
+          </Card>
         ) : null}
 
-        {!isCardsLoading &&
-        !cardsError &&
-        isActiveCardsOpen &&
-        !derived.activeCards.length ? (
-          <AdminPanel>
-            <AdminEmptyState
-              icon="albums"
-              title={t("admin.cards.noActiveTitle")}
-              body={t("admin.cards.noActiveBody")}
-            />
-          </AdminPanel>
+        {isReady && rarityBreakdown ? (
+          <Notice
+            tone="info"
+            icon={Sparkles}
+            title={t("admin.cards.rarityBreakdown")}
+            body={rarityBreakdown}
+          />
         ) : null}
 
-        {!isCardsLoading &&
-        !cardsError &&
-        isArchivedCardsOpen &&
-        !derived.archivedCards.length ? (
-          <AdminPanel>
+        {isReady ? (
+          <SectionHeader
+            title={t("admin.cards.catalogTitle")}
+            subtitle={t("admin.cards.catalogCount", {
+              count: String(derived.catalog.length),
+            })}
+          />
+        ) : null}
+
+        {isReady && derived.catalog.length ? (
+          <Card flush>
+            {derived.catalog.map((card, index) => {
+              const rarity =
+                RARITY_ICON[card.rarityName] ?? FALLBACK_RARITY_ICON;
+
+              return (
+                <ListRow
+                  key={card.id}
+                  icon={rarity.icon}
+                  iconTone={rarity.tone}
+                  title={card.name}
+                  meta={`${card.character} · ${card.rarityName}`}
+                  trailingChip={
+                    card.isArchived
+                      ? {
+                          tone: "secondary",
+                          label: t("admin.cards.archivedLabel"),
+                        }
+                      : { tone: "success", label: t("admin.cards.live") }
+                  }
+                  chevron
+                  divider={index < derived.catalog.length - 1}
+                  onPress={() =>
+                    card.isArchived
+                      ? setSelectedArchivedCardId(card.id)
+                      : openCardEditor("edit", card.id)
+                  }
+                  testID={`admin-cards-row-${card.id}`}
+                />
+              );
+            })}
+          </Card>
+        ) : null}
+
+        {isReady && !derived.catalog.length ? (
+          <Card>
             <AdminEmptyState
-              icon="archive"
-              title={t("admin.cards.noArchivedTitle")}
+              icon="albums"
+              title={
+                searchQuery
+                  ? t("admin.cards.noResultsTitle")
+                  : t("admin.cards.emptyTitle")
+              }
               body={
                 searchQuery
-                  ? t("admin.cards.noArchivedSearchBody")
-                  : t("admin.cards.noArchivedBody")
+                  ? t("admin.cards.noResultsBody")
+                  : t("admin.cards.emptyBody")
               }
             />
-          </AdminPanel>
+          </Card>
         ) : null}
-      </View>
-    ),
-    [
-      cardsError,
-      derived.activeCards.length,
-      derived.allActiveCount,
-      derived.allArchivedCount,
-      derived.archivedCards.length,
-      derived.featuredCount,
-      derived.rarityCounts,
-      isActiveCardsOpen,
-      isArchivedCardsOpen,
-      isCardsLoading,
-      openCardEditor,
-      raritiesQueryData?.rarities,
-      searchQuery,
-      t,
-    ],
-  );
-
-  return (
-    <>
-      <FlatList
-        {...KEYBOARD_AWARE_SCROLL_PROPS}
-        data={listData}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: SCREEN_SIDE_PADDING,
-          paddingTop: 8,
-          paddingBottom: CONTENT_BOTTOM_PADDING,
-          gap: 16,
-        }}
-        ListHeaderComponent={listHeader}
-        removeClippedSubviews
-        windowSize={5}
-        maxToRenderPerBatch={6}
-        initialNumToRender={8}
-      />
+      </ScrollView>
 
       {selectedArchivedCard ? (
         <AdminModal
@@ -537,7 +346,7 @@ function useAdminCardsScreenView() {
           title={t("admin.cards.archivedCardTitle")}
           onClose={() => setSelectedArchivedCardId(null)}
         >
-          <View className="items-center mb-4">
+          <View className="mb-4 items-center">
             <CardTile card={selectedArchivedCard} size="large" />
           </View>
           <Text className="mb-[18] text-center font-nunito-bold text-[16px] text-primaryText">
@@ -548,7 +357,7 @@ function useAdminCardsScreenView() {
               label={t("admin.cards.restoreCard")}
               variant="secondary"
               onPress={() => {
-                featureMutation.mutate({
+                restoreMutation.mutate({
                   cardId: selectedArchivedCard.id,
                   isArchived: false,
                 });

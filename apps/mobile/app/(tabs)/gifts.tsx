@@ -3,14 +3,12 @@ import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScrollView, Text, View } from "react-native";
 import type { LucideIcon } from "lucide-react-native";
-import Check from "lucide-react-native/icons/check";
-import ChevronRight from "lucide-react-native/icons/chevron-right";
 import CircleCheck from "lucide-react-native/icons/circle-check";
 import CircleX from "lucide-react-native/icons/circle-x";
 import Clock from "lucide-react-native/icons/clock";
 import Gift from "lucide-react-native/icons/gift";
 import Package from "lucide-react-native/icons/package";
-import Sparkles from "lucide-react-native/icons/sparkles";
+import Send from "lucide-react-native/icons/send";
 import UserPlus from "lucide-react-native/icons/user-plus";
 
 import type { GiftsResponse } from "@adventure-time/api-client";
@@ -27,19 +25,16 @@ import { SectionHeader } from "../../src/components/ui/section-header";
 import { SegmentedControl } from "../../src/components/ui/segmented-control";
 import { StatePanel } from "../../src/components/ui/state-panel";
 import { StatTile } from "../../src/components/ui/stat-tile";
-import { ICON_STROKE_WIDTH } from "../../src/components/ui/tokens";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useFocusedRefetchInterval } from "../../src/hooks/use-focused-refetch-interval";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
-import { useThemeStore } from "../../src/stores/theme-store";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-aware-scroll-props";
 import {
   useAppHeaderHeight,
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
-import { THEME_COLORS } from "../../src/theme/themes";
 import { PageTitle } from "../../src/components/ui/page-title";
 
 type GiftFilter = "received" | "sent" | "all";
@@ -137,11 +132,6 @@ function useGiftsScreenView() {
         ? sentGifts
         : allGifts.filter((gift) => !pendingIncomingIds.has(gift.id));
 
-  const heroBadgeLabel =
-    pendingIncoming.length > 0
-      ? t("gifts.heroBadge.pending", { count: pendingIncoming.length })
-      : t("gifts.heroBadge.clear");
-
   const filterOptions: Array<{
     key: GiftFilter;
     label: string;
@@ -178,14 +168,9 @@ function useGiftsScreenView() {
       contentInset={{ bottom: bottomTabPadding }}
       scrollIndicatorInsets={{ bottom: bottomTabPadding }}
     >
-      <View className="gap-5" style={{ paddingTop: headerHeight }}>
+      <View className="gap-ds-3" style={{ paddingTop: headerHeight }}>
         <PageTitle title={t("gifts.title")} subtitle={t("gifts.subtitle")} />
-        <Chip
-          tone={pendingIncoming.length > 0 ? "secondary" : "success"}
-          icon={pendingIncoming.length > 0 ? Clock : Check}
-          label={heroBadgeLabel}
-        />
-        <View className="flex-row gap-ds-3">
+        <View className="flex-row items-start gap-ds-3">
           <StatTile
             className="flex-1"
             tone="secondary"
@@ -208,8 +193,8 @@ function useGiftsScreenView() {
 
         <View className="gap-ds-3">
           <SectionHeader
-            title={t("gifts.manageTitle")}
-            subtitle={t("gifts.manageSubtitle")}
+            title={t("gifts.activityTitle")}
+            subtitle={t("gifts.activitySubtitle")}
           />
           <SegmentedControl<GiftFilter>
             options={filterOptions.map((option) => ({
@@ -255,45 +240,43 @@ function useGiftsScreenView() {
           </View>
         ) : null}
 
-        <View className="gap-3">
+        {showPendingSection && activityGifts.length > 0 ? (
           <SectionHeading
-            title={t("gifts.activityTitle")}
+            title={t("gifts.recentTitle")}
             subtitle={
               activeFilter === "received"
-                ? t("gifts.activitySubtitle.received")
-                : activeFilter === "sent"
-                  ? t("gifts.activitySubtitle.sent")
-                  : t("gifts.activitySubtitle.all")
+                ? t("gifts.recentSubtitle.received")
+                : t("gifts.recentSubtitle.all")
             }
           />
+        ) : null}
 
-          {activityGifts.length === 0 ? (
-            <GiftEmptyState filter={activeFilter} />
-          ) : (
-            <View className="gap-3">
-              {activityGifts.map((gift) => (
-                <GiftCard
-                  key={gift.id}
-                  gift={gift}
-                  currentUserId={currentUserId}
-                  locale={locale}
-                  activeDecision={activeDecision}
-                  onDecision={(action) => {
-                    setActiveDecision({ giftId: gift.id, action });
-                    processGiftMutation.mutate({
-                      giftId: gift.id,
-                      action,
-                    });
-                  }}
-                />
-              ))}
-            </View>
-          )}
-        </View>
+        {activityGifts.length === 0 ? (
+          showPendingSection ? null : <GiftEmptyState filter={activeFilter} />
+        ) : (
+          <View className="gap-ds-3">
+            {activityGifts.map((gift) => (
+              <GiftCard
+                key={gift.id}
+                gift={gift}
+                currentUserId={currentUserId}
+                locale={locale}
+                activeDecision={activeDecision}
+                onDecision={(action) => {
+                  setActiveDecision({ giftId: gift.id, action });
+                  processGiftMutation.mutate({
+                    giftId: gift.id,
+                    action,
+                  });
+                }}
+              />
+            ))}
+          </View>
+        )}
 
         <Card>
-          <View className="flex-row items-start gap-ds-3">
-            <IconTile icon={Sparkles} />
+          <View className="flex-row items-center gap-ds-3">
+            <IconTile icon={Send} />
             <View className="flex-1 gap-[2px]">
               <Text className="font-nunito-extrabold text-ds-h3 text-fg">
                 {t("gifts.quickSendTitle")}
@@ -303,46 +286,16 @@ function useGiftsScreenView() {
               </Text>
             </View>
           </View>
-
-          <View className="gap-ds-2">
-            <InstructionStep
-              index="1"
-              text={t("gifts.quickSendSteps.openCollection")}
-            />
-            <InstructionStep
-              index="2"
-              text={t("gifts.quickSendSteps.pickCard")}
-            />
-            <InstructionStep
-              index="3"
-              text={t("gifts.quickSendSteps.choosePlayer")}
-            />
-          </View>
-
-          <Button size="lg" onPress={() => router.push("/(tabs)/collection")}>
-            {t("gifts.openCollection")}
+          <Button
+            icon={Gift}
+            onPress={() => router.push("/(tabs)/collection")}
+            testID="gifts-choose-card"
+          >
+            {t("gifts.chooseCard")}
           </Button>
         </Card>
       </View>
     </ScrollView>
-  );
-}
-
-const InstructionStep = useInstructionStepView;
-
-function useInstructionStepView({ index, text }: { index: string; text: string }) {
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
-
-  return (
-    <View className="flex-row items-center gap-ds-3 rounded-ds-md bg-primaryBg px-ds-3 py-ds-3">
-      <View className="h-[28px] w-[28px] items-center justify-center rounded-ds-pill bg-primaryTint">
-        <Text className="font-nunito-bold text-ds-caption text-primaryText">
-          {index}
-        </Text>
-      </View>
-      <Text className="flex-1 font-nunito text-ds-sm text-fg">{text}</Text>
-      <ChevronRight size={16} color={tc.muted} strokeWidth={ICON_STROKE_WIDTH} />
-    </View>
   );
 }
 

@@ -99,7 +99,7 @@ export function WordleTile({
   return (
     <Animated.View
       className={`rounded-ds-md border items-center justify-center ${bgBorderCls}`}
-      style={[{ width: "100%", height: 48 }, animatedStyle]}
+      style={[{ width: "100%", height: "100%" }, animatedStyle]}
     >
       <Animated.Text
         className={`text-[24px] leading-[29px] font-nunito-extrabold ${letterCls}`}

@@ -7,7 +7,7 @@ import Clock from "lucide-react-native/icons/clock";
 import Coins from "lucide-react-native/icons/coins";
 import Layers from "lucide-react-native/icons/layers";
 import Package from "lucide-react-native/icons/package";
-import Settings from "lucide-react-native/icons/settings";
+import Swords from "lucide-react-native/icons/swords";
 import {
   AppState,
   FlatList,
@@ -20,8 +20,7 @@ import { useRouter } from "expo-router";
 import { ApiClientError, apiClient } from "../../src/lib/api";
 import {
   getNotificationPermissionPromptHidden,
-  getNotificationPermissionStatus,
-  setNotificationPermissionPromptHidden } from "../../src/lib/app-notifications";
+  getNotificationPermissionStatus } from "../../src/lib/app-notifications";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useStepSyncStore } from "../../src/stores/step-sync-store";
 import {
@@ -33,6 +32,7 @@ import { Card } from "../../src/components/ui/card";
 import { Chip } from "../../src/components/ui/chip";
 import { ListRow } from "../../src/components/ui/list-row";
 import { Notice } from "../../src/components/ui/notice";
+import { PageTitle } from "../../src/components/ui/page-title";
 import { ProgressBar } from "../../src/components/ui/progress-bar";
 import { SectionHeader } from "../../src/components/ui/section-header";
 import { StatTile } from "../../src/components/ui/stat-tile";
@@ -73,6 +73,15 @@ function DailyClaimCountdown({ timeUntilNextClaim }: { timeUntilNextClaim: numbe
       {t("home.nextClaim", { time: formatTimeRemaining(liveTime) })}
     </Text>
   );
+}
+
+type DayPeriod = "morning" | "afternoon" | "evening";
+
+function getDayPeriod(date: Date): DayPeriod {
+  const hour = date.getHours();
+  if (hour < 12) return "morning";
+  if (hour < 18) return "afternoon";
+  return "evening";
 }
 
 function formatTimeRemaining(ms: number) {
@@ -137,6 +146,12 @@ function useHomeScreenView() {
     },
     [accessToken, ownedCardIds],
   );
+  const { data: packsQueryData } = useQuery({
+    queryKey: ["packs"],
+    queryFn: () => apiClient.packs() });
+  const { data: pvpMatchesQueryData } = useQuery({
+    queryKey: ["pvp-matches"],
+    queryFn: () => apiClient.pvpMatches() });
   const { data: raritiesQueryData } = useQuery({
     queryKey: ["rarities"],
     queryFn: () => apiClient.rarities() });
@@ -269,6 +284,19 @@ function useHomeScreenView() {
     0,
     home.collectionStats.totalCards - home.collectionStats.uniqueOwned,
   );
+  const coins = user?.coins ?? home.user.coins;
+  const packsReady = packsQueryData
+    ? packsQueryData.packs.filter(
+        (pack) =>
+          pack.isActive &&
+          pack.cost <= coins &&
+          (pack.availability?.canOpen ?? true),
+      ).length
+    : null;
+  const liveMatches = pvpMatchesQueryData?.matches.length ?? null;
+  const displayName = (user?.displayName ?? home.user.displayName)?.trim();
+  const greeting = t(`home.greeting.${getDayPeriod(new Date())}`);
+  const dailyReward = dailyClaimQueryData?.dailyReward ?? 50;
   const rarities = raritiesQueryData?.rarities ?? [];
   const totalDropRate = rarities.reduce((sum, rarity) => {
     return sum + rarity.dropRate;
@@ -276,51 +304,45 @@ function useHomeScreenView() {
 
   return (
     <ScrollView className="flex-1 bg-bg">
-      <View className="gap-ds-3 px-ds-4" style={{ paddingTop: headerHeight + 12 }}>
-        {shouldShowNotificationPrompt ? (
-          <Notice
-            icon={Bell}
-            title={t("home.notificationsPromptTitle")}
-            body={t("home.notificationsPromptBody")}
-          >
-            <Button
-              tone="ghost"
-              size="sm"
-              onPress={() => {
-                setNotificationPromptIgnored(true);
-              }}
-            >
-              {t("home.notificationsPromptIgnore")}
-            </Button>
-            <Button
-              size="sm"
-              icon={Settings}
-              onPress={() => {
-                router.push({
-                  pathname: "/settings",
-                  params: { section: "notifications" } });
-              }}
-            >
-              {t("home.notificationsPromptSettings")}
-            </Button>
-            <Button
-              tone="ghost"
-              size="sm"
-              onPress={() => {
-                if (!user?.id) {
-                  return;
-                }
+      <View className="gap-ds-3 px-ds-4" style={{ paddingTop: headerHeight }}>
+        <PageTitle
+          title={
+            displayName
+              ? t("home.greetingWithName", { greeting, name: displayName })
+              : greeting
+          }
+          subtitle={t("home.subtitle")}
+        />
 
-                void setNotificationPermissionPromptHidden(user.id, true).then(
-                  () => {
-                    setNotificationPromptHidden(true);
-                  },
-                );
-              }}
-            >
-              {t("home.notificationsPromptHide")}
-            </Button>
-          </Notice>
+        {shouldShowNotificationPrompt ? (
+          <>
+            <Notice
+              icon={Bell}
+              title={t("home.notificationsPromptTitle")}
+              body={t("home.notificationsPromptBody")}
+            />
+            <View className="flex-row flex-wrap gap-ds-2 pb-ds-1">
+              <Button
+                tone="ghost"
+                size="sm"
+                onPress={() => {
+                  setNotificationPromptIgnored(true);
+                }}
+              >
+                {t("home.notificationsPromptIgnore")}
+              </Button>
+              <Button
+                size="sm"
+                onPress={() => {
+                  router.push({
+                    pathname: "/settings",
+                    params: { section: "notifications" } });
+                }}
+              >
+                {t("home.notificationsPromptSettings")}
+              </Button>
+            </View>
+          </>
         ) : null}
 
         <Card tone={canClaim ? "secondary" : "neutral"}>
@@ -335,8 +357,7 @@ function useHomeScreenView() {
             </Text>
             {canClaim ? (
               <Text className="font-nunito text-ds-body text-fgMuted">
-                {t("home.claimCoins", {
-                  amount: dailyClaimQueryData?.dailyReward ?? 50 })}
+                {t("home.claimCoins", { amount: dailyReward })}
               </Text>
             ) : (
               <DailyClaimCountdown
@@ -351,7 +372,9 @@ function useHomeScreenView() {
             disabled={!canClaim || claimMutation.isPending}
             loading={claimMutation.isPending}
           >
-            {canClaim ? t("home.claim") : t("home.claimed")}
+            {canClaim
+              ? t("home.claimAmount", { amount: dailyReward })
+              : t("home.claimed")}
           </Button>
         </Card>
 
@@ -366,18 +389,18 @@ function useHomeScreenView() {
               label={`${collectionPercent}%`}
             />
           </View>
-          <Text className="font-nunito text-ds-sm text-fgMuted">
-            {t("home.cardsCollected", {
-              owned: home.collectionStats.uniqueOwned,
-              total: home.collectionStats.totalCards })}
-          </Text>
-          <ProgressBar value={collectionPercent / 100} />
-          <View className="flex-row gap-ds-3">
+          <ProgressBar
+            value={collectionPercent / 100}
+            accessibilityLabel={t("home.collectionProgress")}
+          />
+          <View className="flex-row items-start gap-ds-3">
             <StatTile
               className="flex-1"
               tone="secondary"
               label={t("home.uniqueCards")}
               value={home.collectionStats.uniqueOwned}
+              caption={t("home.uniqueCardsCaption", {
+                total: home.collectionStats.totalCards })}
             />
             <StatTile
               className="flex-1"
@@ -394,7 +417,15 @@ function useHomeScreenView() {
             icon={Package}
             iconTone="secondary"
             title={t("home.openPack")}
-            meta={t("home.openPackHint")}
+            meta={
+              packsReady == null
+                ? t("home.openPackHint")
+                : packsReady === 0
+                  ? t("home.packsReadyNone")
+                  : packsReady === 1
+                    ? t("home.packsReadyOne")
+                    : t("home.packsReadyMany", { count: packsReady })
+            }
             chevron
             onPress={() => router.push("/(tabs)/packs")}
           />
@@ -403,8 +434,22 @@ function useHomeScreenView() {
             title={t("home.myCards")}
             meta={t("home.myCardsHint")}
             chevron
-            divider={false}
             onPress={() => router.push("/(tabs)/collection")}
+          />
+          <ListRow
+            icon={Swords}
+            iconTone="accent"
+            title={t("home.pvp")}
+            meta={
+              liveMatches == null || liveMatches === 0
+                ? t("home.pvpHint")
+                : liveMatches === 1
+                  ? t("home.liveMatchesOne")
+                  : t("home.liveMatchesMany", { count: liveMatches })
+            }
+            chevron
+            divider={false}
+            onPress={() => router.push("/(tabs)/pvp")}
           />
         </Card>
 

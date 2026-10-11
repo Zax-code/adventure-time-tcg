@@ -1,7 +1,6 @@
 const gifts = {
   title: "Cadeaux",
-  subtitle:
-    "Suis les cartes reçues, relis l'historique des cadeaux et envoie-en depuis ta collection.",
+  subtitle: "Cartes reçues, historique des cadeaux et envois depuis ta collection.",
   giftTo: "Cadeau pour",
   sendGift: "Envoyer un cadeau",
   sendGiftButton: "Envoyer le cadeau",
@@ -11,28 +10,14 @@ const gifts = {
   accepting: "Acceptation...",
   reject: "Refuser",
   rejecting: "Refus...",
-  openCollection: "Ouvrir la collection",
   quickSendTitle: "Envoyer depuis ta collection",
-  quickSendBody:
-    "Choisis une carte que tu possèdes, ouvre sa fiche, puis utilise le flux cadeau déjà présent.",
-  quickSendSteps: {
-    openCollection: "Ouvre ta collection.",
-    pickCard: "Choisis la carte que tu veux offrir.",
-    choosePlayer:
-      "Appuie sur Envoyer un cadeau, puis choisis le joueur et le message facultatif.",
-  },
-  heroBadge: {
-    pending: "{count} t'attendent",
-    clear: "Rien en attente pour le moment",
-  },
+  quickSendBody: "Choisis un ami et une carte que tu possèdes.",
+  chooseCard: "Choisir une carte à envoyer",
   summary: {
     pending: "À traiter",
     received: "Reçus",
     sent: "Envoyés",
   },
-  manageTitle: "Gérer l'activité",
-  manageSubtitle:
-    "Passe des cadeaux reçus aux cadeaux envoyés, ou affiche tout l'historique.",
   cardMeta: {
     rarity: "Rareté",
     type: "Type",
@@ -51,11 +36,12 @@ const gifts = {
   needsActionTitle: "Ton avis est attendu",
   needsActionSubtitle:
     "Ces cadeaux attendent que tu les acceptes dans ta collection ou que tu les refuses.",
-  activityTitle: "Activité récente",
-  activitySubtitle: {
+  activityTitle: "Activité des cadeaux",
+  activitySubtitle: "Cartes reçues, cadeaux envoyés et tout ton historique.",
+  recentTitle: "Activité récente",
+  recentSubtitle: {
     received: "Tout ce que tu as reçu en dehors de la file d'attente.",
-    sent: "Tous les cadeaux envoyés, y compris ceux qui attendent encore une réponse.",
-    all: "Tout ton historique de cadeaux, avec les arrivages en attente affichés au-dessus.",
+    all: "Le reste de ton historique de cadeaux.",
   },
   receivedBadge: "Reçu",
   sentBadge: "Envoyé",

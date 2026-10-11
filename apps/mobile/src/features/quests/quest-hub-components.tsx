@@ -22,25 +22,32 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
-  ChevronDownIcon,
   ChevronRightIcon,
   ShareIcon,
 } from "../../components/icons";
+import ChevronDown from "lucide-react-native/icons/chevron-down";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
+import ChevronUp from "lucide-react-native/icons/chevron-up";
 import Coins from "lucide-react-native/icons/coins";
+import RotateCcw from "lucide-react-native/icons/rotate-ccw";
 import Share from "lucide-react-native/icons/share";
 import Sparkles from "lucide-react-native/icons/sparkles";
 
 import { RADIUS } from "@adventure-time/theme";
 
+import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
-import { Chip, type ChipTone } from "../../components/ui/chip";
+import { Chip } from "../../components/ui/chip";
+import { IconButton } from "../../components/ui/icon-button";
+import { IconTile } from "../../components/ui/icon-tile";
 import { Notice } from "../../components/ui/notice";
 import { ProgressBar } from "../../components/ui/progress-bar";
 import { SheetHeader } from "../../components/ui/sheet-header";
 import {
   getBackdropColor,
   ICON_STROKE_WIDTH,
+  type IconSlot,
+  type Tone,
   useThemeName,
 } from "../../components/ui/tokens";
 import { QuestActionButton } from "./quest-action-button";
@@ -49,16 +56,6 @@ import type { THEME_COLORS } from "../../theme/themes";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type QuestIconComponent = ComponentType<{ size?: number; color?: string }>;
-
-export type QuestTone = {
-  border: string;
-  iconBackground: string;
-  iconColor: string;
-  statusBackground: string;
-  statusText: string;
-  // Chip tone for status and variant labels; primary when omitted.
-  chipTone?: ChipTone;
-};
 
 export type QuestVariantOption = {
   id: string;
@@ -86,7 +83,8 @@ export type QuestRecapAction = {
 export type QuestOrderOption = {
   id: QuestHubPreferenceId;
   title: string;
-  icon: QuestIconComponent;
+  icon: IconSlot;
+  iconTone: Tone;
   positionLabel: string;
 };
 
@@ -174,11 +172,10 @@ export function QuestHubSummary({
             <Text className="font-nunito-extrabold text-ds-display text-fg">
               {finishedCount}
             </Text>
-            <Text className="font-nunito text-ds-body text-fgMuted">
-              {`/ ${totalCount}`}
+            <Text className="shrink font-nunito text-ds-body text-fgMuted">
+              {`/ ${totalCount} ${subtitle}`}
             </Text>
           </View>
-          <Text className="font-nunito text-ds-body text-fgMuted">{subtitle}</Text>
         </View>
         {readyReward > 0 ? (
           <QuestRewardPill
@@ -236,166 +233,90 @@ export function QuestHubSummary({
   );
 }
 
-function QuestStatusPill({ label, tone }: { label: string; tone: QuestTone }) {
-  return <Chip tone={tone.chipTone ?? "primary"} label={label} />;
-}
-
-export function QuestVariantChip({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: QuestTone;
-}) {
-  return <Chip tone={tone.chipTone ?? "primary"} label={label} />;
-}
-
 export function QuestHubCard({
   actionFocusRef,
   accessibilitySummary,
   accessibilityHint,
   cardRef,
-  description,
   disabled = false,
+  divider = true,
   footer,
-  icon: Icon,
+  icon,
+  iconTone = "primary",
   highlighted = false,
-  lifecycle,
+  meta,
   onLayout,
   onPress,
-  progressLabel,
-  progressPercentage,
   reward,
   rewardAccessibilityLabel,
-  statusLabel,
   tc,
   testID,
   title,
   titleFocusRef,
-  tone,
-  variants,
 }: {
   actionFocusRef?: Ref<View>;
   accessibilityHint?: string;
   accessibilitySummary?: string;
   cardRef?: Ref<View>;
-  description: string;
   disabled?: boolean;
+  // Hairline under the row; off for the last row of the list.
+  divider?: boolean;
   footer?: ReactNode;
-  icon: QuestIconComponent;
+  icon: IconSlot;
+  iconTone?: Tone;
   highlighted?: boolean;
-  lifecycle: QuestLifecycle;
+  meta: string;
   onLayout?: (event: import("react-native").LayoutChangeEvent) => void;
   onPress?: () => void;
-  progressLabel?: string;
-  progressPercentage?: number;
   reward?: number;
   rewardAccessibilityLabel?: string;
-  statusLabel: string;
   tc: ThemeColors;
   testID: string;
   title: string;
   titleFocusRef?: Ref<Text>;
-  tone: QuestTone;
-  variants?: ReactNode;
 }) {
-  const { fontScale } = useWindowDimensions();
-  const stackMetadata = fontScale >= 1.6;
-  const cardAccessibilityLabel = [
+  const rowAccessibilityLabel = [
     title,
-    statusLabel,
-    description,
+    meta,
     accessibilitySummary,
     reward != null && reward > 0 ? rewardAccessibilityLabel : undefined,
   ]
     .filter(Boolean)
     .join(". ");
-  const cardContent = (
+  const rowContent = (
     <>
-      <View className="flex-row items-start gap-ds-3">
-        <View
-          className="h-[40px] w-[40px] items-center justify-center rounded-ds-md"
-          style={{ backgroundColor: tone.iconBackground }}
+      <IconTile icon={icon} tone={iconTone} />
+      <View className="min-w-0 flex-1 gap-[2px]">
+        <Text
+          ref={titleFocusRef}
+          className="font-nunito-bold text-ds-body text-fg"
+          numberOfLines={2}
         >
-          <Icon size={24} color={tone.iconColor} />
-        </View>
-
-        <View className="min-w-0 flex-1 gap-ds-2">
-          <View
-            className={
-              stackMetadata
-                ? "items-start gap-ds-2"
-                : "flex-row items-start justify-between gap-ds-2"
-            }
-          >
-            <View className="min-w-0 flex-1 gap-[2px]">
-              <Text
-                ref={titleFocusRef}
-                className="font-nunito-bold text-ds-body text-fg"
-              >
-                {title}
-              </Text>
-              <Text className="font-nunito text-ds-sm text-fgMuted">
-                {description}
-              </Text>
-            </View>
-            <View
-              className={
-                stackMetadata
-                  ? "flex-row items-center gap-ds-2"
-                  : "flex-row items-center gap-ds-2"
-              }
-            >
-              {reward != null && reward > 0 ? (
-                <QuestRewardPill
-                  accessibilityLabel={rewardAccessibilityLabel ?? String(reward)}
-                  amount={reward}
-                />
-              ) : null}
-              {onPress ? (
-                <ChevronRight
-                  size={18}
-                  color={tc.muted}
-                  strokeWidth={ICON_STROKE_WIDTH}
-                />
-              ) : null}
-            </View>
-          </View>
-
-          <View className="flex-row flex-wrap items-center gap-ds-2">
-            <QuestStatusPill label={statusLabel} tone={tone} />
-            {variants}
-          </View>
-        </View>
+          {title}
+        </Text>
+        <Text className="font-nunito text-ds-sm text-fgMuted" numberOfLines={2}>
+          {meta}
+        </Text>
       </View>
-
-      {progressLabel != null && progressPercentage != null ? (
-        <View className="mt-ds-3 gap-ds-1">
-          <View className="flex-row items-center justify-between gap-ds-3">
-            <Text className="font-nunito-semibold text-ds-caption text-fgMuted">
-              {progressLabel}
-            </Text>
-            <Text
-              className="font-nunito-extrabold text-ds-caption"
-              style={{ color: tone.statusText }}
-            >
-              {Math.round(progressPercentage)}%
-            </Text>
-          </View>
-          <ProgressBar value={progressPercentage / 100} />
-        </View>
+      {reward != null && reward > 0 ? (
+        <QuestRewardPill
+          accessibilityLabel={rewardAccessibilityLabel ?? String(reward)}
+          amount={reward}
+        />
+      ) : null}
+      {onPress ? (
+        <ChevronRight size={18} color={tc.muted} strokeWidth={ICON_STROKE_WIDTH} />
       ) : null}
     </>
   );
+  const rowClass = "min-h-[56px] flex-row items-center gap-ds-3 px-ds-4 py-ds-3";
 
   return (
     <View
       ref={cardRef}
-      className="overflow-hidden rounded-ds-lg border bg-surface"
-      style={{
-        borderColor: highlighted ? tc.accentStrong : tone.border,
-        borderWidth: highlighted ? 2 : 1,
-      }}
+      className={`${divider ? "border-b border-primaryBorder" : ""} ${
+        highlighted ? "bg-accentTint" : ""
+      }`}
       onLayout={onLayout}
       testID={testID}
     >
@@ -403,29 +324,22 @@ export function QuestHubCard({
         <Pressable
           ref={actionFocusRef}
           accessibilityRole="button"
-          accessibilityLabel={cardAccessibilityLabel}
+          accessibilityLabel={rowAccessibilityLabel}
           accessibilityHint={accessibilityHint}
           accessibilityState={{ disabled }}
           disabled={disabled}
           onPress={onPress}
-          className="p-ds-4"
+          className={rowClass}
           style={({ pressed }) => ({
             opacity: disabled ? 0.55 : pressed ? 0.82 : 1,
           })}
         >
-          {cardContent}
+          {rowContent}
         </Pressable>
       ) : (
-        <View className="p-ds-4">{cardContent}</View>
+        <View className={rowClass}>{rowContent}</View>
       )}
-      {footer ? (
-        <View
-          className="border-t px-ds-4 pb-ds-4 pt-ds-3"
-          style={{ borderColor: tc.primaryBorder }}
-        >
-          {footer}
-        </View>
-      ) : null}
+      {footer ? <View className="px-ds-4 pb-ds-3">{footer}</View> : null}
     </View>
   );
 }
@@ -779,7 +693,6 @@ export function QuestOrderSheet({
   const { fontScale, height } = useWindowDimensions();
   const { bottom } = useSafeAreaInsets();
   const useBoundedHeight = fontScale >= 1.6;
-  const stackRowActions = fontScale >= 1.35;
   const surface = useMemo(() => <SheetSurface tc={tc} />, [tc]);
   const themeName = useThemeName();
   const headingRef = useRef<Text>(null);
@@ -821,103 +734,71 @@ export function QuestOrderSheet({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: 16,
+            paddingTop: 16,
             paddingBottom: 0,
-            gap: 10,
+            gap: 12,
           }}
         >
-          {/* Quest order is fixed at four rows; virtualization would add overhead. */}
-          {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
-          {options.map((option, optionIndex) => {
-            const Icon = option.icon;
-            return (
+          <Card flush>
+            {/* Quest order is fixed at five rows; virtualization would add overhead. */}
+            {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
+            {options.map((option, optionIndex) => (
               <View
                 key={option.id}
-                className="rounded-[20px] p-3"
-                style={{
-                  backgroundColor: tc.surfaceMuted,
-                  borderColor:
-                    optionIndex === 0 ? tc.primary : tc.primaryBorder,
-                  borderCurve: "continuous",
-                  borderWidth: optionIndex === 0 ? 1.5 : 1,
-                }}
+                className={`min-h-[72px] flex-row items-center gap-ds-3 px-ds-4 py-[10px] ${
+                  optionIndex === options.length - 1
+                    ? ""
+                    : "border-b border-primaryBorder"
+                }`}
                 testID={`quests-order-row-${option.id}`}
               >
-                <View
-                  className={
-                    stackRowActions ? "gap-3" : "flex-row items-center gap-3"
-                  }
-                >
-                  <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                    <View
-                      className="h-11 w-11 items-center justify-center rounded-2xl"
-                      style={{ backgroundColor: tc.primaryTint }}
-                    >
-                      <Icon size={25} color={tc.primaryText} />
-                    </View>
-                    <View className="min-w-0 flex-1">
-                      <Text className="font-nunito-extrabold text-base text-fg">
-                        {option.title}
-                      </Text>
-                      <Text className="font-nunito-bold text-xs text-primaryText">
-                        {option.positionLabel}
-                      </Text>
-                    </View>
-                  </View>
-                  <View
-                    className={
-                      stackRowActions
-                        ? "flex-row gap-2"
-                        : "flex-row shrink-0 gap-2"
-                    }
+                <IconTile icon={option.icon} tone={option.iconTone} />
+                <View className="min-w-0 flex-1 gap-ds-1">
+                  <Text
+                    className="font-nunito-bold text-ds-body text-fg"
+                    numberOfLines={2}
                   >
-                    <QuestActionButton
-                      tone="ghost"
-                      size="sm"
-                      accessibilityLabel={`${moveUpLabel}: ${option.title}`}
-                      label={moveUpLabel}
-                      onPress={() => {
-                        void Haptics.selectionAsync();
-                        onMove(option.id, "up");
-                      }}
-                      disabled={optionIndex === 0}
-                      leadingAccessory={
-                        <View style={{ transform: [{ rotate: "180deg" }] }}>
-                          <ChevronDownIcon size={16} color={tc.primaryText} />
-                        </View>
-                      }
-                      style={stackRowActions ? { flex: 1 } : undefined}
-                      testID={`quests-order-up-${option.id}`}
-                    />
-                    <QuestActionButton
-                      tone="ghost"
-                      size="sm"
-                      accessibilityLabel={`${moveDownLabel}: ${option.title}`}
-                      label={moveDownLabel}
-                      onPress={() => {
-                        void Haptics.selectionAsync();
-                        onMove(option.id, "down");
-                      }}
-                      disabled={optionIndex === options.length - 1}
-                      leadingAccessory={
-                        <ChevronDownIcon size={16} color={tc.primaryText} />
-                      }
-                      style={stackRowActions ? { flex: 1 } : undefined}
-                      testID={`quests-order-down-${option.id}`}
-                    />
-                  </View>
+                    {option.title}
+                  </Text>
+                  <Chip
+                    tone={optionIndex === 0 ? "primary" : "neutral"}
+                    label={option.positionLabel}
+                  />
                 </View>
+                <IconButton
+                  icon={ChevronUp}
+                  accessibilityLabel={`${moveUpLabel}: ${option.title}`}
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    onMove(option.id, "up");
+                  }}
+                  disabled={optionIndex === 0}
+                  testID={`quests-order-up-${option.id}`}
+                />
+                <IconButton
+                  icon={ChevronDown}
+                  accessibilityLabel={`${moveDownLabel}: ${option.title}`}
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    onMove(option.id, "down");
+                  }}
+                  disabled={optionIndex === options.length - 1}
+                  testID={`quests-order-down-${option.id}`}
+                />
               </View>
-            );
-          })}
-          <QuestActionButton
+            ))}
+          </Card>
+          <Button
             tone="ghost"
-            label={resetLabel}
+            icon={RotateCcw}
             onPress={() => {
               void Haptics.selectionAsync();
               onReset();
             }}
             testID="quests-order-reset"
-          />
+          >
+            {resetLabel}
+          </Button>
           <View style={{ height: Math.max(bottom + 20, 32) }} />
         </ScrollView>
       </View>

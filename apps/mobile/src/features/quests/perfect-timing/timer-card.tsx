@@ -1,33 +1,57 @@
 import { Text, View } from "react-native";
+import Square from "lucide-react-native/icons/square";
 
+import { Card } from "../../../components/ui/card";
+import { QuestActionButton } from "../quest-action-button";
 import type { Translate } from "./types";
 
+// "While running" Card: the live timer, its hint and the Stop action.
 export function TimerCard({
   timerRunning,
   timerText,
+  onStop,
+  stopTestID,
   t,
 }: {
   timerRunning: boolean;
   timerText: string;
+  onStop: () => void;
+  stopTestID: string;
   t: Translate;
 }) {
   return (
-    <View className="items-center gap-2 rounded-ds-lg border border-primaryBorder bg-surface px-5 py-8">
-      <Text className="font-nunito-bold text-xs uppercase tracking-widest text-fgMuted">
-        {t("quests.perfectTiming.timer")}
-      </Text>
-      <View
-        accessibilityElementsHidden={timerRunning}
-        importantForAccessibility={timerRunning ? "no-hide-descendants" : "auto"}
+    <Card testID="perfect-timing-timer-card">
+      <Text
+        accessibilityRole="header"
+        className="font-nunito-extrabold text-ds-body text-fg"
       >
-        <Text
-          className="font-nunito-extrabold text-[48px] leading-[56px] text-fg"
-          style={{ fontVariant: ["tabular-nums"] }}
-          testID="perfect-timing-timer"
+        {t("quests.perfectTiming.whileRunning")}
+      </Text>
+      <View className="items-center">
+        <View
+          accessibilityElementsHidden={timerRunning}
+          importantForAccessibility={timerRunning ? "no-hide-descendants" : "auto"}
         >
-          {timerText}
+          <Text
+            className="font-nunito-extrabold text-[48px] leading-[53px] text-fg"
+            style={{ fontVariant: ["tabular-nums"] }}
+            testID="perfect-timing-timer"
+          >
+            {timerText}
+          </Text>
+        </View>
+        <Text className="text-center font-nunito text-ds-caption text-fgMuted">
+          {t("quests.perfectTiming.timerHint")}
         </Text>
       </View>
-    </View>
+      <QuestActionButton
+        tone="danger"
+        size="lg"
+        leadingIcon={Square}
+        label={t("quests.perfectTiming.stop")}
+        onPress={onStop}
+        testID={stopTestID}
+      />
+    </Card>
   );
 }

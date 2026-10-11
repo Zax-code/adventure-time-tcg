@@ -9,7 +9,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type ComponentType,
   type RefObject,
 } from "react";
 import {
@@ -23,6 +22,14 @@ import {
 } from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { captureRef } from "react-native-view-shot";
+import type { LucideIcon } from "lucide-react-native";
+import AlarmClock from "lucide-react-native/icons/alarm-clock";
+import CalendarCheck from "lucide-react-native/icons/calendar-check";
+import Footprints from "lucide-react-native/icons/footprints";
+import Grid3x3 from "lucide-react-native/icons/grid-3x3";
+import Hash from "lucide-react-native/icons/hash";
+import Sparkles from "lucide-react-native/icons/sparkles";
+import Timer from "lucide-react-native/icons/timer";
 
 import type {
   DailyNumbersMode,
@@ -34,7 +41,6 @@ import type {
 import { PageErrorState } from "../../src/components/error-state";
 import { useFocusedRefetchInterval } from "../../src/hooks/use-focused-refetch-interval";
 import {
-  DailyLoginQuestIcon,
   DailyNumbersQuestIcon,
   SpeedCalculusQuestIcon,
   SparklesIcon,
@@ -73,9 +79,7 @@ import {
   QuestLaunchSheet,
   QuestOrderSheet,
   QuestRecapSheet,
-  QuestVariantChip,
   type QuestRecapAction,
-  type QuestTone,
   type QuestVariantOption,
 } from "../../src/features/quests/quest-hub-components";
 import {
@@ -139,13 +143,14 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
+import { Card } from "../../src/components/ui/card";
 import { PageTitle } from "../../src/components/ui/page-title";
+import { SectionHeader } from "../../src/components/ui/section-header";
+import type { Tone } from "../../src/components/ui/tokens";
 
-type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type SharingGroup =
   "wordle" | "dailyNumbers" | "perfectTiming" | "speedCalculus";
 type LauncherKind = "wordle" | "dailyNumbers";
-type QuestIcon = ComponentType<{ size?: number; color?: string }>;
 type Translate = (
   key: string,
   params?: Record<string, string | number>,
@@ -194,64 +199,6 @@ function formatProgress(progress: number, target: number) {
   return progress.toLocaleString() + " / " + target.toLocaleString();
 }
 
-function getLifecycleTone(
-  lifecycle: QuestLifecycle,
-  tc: ThemeColors,
-): QuestTone {
-  if (lifecycle === "ready") {
-    return {
-      border: tc.successBorder,
-      iconBackground: tc.successTint,
-      iconColor: tc.successDark,
-      statusBackground: tc.successTint,
-      statusText: tc.successText,
-      chipTone: "success",
-    };
-  }
-
-  if (lifecycle === "claimed") {
-    return {
-      border: tc.primaryBorder,
-      iconBackground: tc.surfaceMuted,
-      iconColor: tc.muted,
-      statusBackground: tc.surfaceMuted,
-      statusText: tc.fgMuted,
-      chipTone: "neutral",
-    };
-  }
-
-  if (lifecycle === "failed") {
-    return {
-      border: tc.dangerBorder,
-      iconBackground: tc.dangerTint,
-      iconColor: tc.dangerDark,
-      statusBackground: tc.dangerTint,
-      statusText: tc.dangerText,
-      chipTone: "danger",
-    };
-  }
-
-  if (lifecycle === "in_progress") {
-    return {
-      border: tc.infoBorder,
-      iconBackground: tc.infoTint,
-      iconColor: tc.infoDark,
-      statusBackground: tc.infoTint,
-      statusText: tc.infoText,
-      chipTone: "info",
-    };
-  }
-
-  return {
-    border: tc.primaryBorder,
-    iconBackground: tc.primaryTint,
-    iconColor: tc.primaryText,
-    statusBackground: tc.primaryTint,
-    statusText: tc.primaryText,
-    chipTone: "primary",
-  };
-}
-
 function getLifecycleLabel(lifecycle: QuestLifecycle, t: Translate) {
   if (lifecycle === "ready") return t("quests.hub.rewardReady");
   if (lifecycle === "claimed") return t("quests.hub.claimed");
@@ -260,19 +207,26 @@ function getLifecycleLabel(lifecycle: QuestLifecycle, t: Translate) {
   return t("quests.hub.fresh");
 }
 
-function getQuestIcon(questType: string): QuestIcon {
-  if (isStepQuest(questType)) return StepQuestIcon;
-  if (isSpeedCalculusQuest(questType)) return SpeedCalculusQuestIcon;
-  if (isDailyLoginQuest(questType)) return DailyLoginQuestIcon;
-  if (isWordleQuest(questType)) return WordleQuestIcon;
-  if (isDailyNumbersQuest(questType)) return DailyNumbersQuestIcon;
-  return SparklesIcon;
+type QuestVisual = { icon: LucideIcon; tone: Tone };
+
+function getQuestVisual(questType: string): QuestVisual {
+  if (isStepQuest(questType)) return { icon: Footprints, tone: "success" };
+  if (isSpeedCalculusQuest(questType)) return { icon: Timer, tone: "info" };
+  if (isPerfectTimingQuest(questType)) {
+    return { icon: AlarmClock, tone: "secondary" };
+  }
+  if (isDailyLoginQuest(questType)) {
+    return { icon: CalendarCheck, tone: "primary" };
+  }
+  if (isWordleQuest(questType)) return { icon: Grid3x3, tone: "primary" };
+  if (isDailyNumbersQuest(questType)) return { icon: Hash, tone: "accent" };
+  return { icon: Sparkles, tone: "primary" };
 }
 
-function getItemIcon(item: QuestHubItem): QuestIcon {
-  if (item.kind === "wordle") return WordleQuestIcon;
-  if (item.kind === "dailyNumbers") return DailyNumbersQuestIcon;
-  return getQuestIcon(item.quest.type);
+function getItemVisual(item: QuestHubItem): QuestVisual {
+  if (item.kind === "wordle") return { icon: Grid3x3, tone: "primary" };
+  if (item.kind === "dailyNumbers") return { icon: Hash, tone: "accent" };
+  return getQuestVisual(item.quest.type);
 }
 
 function getItemTitle(item: QuestHubItem, t: Translate) {
@@ -285,6 +239,12 @@ function getWordleLanguageLabelKey(language: WordleLocale) {
   return language === "fr"
     ? "quests.wordle.frenchWords"
     : "quests.wordle.englishWords";
+}
+
+function getWordleLanguageShortLabelKey(language: WordleLocale) {
+  return language === "fr"
+    ? "quests.hub.languageFrench"
+    : "quests.hub.languageEnglish";
 }
 
 function getWordleShareLanguageLabelKey(language: WordleLocale) {
@@ -340,21 +300,57 @@ function getVariantStatusLabel(quest: Quest, t: Translate) {
   return getLifecycleLabel(lifecycle, t);
 }
 
-function getItemDescription(item: QuestHubItem, t: Translate) {
+function getItemMeta(
+  item: QuestHubItem,
+  t: Translate,
+  stepSourceLabel: string,
+) {
   if (item.kind === "wordle") {
-    return t("quests.hub.wordleCardDescription");
+    return WORDLE_LANGUAGES.flatMap((language) => {
+      const quest = item.questsByLanguage[language];
+      return quest
+        ? [
+            t(getWordleLanguageShortLabelKey(language)) +
+              " · " +
+              getVariantStatusLabel(quest, t),
+          ]
+        : [];
+    }).join("  ·  ");
   }
 
   if (item.kind === "dailyNumbers") {
-    return t("quests.hub.dailyNumbersCardDescription");
+    const modeQuests = DAILY_NUMBERS_MODES.flatMap((mode) => {
+      const quest = item.questsByMode[mode];
+      return quest ? [{ mode, quest }] : [];
+    });
+    if (
+      modeQuests.every(({ quest }) => getQuestLifecycle(quest) === "fresh")
+    ) {
+      return t("quests.hub.dailyNumbersCardDescription");
+    }
+    return modeQuests
+      .map(
+        ({ mode, quest }) =>
+          getDailyNumbersModeShortLabel(mode, t) +
+          " · " +
+          getVariantStatusLabel(quest, t),
+      )
+      .join("  ·  ");
   }
 
   const quest = item.quest;
+  const lifecycle = getQuestLifecycle(quest);
   if (isStepQuest(quest.type)) {
-    return formatProgress(quest.progress, quest.target);
+    if (lifecycle === "ready" || lifecycle === "claimed") {
+      return getLifecycleLabel(lifecycle, t);
+    }
+    return t("quests.hub.stepsMeta", {
+      source: stepSourceLabel,
+      steps: quest.progress.toLocaleString(),
+    });
   }
 
-  if (isSpeedCalculusQuest(quest.type)) {
+  if (lifecycle === "in_progress" && isSpeedCalculusQuest(quest.type)) {
     return t("quests.hub.speedSummary", {
       score: quest.latestScore ?? 0,
       used: quest.runsUsed ?? quest.progress,
@@ -362,8 +358,22 @@ function getItemDescription(item: QuestHubItem, t: Translate) {
     });
   }
 
+  if (lifecycle !== "fresh") {
+    return lifecycle === "in_progress"
+      ? getVariantStatusLabel(quest, t)
+      : getLifecycleLabel(lifecycle, t);
+  }
+
+  if (isSpeedCalculusQuest(quest.type)) {
+    return t("quests.hub.speedCardDescription", {
+      total: quest.maxRuns ?? quest.target,
+    });
+  }
+
   if (isPerfectTimingQuest(quest.type)) {
-    return t("quests.hub.perfectTimingCardDescription");
+    return t("quests.hub.perfectTimingCardDescription", {
+      total: quest.maxAttempts ?? 3,
+    });
   }
 
   return getQuestDescription(quest.description, t);
@@ -718,6 +728,10 @@ function useQuestsScreenView() {
         ? "settings.healthSystems.android"
         : "settings.healthSystems.default",
   );
+  const stepSourceLabel =
+    user?.preferredStepSource === "fitbit"
+      ? t("settings.stepSources.fitbit")
+      : healthSystemLabel;
   const stepActionLabel =
     stepSync.availability === "setup_required"
       ? t("settings.openHealthConnect", {
@@ -1580,26 +1594,31 @@ function useQuestsScreenView() {
   const questOrderOptions = questHubOrder.map((id, index) => {
     const optionById: Record<
       QuestHubPreferenceId,
-      { icon: QuestIcon; title: string }
+      { icon: LucideIcon; iconTone: Tone; title: string }
     > = {
       wordle: {
-        icon: WordleQuestIcon,
+        icon: Grid3x3,
+        iconTone: "primary",
         title: t("quests.wordle.title"),
       },
       dailyNumbers: {
-        icon: DailyNumbersQuestIcon,
+        icon: Hash,
+        iconTone: "accent",
         title: t("quests.dailyNumbers.title"),
       },
       perfectTiming: {
-        icon: SparklesIcon,
+        icon: AlarmClock,
+        iconTone: "secondary",
         title: t("quests.perfectTiming.title"),
       },
       speedCalculus: {
-        icon: SpeedCalculusQuestIcon,
+        icon: Timer,
+        iconTone: "info",
         title: t("quests.speedCalculusTitle"),
       },
       steps: {
-        icon: StepQuestIcon,
+        icon: Footprints,
+        iconTone: "success",
         title: t("quests.steps_10k"),
       },
     };
@@ -1769,52 +1788,10 @@ function useQuestsScreenView() {
     });
   }
 
-  const renderVariants = (item: QuestHubItem) => {
-    if (item.kind === "wordle") {
-      return WORDLE_LANGUAGES.map((language) => {
-        const quest = item.questsByLanguage[language];
-        if (!quest) return null;
-        const lifecycle = getQuestLifecycle(quest);
-        return (
-          <QuestVariantChip
-            key={language}
-            label={
-              t(getWordleLanguageLabelKey(language)) +
-              " · " +
-              getVariantStatusLabel(quest, t)
-            }
-            tone={getLifecycleTone(lifecycle, tc)}
-          />
-        );
-      });
-    }
-
-    if (item.kind === "dailyNumbers") {
-      return DAILY_NUMBERS_MODES.map((mode) => {
-        const quest = item.questsByMode[mode];
-        if (!quest) return null;
-        const lifecycle = getQuestLifecycle(quest);
-        return (
-          <QuestVariantChip
-            key={mode}
-            label={
-              getDailyNumbersModeShortLabel(mode, t) +
-              " · " +
-              getVariantStatusLabel(quest, t)
-            }
-            tone={getLifecycleTone(lifecycle, tc)}
-          />
-        );
-      });
-    }
-
-    return null;
-  };
-
-  const renderQuestCard = (item: QuestHubItem) => {
+  const renderQuestCard = (item: QuestHubItem, isLast: boolean) => {
     const lifecycle = getQuestHubItemLifecycle(item);
     const stats = getQuestHubItemStats(item);
-    const progress = getItemProgress(item);
+    const visual = getItemVisual(item);
     const potentialReward = item.quests
       .filter((quest) => {
         const questLifecycle = getQuestLifecycle(quest);
@@ -1828,8 +1805,6 @@ function useQuestsScreenView() {
           ? potentialReward
           : undefined;
     const isStep = item.kind === "single" && isStepQuest(item.quest.type);
-    const isSpeed =
-      item.kind === "single" && isSpeedCalculusQuest(item.quest.type);
     const stepLoading =
       stepSync.isSyncing || stepQuestUiState.isForceRefreshing;
     const isClaimLoading =
@@ -1918,14 +1893,15 @@ function useQuestsScreenView() {
             : t("quests.hub.chooseVariantHint")
         }
         accessibilitySummary={getItemAccessibilitySummary(item, t)}
-        description={getItemDescription(item, t)}
         cardRef={isStep ? stepCardRef : undefined}
         disabled={claimInFlight}
+        divider={!isLast}
         footer={stepFooter ?? passiveClaimFooter}
         titleFocusRef={isStep ? stepCardFocusRef : undefined}
         highlighted={isStep && highlightSteps}
-        icon={getItemIcon(item)}
-        lifecycle={lifecycle}
+        icon={visual.icon}
+        iconTone={visual.tone}
+        meta={getItemMeta(item, t, stepSourceLabel)}
         onPress={
           isStep
             ? undefined
@@ -1933,18 +1909,11 @@ function useQuestsScreenView() {
               ? () => openHubItem(item)
               : undefined
         }
-        progressLabel={progress.label}
-        progressPercentage={progress.percentage}
         reward={displayedReward}
         rewardAccessibilityLabel={getRewardAccessibilityLabel(
           displayedReward ?? 0,
           t,
         )}
-        statusLabel={
-          isSpeed && (lifecycle === "fresh" || lifecycle === "in_progress")
-            ? t("quests.hub.openToPlay")
-            : getLifecycleLabel(lifecycle, t)
-        }
         tc={tc}
         testID={
           item.kind === "single"
@@ -1952,8 +1921,6 @@ function useQuestsScreenView() {
             : "quests-card-" + item.id
         }
         title={getItemTitle(item, t)}
-        tone={getLifecycleTone(lifecycle, tc)}
-        variants={renderVariants(item)}
       />
     );
   };
@@ -1989,7 +1956,7 @@ function useQuestsScreenView() {
           <PageTitle
             title={t("quests.title")}
             subtitle={t("quests.hub.subtitle")}
-            className="mb-5"
+            className="mb-ds-3"
           />
 
           {displayedQuests.quests.length > 0 ? (
@@ -2069,41 +2036,31 @@ function useQuestsScreenView() {
             <>
               {activeItems.length > 0 ? (
                 <>
-                  <View className="mb-3 mt-6">
-                    <View>
-                      <Text
-                        accessibilityRole="header"
-                        className="font-nunito-extrabold text-xl text-fg"
-                      >
-                        {t("quests.hub.upNext")}
-                      </Text>
-                      <Text className="mt-0.5 font-nunito-semibold text-sm text-fgMuted">
-                        {t("quests.hub.upNextSubtitle")}
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="gap-3">
-                    {activeItems.map((item) => renderQuestCard(item))}
-                  </View>
+                  <SectionHeader
+                    title={t("quests.hub.upNext")}
+                    subtitle={t("quests.hub.upNextSubtitle")}
+                    className="mb-ds-3 mt-ds-3"
+                  />
+                  <Card flush>
+                    {activeItems.map((item, index) =>
+                      renderQuestCard(item, index === activeItems.length - 1),
+                    )}
+                  </Card>
                 </>
               ) : null}
 
               {finishedItems.length > 0 ? (
                 <>
-                  <View className="mb-3 mt-7">
-                    <Text
-                      accessibilityRole="header"
-                      className="font-nunito-extrabold text-xl text-fg"
-                    >
-                      {t("quests.hub.finishedSection")}
-                    </Text>
-                    <Text className="mt-0.5 font-nunito-semibold text-sm text-fgMuted">
-                      {t("quests.hub.finishedSectionSubtitle")}
-                    </Text>
-                  </View>
-                  <View className="gap-3">
-                    {finishedItems.map((item) => renderQuestCard(item))}
-                  </View>
+                  <SectionHeader
+                    title={t("quests.hub.finishedSection")}
+                    subtitle={t("quests.hub.finishedSectionSubtitle")}
+                    className="mb-ds-3 mt-ds-6"
+                  />
+                  <Card flush>
+                    {finishedItems.map((item, index) =>
+                      renderQuestCard(item, index === finishedItems.length - 1),
+                    )}
+                  </Card>
                 </>
               ) : null}
             </>

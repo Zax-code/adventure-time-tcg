@@ -3,7 +3,6 @@ import Info from "lucide-react-native/icons/info";
 import Radio from "lucide-react-native/icons/radio";
 import Trophy from "lucide-react-native/icons/trophy";
 import { useQuery } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   useCallback,
@@ -28,7 +27,6 @@ import type {
 } from "@adventure-time/api-client";
 
 import { PageErrorState } from "../../components/error-state";
-import { SecondaryButton } from "../../components/button";
 import {
   ClockIcon,
   DailyNumbersQuestIcon,
@@ -47,13 +45,7 @@ import {
   useBottomTabBarContentPadding,
 } from "../../theme/layout";
 import { THEME_COLORS } from "../../theme/themes";
-import { LeaderboardAvatar } from "./leaderboard-avatar";
 import { formatLeaderboardRawResult } from "./format-raw-result";
-import {
-  buildRankingsPresentation,
-  type TopRank,
-  type TopRankGroup,
-} from "./rankings-presentation";
 import {
   RANKINGS_PREVIEW_DATA,
   RANKINGS_TIED_PREVIEW_DATA,
@@ -63,6 +55,7 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Chip } from "../../components/ui/chip";
 import { PageTitle } from "../../components/ui/page-title";
+import { SectionHeader } from "../../components/ui/section-header";
 import { SegmentedControl } from "../../components/ui/segmented-control";
 import { StatePanel } from "../../components/ui/state-panel";
 
@@ -247,7 +240,7 @@ export function RankingsScreen() {
       paddingTop: headerHeight + 18,
       paddingBottom: bottomPadding,
       paddingHorizontal: 16,
-      gap: 18,
+      gap: 12,
     }),
     [bottomPadding, headerHeight],
   );
@@ -570,18 +563,10 @@ function RankingsContent({
 }) {
   const { locale, t } = useTranslation();
   const router = useRouter();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
   const closeCountdown = useCloseCountdown(data.period);
-  const { topRankGroups, hasTopRankTie, remainingRows } = useMemo(
-    () => buildRankingsPresentation(data.rows),
-    [data.rows],
-  );
-  const firstPlace = topRankGroups.find((group) => group.rank === 1)?.rows[0];
-  const secondPlace = topRankGroups.find(
-    (group) => group.rank === 2,
-  )?.rows[0];
-  const thirdPlace = topRankGroups.find((group) => group.rank === 3)?.rows[0];
+  const currentPlayerListed = data.currentPlayer
+    ? data.rows.some((row) => isCurrentPlayer(row, data.currentPlayer))
+    : false;
   const openProfile = (row: LeaderboardRow) => {
     if (!row.profile.publicProfileId || row.profile.visibility !== "visible")
       return;
@@ -595,7 +580,7 @@ function RankingsContent({
   };
 
   return (
-    <View className="gap-4">
+    <View className="gap-ds-3">
       <Card>
         <View className="flex-row items-center justify-between gap-ds-3">
           <Text
@@ -620,99 +605,67 @@ function RankingsContent({
               ? "rankings.provisionalHint"
               : "rankings.finalHint",
           )}
-        </Text>
-        {closeCountdown ? (
-          <View className="flex-row items-center gap-[6px]">
-            <ClockIcon size={14} color={tc.infoText} />
+          {closeCountdown ? (
             <Text
               accessibilityLiveRegion="polite"
-              className="font-nunito-bold text-ds-sm text-infoText"
               testID="rankings-close-countdown"
             >
-              {t("rankings.closesIn", closeCountdown)}
+              {` ${t("rankings.closesIn", closeCountdown)}.`}
             </Text>
-          </View>
-        ) : null}
+          ) : null}
+        </Text>
       </Card>
 
-      {hasTopRankTie ? (
-        <View className="gap-3" testID="leaderboard-tied-podium">
-          {topRankGroups.map((group) => (
-            <TiedRankGroup
-              currentPlayer={data.currentPlayer}
-              group={group}
-              key={group.rank}
-              onPress={openProfile}
-            />
-          ))}
-        </View>
-      ) : (
-        <View className="flex-row items-end justify-center gap-1 pt-3">
-          {secondPlace ? (
-            <PodiumCard
-              row={secondPlace}
-              place={2}
-              onPress={() => openProfile(secondPlace)}
-            />
-          ) : null}
-          {firstPlace ? (
-            <PodiumCard
-              row={firstPlace}
-              place={1}
-              onPress={() => openProfile(firstPlace)}
-            />
-          ) : null}
-          {thirdPlace ? (
-            <PodiumCard
-              row={thirdPlace}
-              place={3}
-              onPress={() => openProfile(thirdPlace)}
-            />
-          ) : null}
-        </View>
-      )}
-
-      {remainingRows.length > 0 ? (
-        <Card flush>
-          {remainingRows.map((row, index) => (
+      {data.rows.length > 0 ? (
+        <Card flush testID="leaderboard-standings">
+          {data.rows.map((row, index) => (
             <RankingRow
               key={row.profile.handle}
               row={row}
-              bordered={index > 0}
+              tieIndex={countEarlierTies(data.rows, index)}
+              divider={index < data.rows.length - 1}
               current={isCurrentPlayer(row, data.currentPlayer)}
               onPress={() => openProfile(row)}
             />
           ))}
         </Card>
-      ) : null}
+      ) : (
+        <StatePanel
+          icon={Trophy}
+          title={t("rankings.emptyTitle")}
+          body={t(
+            data.period.type === "day"
+              ? "rankings.emptyBodyDay"
+              : "rankings.emptyBodyWeek",
+          )}
+          action={{
+            label: t("rankings.emptyAction"),
+            onPress: () => router.push("/(tabs)/quests"),
+            testID: "rankings-empty-quests-button",
+          }}
+          testID="rankings-empty-state"
+        />
+      )}
 
-      {data.currentPlayer && data.currentPlayer.rank > 7 ? (
-        <View className="rounded-ds-lg border-2 border-primaryBorder bg-primaryTint">
-          <View className="absolute -top-2 left-1/2 size-4 rotate-45 border-l-2 border-t-2 border-primaryBorder bg-primaryTint" />
+      {data.currentPlayer && !currentPlayerListed ? (
+        <Card flush>
           <RankingRow
             row={data.currentPlayer}
+            divider={false}
+            current
             onPress={() => openProfile(data.currentPlayer!)}
           />
-        </View>
+        </Card>
       ) : null}
 
-      <View className="flex-row items-center justify-center gap-2 px-3 py-1">
-        <TrophyIcon size={18} color="#DB2777" />
-        <Text className="text-center font-nunito-semibold text-xs text-fgMuted">
-          {t("rankings.profileTapHint")}
-        </Text>
-      </View>
-
-      <View className="items-center py-1">
-        <Button
-          tone="ghost"
-          icon={Info}
-          onPress={() => router.push("/leaderboard-help")}
-          testID="rankings-open-help-button"
-        >
-          {t("rankings.scoringHelp")}
-        </Button>
-      </View>
+      <Button
+        tone="ghost"
+        icon={Info}
+        onPress={() => router.push("/leaderboard-help")}
+        testID="rankings-open-help-button"
+      >
+        {t("rankings.scoringHelp")}
+      </Button>
     </View>
   );
 }
@@ -759,12 +712,10 @@ function HistoryContent({
   const { t } = useTranslation();
 
   return (
-    <View className="gap-6">
+    <View className="gap-ds-6">
       {history.days.length > 0 ? (
-        <View className="gap-4">
-          <Text className="px-1 font-nunito-extrabold text-xl text-fg">
-            {t("rankings.recentDays")}
-          </Text>
+        <View className="gap-ds-3">
+          <SectionHeader title={t("rankings.recentDays")} />
           {history.days.map((day) => (
             <RankingsContent
               data={day}
@@ -803,17 +754,16 @@ function HistoryWeek({
   });
 
   return (
-    <View className="gap-3">
-      <Text className="px-1 font-nunito-extrabold text-xl text-fg">
-        {t("rankings.weekEnding", { date: week.period.standingsThrough ?? "" })}
-      </Text>
+    <View className="gap-ds-3">
+      <SectionHeader
+        title={t("rankings.weekEnding", {
+          date: week.period.standingsThrough ?? "",
+        })}
+      />
       <RankingsContent data={week} preview={false} />
-      <SecondaryButton
-        onPress={() => setExpanded((current) => !current)}
-        style={{ width: "100%" }}
-      >
+      <Button tone="ghost" onPress={() => setExpanded((current) => !current)}>
         {t(expanded ? "rankings.hideDays" : "rankings.viewDays")}
-      </SecondaryButton>
+      </Button>
       {expanded && days.isLoading ? (
         <PageLoadingState
           title={t("rankings.loadingTitle")}
@@ -826,10 +776,10 @@ function HistoryWeek({
           onRetry={() => void days.refetch()}
         />
       ) : expanded ? (
-        <View className="gap-5 border-l-2 border-primaryBorder pl-3">
+        <View className="gap-ds-5 border-l-2 border-primaryBorder pl-ds-3">
           {days.data?.days.map((day) => (
             <View key={day.period.startsAt} className="gap-2">
-              <Text className="font-nunito-extrabold text-base text-fg">
+              <Text className="font-nunito-extrabold text-ds-h3 text-fg">
                 {day.period.standingsThrough}
               </Text>
               <RankingsContent data={day} preview={false} />
@@ -841,227 +791,86 @@ function HistoryWeek({
   );
 }
 
-function PodiumCard({
-  row,
-  place,
-  onPress,
-}: {
-  row: LeaderboardRow;
-  place: 1 | 2 | 3;
-  onPress: () => void;
-}) {
-  const { locale, t } = useTranslation();
-  const heightClass =
-    place === 1 ? "h-[236px]" : place === 2 ? "h-[206px]" : "h-[192px]";
-  const colors =
-    place === 1
-      ? ["#FFFBEA", "#FEF3C7"]
-      : place === 2
-        ? ["#F8FAFC", "#E2E8F0"]
-        : ["#FFF7ED", "#FED7AA"];
-
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`flex-1 overflow-hidden rounded-t-[26px] ${heightClass}`}
-      testID={`leaderboard-podium-${place}`}
-    >
-      <LinearGradient
-        colors={colors as [string, string]}
-        style={{ position: "absolute", inset: 0 }}
-      />
-      <View className="h-full items-center justify-end gap-2 px-2 pb-4">
-        <View className="absolute inset-x-0 top-3 items-center">
-          <View className="size-10 items-center justify-center rounded-full bg-white/80">
-            <Text className="font-nunito-extrabold text-xl text-fg">
-              {place}
-            </Text>
-          </View>
-        </View>
-        <LeaderboardAvatar
-          avatarKey={row.profile.fallbackAvatarKey}
-          avatarUrl={row.profile.avatarUrl}
-          size={place === 1 ? 72 : 58}
-        />
-        <Text
-          numberOfLines={1}
-          className="w-full text-center font-nunito-bold text-xs text-fg"
-        >
-          {row.profile.displayName}
-        </Text>
-        <Text
-          numberOfLines={2}
-          className="text-center font-nunito-bold text-xs tabular-nums text-fgMuted"
-        >
-          {formatLeaderboardRawResult(row.rawResult, locale, t)}
-        </Text>
-        <View className="rounded-lg bg-white/80 px-3 py-1.5">
-          <Text className="font-nunito-extrabold text-base text-primaryText">
-            {row.points.toLocaleString()} pts
-          </Text>
-        </View>
-      </View>
-      <View
-        pointerEvents="none"
-        className="absolute inset-0 rounded-t-[26px] border border-primaryBorder"
-      />
-    </Pressable>
-  );
-}
-
-const TIED_RANK_COLORS: Record<TopRank, [string, string]> = {
-  1: ["#FFFBEA", "#FEF3C7"],
-  2: ["#F8FAFC", "#E2E8F0"],
-  3: ["#FFF7ED", "#FED7AA"],
-};
-
-const PLACEMENT_LABEL_KEYS: Record<TopRank, string> = {
-  1: "rankings.placements.first",
-  2: "rankings.placements.second",
-  3: "rankings.placements.third",
-};
-
-function TiedRankGroup({
-  group,
-  currentPlayer,
-  onPress,
-}: {
-  group: TopRankGroup<LeaderboardRow>;
-  currentPlayer: LeaderboardRow | null;
-  onPress: (row: LeaderboardRow) => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <View
-      className="overflow-hidden rounded-[24px] border border-primaryBorder bg-surface"
-      testID={`leaderboard-rank-group-${group.rank}`}
-    >
-      <View className="overflow-hidden px-4 py-3">
-        <LinearGradient
-          colors={TIED_RANK_COLORS[group.rank]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ position: "absolute", inset: 0 }}
-        />
-        <View className="flex-row items-center gap-3">
-          <View className="size-10 items-center justify-center rounded-full bg-white/80">
-            <Text className="font-nunito-extrabold text-xl text-fg">
-              {group.rank}
-            </Text>
-          </View>
-          <Text
-            selectable
-            className="flex-1 font-nunito-extrabold text-lg text-fg"
-          >
-            {t(PLACEMENT_LABEL_KEYS[group.rank])}
-          </Text>
-          {group.rows.length > 1 ? (
-            <View className="rounded-full bg-white/80 px-3 py-1.5">
-              <Text className="font-nunito-extrabold text-xs text-primaryText">
-                {t("rankings.placements.tied", {
-                  count: group.rows.length,
-                })}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-
-      {group.rows.map((row, index) => (
-        <Pressable
-          key={row.profile.handle}
-          onPress={() => onPress(row)}
-          className={`flex-row items-center gap-3 px-4 py-3 ${index > 0 ? "border-t border-primaryBorder" : ""} ${isCurrentPlayer(row, currentPlayer) ? "bg-primaryTint" : ""}`}
-          testID={`leaderboard-tied-rank-${group.rank}-row-${index + 1}`}
-        >
-          <LeaderboardAvatar
-            avatarKey={row.profile.fallbackAvatarKey}
-            avatarUrl={row.profile.avatarUrl}
-            size={48}
-          />
-          <View className="min-w-0 flex-1 gap-0.5">
-            <Text
-              selectable
-              numberOfLines={1}
-              className="font-nunito-bold text-sm text-fg"
-            >
-              {row.profile.displayName}
-            </Text>
-            <TiedRankResult row={row} />
-          </View>
-          <View className="rounded-xl bg-primaryTint px-3 py-2">
-            <Text
-              selectable
-              className="font-nunito-extrabold text-sm tabular-nums text-primaryText"
-            >
-              {row.points.toLocaleString()} pts
-            </Text>
-          </View>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-function TiedRankResult({ row }: { row: LeaderboardRow }) {
-  const { locale, t } = useTranslation();
-
-  return (
-    <Text
-      selectable
-      numberOfLines={2}
-      className="font-nunito-semibold text-xs leading-4 tabular-nums text-fgMuted"
-    >
-      {formatLeaderboardRawResult(row.rawResult, locale, t)}
-    </Text>
-  );
-}
-
 function RankingRow({
   row,
-  bordered,
+  tieIndex = 0,
+  divider,
   current,
   onPress,
 }: {
   row: LeaderboardRow;
-  bordered?: boolean;
+  // Tied players share a rank; the second and later ones get a suffixed testID.
+  tieIndex?: number;
+  divider: boolean;
   current?: boolean;
   onPress?: () => void;
 }) {
   const { locale, t } = useTranslation();
+  const result = formatLeaderboardRawResult(row.rawResult, locale, t);
+  const first = row.rank === 1;
 
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-row items-center gap-3 px-4 py-3 ${bordered ? "border-t border-primaryBorder" : ""} ${current ? "bg-primaryTint" : ""}`}
-      testID={`leaderboard-row-${row.rank}`}
+      accessibilityRole="button"
+      className={`flex-row items-center gap-ds-3 px-ds-4 py-ds-3 ${
+        divider ? "border-b border-primaryBorder" : ""
+      } ${current ? "bg-primaryTint" : ""}`}
+      testID={
+        tieIndex > 0
+          ? `leaderboard-row-${row.rank}-${tieIndex + 1}`
+          : `leaderboard-row-${row.rank}`
+      }
     >
-      <Text className="w-7 text-center font-nunito-extrabold text-sm text-primaryText">
-        {row.rank}
-      </Text>
-      <LeaderboardAvatar
-        avatarKey={row.profile.fallbackAvatarKey}
-        avatarUrl={row.profile.avatarUrl}
-        size={42}
-      />
-      <Text
-        numberOfLines={1}
-        className="flex-1 font-nunito-bold text-sm text-fg"
+      <View
+        className={`size-8 items-center justify-center rounded-ds-pill border ${
+          first
+            ? "border-secondaryBorder bg-secondaryTint"
+            : "border-primaryBorder bg-surface"
+        }`}
       >
-        {row.profile.displayName}
-      </Text>
-      <Text
-        numberOfLines={2}
-        className="max-w-32 text-right font-nunito-semibold text-xs leading-4 tabular-nums text-fgMuted"
-      >
-        {formatLeaderboardRawResult(row.rawResult, locale, t)}
-      </Text>
-      <Text className="min-w-20 text-right font-nunito-extrabold text-sm text-primaryText">
-        {row.points.toLocaleString()} pts
+        <Text
+          className={`font-nunito-extrabold text-ds-sm tabular-nums ${
+            first ? "text-secondaryText" : "text-fg"
+          }`}
+        >
+          {row.rank}
+        </Text>
+      </View>
+      <View className="min-w-0 flex-1 gap-[2px]">
+        <Text
+          numberOfLines={1}
+          className="font-nunito-bold text-ds-body text-fg"
+        >
+          {row.profile.displayName}
+        </Text>
+        {result || current ? (
+          <Text
+            numberOfLines={2}
+            className="font-nunito text-ds-sm tabular-nums text-fgMuted"
+          >
+            {current
+              ? result
+                ? t("rankings.youWithResult", { result })
+                : t("rankings.you")
+              : result}
+          </Text>
+        ) : null}
+      </View>
+      <Text className="font-nunito-extrabold text-ds-body tabular-nums text-primaryText">
+        {t("rankings.points", { points: row.points.toLocaleString(locale === "fr" ? "fr-FR" : "en-US") })}
       </Text>
     </Pressable>
   );
+}
+
+function countEarlierTies(rows: LeaderboardRow[], index: number) {
+  let count = 0;
+  for (let earlier = index - 1; earlier >= 0; earlier -= 1) {
+    if (rows[earlier].rank !== rows[index].rank) break;
+    count += 1;
+  }
+  return count;
 }
 
 function isCurrentPlayer(
@@ -1077,23 +886,38 @@ function isCurrentPlayer(
   return row.profile.handle === currentPlayer.profile.handle;
 }
 
+const PERIOD_DATE_FORMATTERS = {
+  en: {
+    full: new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" }),
+    start: new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }),
+  },
+  fr: {
+    full: new Intl.DateTimeFormat("fr", { dateStyle: "medium", timeZone: "UTC" }),
+    start: new Intl.DateTimeFormat("fr", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }),
+  },
+} as const;
+
 function formatPeriodDate(
   period: LeaderboardResponse["period"],
   locale: "en" | "fr",
 ) {
-  const formatter = new Intl.DateTimeFormat(locale, {
-    dateStyle: "long",
-    timeZone: "UTC",
-  });
-  const formatDate = (date: string) =>
-    formatter.format(new Date(`${date}T12:00:00.000Z`));
+  const formatters = PERIOD_DATE_FORMATTERS[locale];
+  const toDate = (date: string) => new Date(`${date}T12:00:00.000Z`);
 
   if (period.type === "day" && period.competitionDate) {
-    return formatDate(period.competitionDate);
+    return formatters.full.format(toDate(period.competitionDate));
   }
 
   if (period.weekStart && period.weekEnd) {
-    return `${formatDate(period.weekStart)} – ${formatDate(period.weekEnd)}`;
+    return `${formatters.start.format(toDate(period.weekStart))} – ${formatters.full.format(toDate(period.weekEnd))}`;
   }
 
   return "—";

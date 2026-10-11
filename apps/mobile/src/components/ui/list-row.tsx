@@ -2,13 +2,22 @@ import type { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 
+import { Chip, type ChipProps } from "./chip";
+import { IconButton, type IconButtonProps } from "./icon-button";
 import { IconTile } from "./icon-tile";
 import {
   ICON_STROKE_WIDTH,
   type IconSlot,
+  SlotIcon,
   type Tone,
   useThemePalette,
 } from "./tokens";
+
+export interface ListRowTrailingIcon {
+  icon: IconSlot;
+  color: string;
+  size?: number;
+}
 
 export interface ListRowProps {
   title: string;
@@ -17,6 +26,10 @@ export interface ListRowProps {
   iconTone?: Tone;
   // A Chip, a value or any small element.
   trailing?: ReactNode;
+  // Data shortcuts for the common trailing elements, rendered after `trailing`.
+  trailingChip?: ChipProps;
+  trailingAction?: IconButtonProps;
+  trailingIcon?: ListRowTrailingIcon;
   chevron?: boolean;
   // Hairline under the row; turn it off for the last row of a Card.
   divider?: boolean;
@@ -31,6 +44,9 @@ export function ListRow({
   icon,
   iconTone = "primary",
   trailing,
+  trailingChip,
+  trailingAction,
+  trailingIcon,
   chevron,
   divider = true,
   onPress,
@@ -55,6 +71,15 @@ export function ListRow({
         ) : null}
       </View>
       {trailing}
+      {trailingChip ? <Chip {...trailingChip} /> : null}
+      {trailingAction ? <IconButton {...trailingAction} /> : null}
+      {trailingIcon ? (
+        <SlotIcon
+          icon={trailingIcon.icon}
+          color={trailingIcon.color}
+          size={trailingIcon.size ?? 22}
+        />
+      ) : null}
       {chevron ? (
         <ChevronRight size={18} color={tc.muted} strokeWidth={ICON_STROKE_WIDTH} />
       ) : null}

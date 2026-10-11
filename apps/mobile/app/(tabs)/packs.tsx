@@ -7,13 +7,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from "react-native";
 import Check from "lucide-react-native/icons/check";
 import Coins from "lucide-react-native/icons/coins";
+import Copy from "lucide-react-native/icons/copy";
+import Lock from "lucide-react-native/icons/lock";
+import LockKeyhole from "lucide-react-native/icons/lock-keyhole";
+import PackageIcon from "lucide-react-native/icons/package";
+import PackageOpen from "lucide-react-native/icons/package-open";
+import Pointer from "lucide-react-native/icons/pointer";
+import RotateCcw from "lucide-react-native/icons/rotate-ccw";
 import Sparkles from "lucide-react-native/icons/sparkles";
+import Zap from "lucide-react-native/icons/zap";
 import {
   cancelAnimation,
   Easing,
@@ -32,23 +41,22 @@ import type {
   PvpLoadoutsResponse,
 } from "@adventure-time/api-client";
 
-import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
 import { CARD_ART_RATIO } from "../../src/components/card-back-cover-art";
 import { PageErrorState } from "../../src/components/error-state";
-import {
-  CheckIcon,
-  ClockIcon,
-  CoinIcon,
-  EyeIcon,
-  PackIcon,
-  SparklesIcon,
-  ZapIcon,
-} from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { getPackOpeningArtSource } from "../../src/components/pack-opening-art";
 import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
-import { RARITY_COLORS } from "../../src/components/theme";
+import { Button } from "../../src/components/ui/button";
+import { Card } from "../../src/components/ui/card";
+import { Chip } from "../../src/components/ui/chip";
+import { ListRow } from "../../src/components/ui/list-row";
+import { Notice } from "../../src/components/ui/notice";
+import { PageTitle } from "../../src/components/ui/page-title";
+import { ProgressBar } from "../../src/components/ui/progress-bar";
+import { SectionHeader } from "../../src/components/ui/section-header";
+import { StatTile } from "../../src/components/ui/stat-tile";
+import { ICON_STROKE_WIDTH } from "../../src/components/ui/tokens";
 import { useTranslation } from "../../src/i18n";
 import { apiClient, wait } from "../../src/lib/api";
 import { prefetchCatalogImages } from "../../src/lib/catalog-images";
@@ -62,20 +70,13 @@ import {
 import { THEME_COLORS } from "../../src/theme/themes";
 
 import {
-  BackgroundOrbs,
   CardBackStack,
-  CrackedPackPreview,
   LoadingProgressFill,
-  PackIconVisual,
-  PackLoadingGlow,
-  PackOpeningAura,
   PackPreviewCard,
   PackSummaryCardSheet,
   ReadyRevealGlow,
   ReadyRevealStackWrapper,
-  RevealPullProgress,
   RevealCardStage,
-  SectionBadge,
 } from "../../src/features/packs/opening-components";
 import {
   patchCollectionAfterPackOpen,
@@ -84,7 +85,6 @@ import {
 } from "../../src/features/packs/collection-cache";
 import {
   IS_E2E_BUILD,
-  PACK_CARD_RATIO,
   PACK_OPEN_BURST_MS,
   PACK_OPEN_PROGRESS_MS,
   PACK_OPEN_SHAKE_MS,
@@ -95,29 +95,23 @@ import {
   SPARK_REVEAL_START_DELAY_MS,
   buildCardBackVisualMap,
   canOpenPackWithBalance,
-  createLoadingSparkles,
   formatPackAvailabilityDate,
   getHapticForCard,
   getPackArtUrl,
+  getPackTone,
   getRarityGlowColor,
+  getRarityIcon,
+  getRarityTone,
   getThemeRarityPalette,
   isPackLimited,
   slugifyPackName,
   toCardTileEntry,
   toRarityName,
   withOccurrenceKeys,
-  withAlpha,
-  type CardBackVisualMap,
-  type LoadingSparkle,
   type OpenedCard,
   type OpeningPhase,
   type Pack,
-  type RarityName,
 } from "../../src/features/packs/opening-model";
-import { Card } from "../../src/components/ui/card";
-import { Chip } from "../../src/components/ui/chip";
-import { Notice } from "../../src/components/ui/notice";
-import { PageTitle } from "../../src/components/ui/page-title";
 
 export default function PacksScreen() {
   return usePacksScreenView();
@@ -165,7 +159,6 @@ function usePacksScreenView() {
     Math.max(236, height - openingBottomPadding - 364) * CARD_ART_RATIO,
   );
   const stageCardWidth = revealCardWidth;
-  const loadingDeckWidth = revealCardWidth;
 
   const chargeAnim = useSharedValue(0);
   const sheenAnim = useSharedValue(0);
@@ -325,7 +318,7 @@ function usePacksScreenView() {
     if (isPackLimited(pack)) {
       setOpenError(
         pack.availability?.nextAvailableAt
-          ? t("packs.weeklyLimitAvailable", {
+          ? t("packs.weeklyLimitCaption", {
               date: formatPackAvailabilityDate(
                 pack.availability.nextAvailableAt,
               ),
@@ -682,6 +675,33 @@ function usePacksScreenView() {
   const heroCanOpen = heroPack
     ? canOpenPackWithBalance(heroPack, coins)
     : false;
+  const otherPacks = packs.filter((pack) => pack.id !== heroPack?.id);
+
+  function getPackCaption(pack: Pack) {
+    if (isPackLimited(pack)) {
+      return pack.availability?.nextAvailableAt
+        ? t("packs.weeklyLimitCaption", {
+            date: formatPackAvailabilityDate(pack.availability.nextAvailableAt),
+          })
+        : t("packs.weeklyLimitReached");
+    }
+
+    const parts = [
+      t("packs.cardsCount", { count: pack.cardCount }),
+      pack.guaranteedRarity
+        ? t("packs.guaranteed", { rarity: pack.guaranteedRarity })
+        : t("packs.standardOdds"),
+    ];
+    if (pack.cost > coins) {
+      parts.push(t("packs.needMoreCoinsShort", { count: pack.cost - coins }));
+    }
+
+    return parts.join(" · ");
+  }
+
+  function getPackAccessibilityLabel(pack: Pack) {
+    return `${pack.name}, ${t("packs.tapToOpen")}, ${pack.cost}`;
+  }
   const openingStackRarities = openedCards.slice(0, 3).map((card) => {
     if (card.revealSource === "spark") {
       return "Common";
@@ -697,24 +717,11 @@ function usePacksScreenView() {
     const isLoadingPhase = phase === "loading";
     const isChargePhase = phase === "shaking";
     const prewarmDomOpacity = 0.001;
-    const openingAccent = selectedPack.color || "#D58524";
     const chargePreviewWidth = Math.min(stageCardWidth * 1.4, 320);
     const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
     const openingStageTranslateY = 10;
     const loadingFooterTranslateY = 56;
     const openingFooterReserve = Math.min(Math.max(height * 0.24, 196), 252);
-    const badgeBackgroundColor = withAlpha(
-      openingAccent,
-      themeName === "nightosphere" ? "26" : "1F",
-    );
-    const titleChipBackgroundColor =
-      themeName === "nightosphere"
-        ? withAlpha(tc.surface, "CC")
-        : withAlpha(tc.surface, "E8");
-    const progressTrackColor =
-      themeName === "nightosphere"
-        ? withAlpha(tc.primaryBorder, "44")
-        : withAlpha(tc.fgMuted, "22");
     const openingDom = (
       <PackOpeningSequenceDom
         key={`${openingRunId}`}
@@ -796,7 +803,7 @@ function usePacksScreenView() {
           </View>
 
           <View
-            className="w-full max-w-[360px] self-center items-center gap-4 pb-2"
+            className="w-full max-w-[360px] items-center gap-ds-3 self-center rounded-ds-lg border border-primaryBorder bg-surface p-ds-6"
             style={{
               minHeight: isLoadingPhase ? openingFooterReserve : undefined,
               transform: isLoadingPhase
@@ -804,61 +811,37 @@ function usePacksScreenView() {
                 : undefined,
             }}
           >
+            <Chip
+              tone="accent"
+              icon={isLoadingPhase ? LockKeyhole : Zap}
+              label={
+                isLoadingPhase
+                  ? t("packs.opening.syncingProgress")
+                  : t("packs.opening.packOpened", { name: selectedPack.name })
+              }
+              className="self-center"
+            />
+            <Text className="text-center font-nunito-extrabold text-ds-h3 text-fg">
+              {isLoadingPhase
+                ? t("packs.opening.sortingTitle")
+                : t("packs.opening.chargeTitle")}
+            </Text>
             {isLoadingPhase ? (
               <>
-                <SectionBadge
-                  icon={<EyeIcon size={12} color={openingAccent} />}
-                  label={t("packs.opening.syncingProgress")}
-                  backgroundColor={badgeBackgroundColor}
-                  textColor={openingAccent}
-                />
-                <Text
-                  className="max-w-[330px] text-center font-nunito text-sm"
-                  style={{ color: tc.fgMuted }}
-                >
+                <Text className="text-center font-nunito text-ds-body text-fgMuted">
                   {t("packs.opening.sortingBody")}
                 </Text>
-                <View
-                  className="w-full overflow-hidden rounded-full"
-                  style={{
-                    backgroundColor: progressTrackColor,
-                    height: 12,
-                  }}
-                >
+                <View className="h-ds-2 w-full overflow-hidden rounded-ds-pill bg-primaryTint">
                   <LoadingProgressFill
-                    color={openingAccent}
+                    color={tc.primary}
                     progress={loadingProgressAnim}
                   />
                 </View>
-                <Text
-                  className="text-center font-nunito text-sm"
-                  style={{ color: tc.fgMuted }}
-                >
+                <Text className="text-center font-nunito-bold text-ds-sm text-fgMuted">
                   {loadingProgress}%
                 </Text>
               </>
-            ) : (
-              <Text
-                className="max-w-[330px] text-center font-nunito-bold text-sm"
-                style={{ color: tc.fg }}
-              >
-                {t("packs.opening.packOpened", { name: selectedPack.name })}
-              </Text>
-            )}
-
-            <View
-              className="self-center rounded-full px-4 py-1.5"
-              style={{ backgroundColor: titleChipBackgroundColor }}
-            >
-              <Text
-                className="font-nunito-bold text-[12px]"
-                style={{ color: tc.fgMuted }}
-              >
-                {isLoadingPhase
-                  ? t("packs.opening.sortingTitle")
-                  : t("packs.opening.chargeTitle")}
-              </Text>
-            </View>
+            ) : null}
           </View>
         </View>
       </View>
@@ -872,28 +855,34 @@ function usePacksScreenView() {
         onPress={revealNext}
         className="flex-1 bg-bg"
       >
-        <BackgroundOrbs
-          primary={tc.primaryTint}
-          secondary={tc.secondaryTint}
-          accent={tc.accentTint}
-        />
         <View
-          className="flex-1 px-4"
+          className="flex-1 items-center gap-ds-4 px-ds-4"
           style={{
-            paddingTop: headerHeight + 24,
+            paddingTop: headerHeight + 8,
             paddingBottom: openingBottomPadding,
           }}
         >
-          <View className="w-full items-center gap-3">
-            <Text className="text-center font-nunito-extrabold text-[28px] leading-[34px] text-fg">
+          <Chip
+            tone="accent"
+            icon={PackageIcon}
+            label={`${selectedPack.name} · ${t("packs.cardsCount", {
+              count: openedCards.length,
+            })}`}
+            className="self-center"
+          />
+          <View className="w-full items-center gap-[6px]">
+            <Text
+              accessibilityRole="header"
+              className="text-center font-nunito-extrabold text-ds-h1 text-fg"
+            >
               {t("packs.opening.readyTitle")}
             </Text>
-            <Text className="max-w-[330px] text-center font-nunito text-sm leading-6 text-fgMuted">
+            <Text className="text-center font-nunito text-ds-body text-fgMuted">
               {t("packs.opening.readyBody")}
             </Text>
           </View>
 
-          <View className="flex-1 items-center justify-center py-5">
+          <View className="w-full flex-1 items-center justify-center">
             <ReadyRevealGlow
               anim={readyRevealAnim}
               height={stageCardWidth / REVEAL_CARD_RATIO + 118}
@@ -913,18 +902,18 @@ function usePacksScreenView() {
             </ReadyRevealStackWrapper>
           </View>
 
-          <View className="items-center gap-4 pb-2">
-            <SectionBadge
-              icon={<PackIcon size={14} color={tc.primaryText} />}
-              label={t("packs.opening.revealProgress", {
-                count: openedCards.length,
-              })}
-              backgroundColor={tc.primaryTint}
-              textColor={tc.primaryText}
-            />
-            <Text className="text-center font-nunito-bold text-base text-primaryStrong">
-              {t("packs.opening.revealCta")}
-            </Text>
+          <View className="w-full items-center gap-[10px]">
+            <ProgressBar value={0} className="w-full" />
+            <View className="flex-row items-center gap-[6px]">
+              <Pointer
+                size={18}
+                color={tc.primaryText}
+                strokeWidth={ICON_STROKE_WIDTH}
+              />
+              <Text className="text-center font-nunito-bold text-ds-body text-primaryText">
+                {t("packs.opening.revealCta")}
+              </Text>
+            </View>
           </View>
         </View>
       </Pressable>
@@ -958,44 +947,35 @@ function usePacksScreenView() {
             opacity: 0.1,
           }}
         />
-        <BackgroundOrbs
-          primary={tc.surfaceMuted}
-          secondary={tc.primaryTint}
-          accent={glowColor}
-        />
 
         <View
-          className="flex-1 px-4"
+          className="flex-1 gap-ds-4 px-ds-4"
           style={{
-            paddingTop: headerHeight + 20,
+            paddingTop: headerHeight + 8,
             paddingBottom: openingBottomPadding,
           }}
         >
-          <View className="w-full max-w-[360px] self-center gap-3">
-            <View className="flex-row items-center justify-between">
-              <Text
-                className="font-nunito-bold text-base"
-                style={{ color: rarityRing }}
-              >
-                {rarityName}
-              </Text>
-              <Text className="font-nunito-bold text-sm text-fgMuted">
+          <View className="w-full max-w-[360px] gap-ds-2 self-center">
+            <View className="flex-row items-center justify-between gap-ds-3">
+              <Chip
+                tone={getRarityTone(rarityName)}
+                icon={getRarityIcon(rarityName)}
+                label={rarityName}
+              />
+              <Text className="font-nunito-bold text-ds-sm text-fgMuted">
                 {t("packs.reveal.cardProgress", {
                   current: revealedIndex + 1,
                   total: openedCards.length,
                 })}
               </Text>
             </View>
-            <RevealPullProgress
-              cards={openedCards}
-              revealProgress={flipAnim}
-              revealedIndex={revealedIndex}
-              tc={tc}
-              themeName={themeName}
+            <ProgressBar
+              value={(revealedIndex + 1) / openedCards.length}
+              complete={false}
             />
           </View>
 
-          <View className="flex-1 items-center justify-center py-3">
+          <View className="flex-1 items-center justify-center">
             <RevealCardStage
               accessToken={accessToken}
               card={card}
@@ -1014,36 +994,18 @@ function usePacksScreenView() {
             />
           </View>
 
-          <View className="items-center gap-3 pb-2">
-            <View className="flex-row flex-wrap items-center justify-center gap-2">
-              <SectionBadge
-                icon={
-                  card.isNewForUser ? (
-                    <CheckIcon size={12} color={tc.successText} />
-                  ) : (
-                    <ClockIcon size={12} color={tc.fgMuted} />
-                  )
-                }
-                label={
-                  card.isNewForUser
-                    ? t("packs.reveal.newCard")
-                    : t("packs.reveal.duplicate")
-                }
-                backgroundColor={
-                  card.isNewForUser ? tc.successTint : tc.surfaceMuted
-                }
-                textColor={card.isNewForUser ? tc.successText : tc.fgMuted}
-              />
-              {isLastCard ? (
-                <SectionBadge
-                  icon={<SparklesIcon size={12} color={tc.accentText} />}
-                  label={t("packs.reveal.finalCard")}
-                  backgroundColor={tc.accentTint}
-                  textColor={tc.accentText}
-                />
-              ) : null}
-            </View>
-            <Text className="text-center font-nunito-bold text-base text-primaryStrong">
+          <View className="items-center gap-[10px]">
+            <Chip
+              tone={card.isNewForUser ? "success" : "neutral"}
+              icon={card.isNewForUser ? Sparkles : Copy}
+              label={
+                card.isNewForUser
+                  ? t("packs.reveal.newCard")
+                  : t("packs.reveal.duplicate")
+              }
+              className="self-center"
+            />
+            <Text className="text-center font-nunito-bold text-ds-body text-primaryText">
               {isLastCard
                 ? t("packs.reveal.tapSummary")
                 : t("packs.reveal.tapNext")}
@@ -1061,21 +1023,18 @@ function usePacksScreenView() {
     const canReopenSelected =
       nextBalance >= selectedPack.cost && !isPackLimited(selectedPack);
     const summaryCards = [...newCards, ...duplicateCards];
-    const keyedNewCards = withOccurrenceKeys(newCards, (card) => card.id);
     const keyedSummaryCards = withOccurrenceKeys(summaryCards, (card) => card.id);
-    const rarityBreakdown = openedCards.reduce<
-      Record<string, { total: number; newCount: number }>
-    >((accumulator, card) => {
-      const rarityName = card.rarity?.name ?? "Common";
-      if (!accumulator[rarityName]) {
-        accumulator[rarityName] = { total: 0, newCount: 0 };
-      }
-      accumulator[rarityName].total += 1;
-      if (card.isNewForUser) {
-        accumulator[rarityName].newCount += 1;
-      }
-      return accumulator;
-    }, {});
+    const rarityCounts = openedCards.reduce<Record<string, number>>(
+      (accumulator, card) => {
+        const rarityName = toRarityName(card.rarity?.name);
+        accumulator[rarityName] = (accumulator[rarityName] ?? 0) + 1;
+        return accumulator;
+      },
+      {},
+    );
+    const previewedPullIndex = previewedCard
+      ? Math.max(0, openedCards.indexOf(previewedCard))
+      : 0;
 
     return (
       <>
@@ -1084,211 +1043,103 @@ function usePacksScreenView() {
           className="flex-1 bg-bg"
           contentInsetAdjustmentBehavior="never"
           contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingBottom: 36,
-            gap: 18,
+            paddingHorizontal: 16,
+            paddingBottom: 12,
+            gap: 12,
           }}
           scrollIndicatorInsets={{ bottom: bottomTabPadding }}
         >
           <View style={{ height: headerHeight }} />
-          <BackgroundOrbs
-            primary={tc.primaryTint}
-            secondary={tc.secondaryTint}
-            accent={tc.accentTint}
+          <PageTitle
+            title={selectedPack.name}
+            subtitle={t("packs.summary.subtitle")}
           />
 
-          <View
-            className="gap-5"
-            style={{
-              borderRadius: 30,
-              padding: 22,
-              borderWidth: 1,
-              borderColor: tc.primaryBorder,
-              backgroundColor: tc.surface,
-            }}
-          >
-            <View className="gap-3">
-              <SectionBadge
-                icon={<SparklesIcon size={14} color={tc.primaryText} />}
-                label={t("packs.summary.title")}
-                backgroundColor={tc.primaryTint}
-                textColor={tc.primaryText}
-              />
-              <View className="gap-2">
-                <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
-                  {selectedPack.name}
-                </Text>
-                <Text className="font-nunito text-sm leading-6 text-fgMuted">
-                  {t("packs.summary.subtitle")}
-                </Text>
-              </View>
-            </View>
-
-            <View className="flex-row gap-3">
-              <View
-                className="flex-1 rounded-[22px] p-4"
-                style={{ backgroundColor: tc.surfaceMuted }}
-              >
-                <Text className="font-nunito text-[11px] uppercase tracking-[0.7px] text-fgMuted">
-                  {t("packs.summary.totalCards")}
-                </Text>
-                <Text className="mt-2 font-nunito-extrabold text-[26px] text-fg">
-                  {openedCards.length}
-                </Text>
-              </View>
-              <View
-                className="flex-1 rounded-[22px] p-4"
-                style={{ backgroundColor: tc.surfaceMuted }}
-              >
-                <Text className="font-nunito text-[11px] uppercase tracking-[0.7px] text-fgMuted">
-                  {t("packs.summary.newCards")}
-                </Text>
-                <Text className="mt-2 font-nunito-extrabold text-[26px] text-fg">
-                  {newCards.length}
-                </Text>
-              </View>
-            </View>
+          <View className="flex-row gap-ds-3">
+            <StatTile
+              tone="primary"
+              label={t("packs.summary.totalCards")}
+              value={openedCards.length}
+              className="flex-1"
+            />
+            <StatTile
+              tone="success"
+              label={t("packs.summary.newCards")}
+              value={newCards.length}
+              className="flex-1"
+            />
           </View>
 
-          <View
-            className="gap-4 rounded-[28px] border p-5"
-            style={{
-              backgroundColor: tc.surface,
-              borderColor: tc.primaryBorder,
-            }}
-          >
-            <View className="flex-row items-center gap-3">
-              <View
-                className="items-center justify-center rounded-[18px] p-3"
-                style={{ backgroundColor: tc.primaryTint }}
-              >
-                <PackIcon size={20} color={tc.primaryText} />
-              </View>
-              <View className="flex-1">
-                <Text className="font-nunito-bold text-base text-fg">
-                  {t("packs.summary.rarityBreakdown")}
-                </Text>
-                <Text className="mt-1 font-nunito text-xs text-fgMuted">
-                  {selectedPack.guaranteedRarity
-                    ? t("packs.guaranteed", {
-                        rarity: selectedPack.guaranteedRarity,
-                      })
-                    : t("packs.standardOdds")}
-                </Text>
-              </View>
-            </View>
-
-            <View className="flex-row flex-wrap gap-2">
+          <Card>
+            <Text className="font-nunito-extrabold text-ds-h3 text-fg">
+              {t("packs.summary.rarityBreakdown")}
+            </Text>
+            <View className="flex-row flex-wrap gap-ds-2">
               {(
                 ["Legendary", "Epic", "Rare", "Uncommon", "Common"] as const
               ).map((rarityName) => {
-                const info = rarityBreakdown[rarityName];
-                if (!info) {
+                const count = rarityCounts[rarityName];
+                if (!count) {
                   return null;
                 }
 
-                const rarityColors =
-                  RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
-
                 return (
-                  <View
+                  <Chip
                     key={rarityName}
-                    className="rounded-full px-3 py-2"
-                    style={{ backgroundColor: rarityColors.ring + "22" }}
-                  >
-                    <Text
-                      className="font-nunito-bold text-[12px]"
-                      style={{ color: rarityColors.to }}
-                    >
-                      {rarityName} x{info.total}
-                      {info.newCount > 0
-                        ? ` ${t("packs.openResult.newCount", {
-                            count: info.newCount,
-                          })}`
-                        : ""}
-                    </Text>
-                  </View>
+                    tone={getRarityTone(rarityName)}
+                    icon={getRarityIcon(rarityName)}
+                    label={t("packs.summary.rarityCount", {
+                      rarity: rarityName,
+                      count,
+                    })}
+                  />
                 );
               })}
             </View>
-          </View>
+          </Card>
 
-          {newCards.length > 0 ? (
-            <View className="gap-3">
-              <Text className="font-nunito-bold text-lg text-fg">
-                {t("packs.summary.newCards")}
-              </Text>
-              <View className="flex-row flex-wrap">
-                {keyedNewCards.map(({ item: card, key }, index) => (
-                  <View
-                    key={key}
-                    className="w-1/2 px-1.5 pb-3"
-                  >
-                    <CardTile
-                      testID={`pack-summary-card-new-${index}`}
-                      onPress={() => setPreviewedCard(card)}
-                      entry={toCardTileEntry(card)}
-                      accessToken={accessToken}
-                      fitContainer
-                    />
-                    <View className="mt-2 items-center">
-                      <LinearGradient
-                        colors={[tc.success, tc.successDark]}
-                        style={{
-                          borderRadius: 999,
-                          paddingHorizontal: 10,
-                          paddingVertical: 5,
-                        }}
-                      >
-                        <Text className="font-nunito-extrabold text-[10px] text-white">
-                          {t("packs.openResult.newBadge")}
-                        </Text>
-                      </LinearGradient>
-                    </View>
-                  </View>
-                ))}
+          <SectionHeader
+            title={t("packs.summary.allCards")}
+            subtitle={t("packs.summary.allCardsHint")}
+            className="mt-ds-2"
+          />
+          <View className="flex-row flex-wrap justify-between gap-y-ds-3">
+            {keyedSummaryCards.map(({ item: card, key }, index) => (
+              <View key={key} style={{ width: "48.3%" }}>
+                <CardTile
+                  testID={`pack-summary-card-all-${index}`}
+                  onPress={() => setPreviewedCard(card)}
+                  entry={toCardTileEntry(card)}
+                  accessToken={accessToken}
+                  fitContainer
+                />
               </View>
-            </View>
-          ) : null}
-
-          <View className="gap-3">
-            <Text className="font-nunito-bold text-lg text-fg">
-              {t("packs.summary.allCards")}
-            </Text>
-            <View className="flex-row flex-wrap">
-              {keyedSummaryCards.map(({ item: card, key }, index) => (
-                <View key={key} className="w-1/2 px-1.5 pb-3">
-                  <CardTile
-                    testID={`pack-summary-card-all-${index}`}
-                    onPress={() => setPreviewedCard(card)}
-                    entry={toCardTileEntry(card)}
-                    accessToken={accessToken}
-                    fitContainer
-                  />
-                </View>
-              ))}
-            </View>
+            ))}
           </View>
 
-          <View className="gap-3 pb-4">
+          <View className="gap-ds-2 pt-ds-2">
             {canReopenSelected ? (
-              <PrimaryButton
+              <Button
+                tone="primary"
+                icon={RotateCcw}
                 testID={`pack-summary-open-again-${slugifyPackName(selectedPack.name)}`}
                 onPress={() => void openPack(selectedPack)}
                 disabled={isOpening}
                 style={{ width: "100%" }}
               >
                 {t("packs.summary.openSamePack")}
-              </PrimaryButton>
+              </Button>
             ) : null}
 
-            <SecondaryButton
+            <Button
+              tone="secondary"
+              icon={PackageIcon}
               testID="pack-summary-browse"
               onPress={reset}
               style={{ width: "100%" }}
             >
               {t("packs.summary.browsePacks")}
-            </SecondaryButton>
+            </Button>
           </View>
 
           <View style={{ height: summaryScrollBottomSpacerHeight }} />
@@ -1298,6 +1149,8 @@ function usePacksScreenView() {
           <PackSummaryCardSheet
             key={previewedCard.id}
             card={previewedCard}
+            pullIndex={previewedPullIndex}
+            pullTotal={openedCards.length}
             accessToken={accessToken}
             onClose={() => setPreviewedCard(null)}
           />
@@ -1308,11 +1161,6 @@ function usePacksScreenView() {
 
   return (
     <View testID="pack-storefront" className="flex-1 bg-bg">
-      <BackgroundOrbs
-        primary={tc.primaryTint}
-        secondary={tc.secondaryTint}
-        accent={tc.accentTint}
-      />
       {heroPack && screenFocused ? (
         <View
           pointerEvents="none"
@@ -1363,235 +1211,139 @@ function usePacksScreenView() {
         scrollIndicatorInsets={{ bottom: bottomTabPadding }}
       >
         <View style={{ height: headerHeight }} />
-        <PageTitle
-          title={t("packs.title")}
-          subtitle={t("packs.subtitle")}
-          className="mb-ds-2"
-        />
-        <Card>
-          <View className="gap-3">
-            <View className="gap-3">
-              <Text className="font-nunito text-ds-body text-fgMuted">
-                {featuredPack
-                  ? t("packs.nextGoalValue", {
-                      name: featuredPack.name,
-                      count: featuredPack.cardCount,
-                    })
-                  : t("packs.noAffordable")}
+        <PageTitle title={t("packs.title")} subtitle={t("packs.subtitle")} />
+
+        {heroPack ? (
+          <Card testID="pack-featured">
+            <View className="flex-row items-center justify-between gap-ds-2">
+              {featuredPack ? (
+                <Chip
+                  tone="accent"
+                  icon={Sparkles}
+                  label={t("packs.recommended")}
+                />
+              ) : (
+                <View />
+              )}
+              <Chip
+                tone="success"
+                icon={Check}
+                label={t("packs.affordableCount", {
+                  count: affordablePacks.length,
+                })}
+              />
+            </View>
+
+            <View
+              className="h-[148px] items-center justify-center overflow-hidden rounded-ds-md"
+              style={{ opacity: heroCanOpen ? 1 : 0.62 }}
+            >
+              <LinearGradient
+                colors={[tc.primary, tc.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Image
+                source={getPackOpeningArtSource({
+                  guaranteedRarity: heroPack.guaranteedRarity,
+                  name: heroPack.name,
+                  packArtAssetId: heroPack.packArtAssetId,
+                  packArtUrl: getPackArtUrl(heroPack),
+                })}
+                style={{ width: "100%", height: 132 }}
+                contentFit="contain"
+                transition={0}
+                accessibilityIgnoresInvertColors
+              />
+            </View>
+
+            <View className="gap-[2px]">
+              <Text className="font-nunito-extrabold text-ds-h3 text-fg">
+                {heroPack.name}
+              </Text>
+              <Text className="font-nunito text-ds-sm text-fgMuted">
+                {getPackCaption(heroPack)}
               </Text>
             </View>
-          </View>
 
-          <View className="gap-ds-3">
-            <Chip
-              tone="success"
-              icon={Check}
-              label={t("packs.affordableCount", {
-                count: affordablePacks.length,
-              })}
-            />
-
-            {heroPack ? (
-              <Pressable
-                onPress={() =>
-                  !isOpening && heroCanOpen && void openPack(heroPack)
-                }
+            <View className="flex-row items-center gap-ds-3">
+              {isPackLimited(heroPack) ? (
+                <Chip tone="neutral" icon={Lock} label={t("packs.locked")} />
+              ) : (
+                <Chip
+                  tone="secondary"
+                  icon={Coins}
+                  label={String(heroPack.cost)}
+                />
+              )}
+              <Button
+                tone="primary"
+                icon={PackageOpen}
+                testID={`pack-card-${slugifyPackName(heroPack.name)}`}
+                accessibilityLabel={getPackAccessibilityLabel(heroPack)}
+                onPress={() => void openPack(heroPack)}
                 disabled={isOpening || !heroCanOpen}
-                style={{ opacity: heroCanOpen ? 1 : 0.62 }}
+                style={{ flex: 1 }}
               >
-                <View
-                  className="flex-row items-center justify-between rounded-ds-md px-ds-4 py-ds-4"
-                  style={{
-                    backgroundColor: heroCanOpen
-                      ? tc.primaryStrong
-                      : tc.surfaceMuted,
-                  }}
-                >
-                  <View className="flex-1 gap-1 pr-3">
-                    <Text
-                      className="font-nunito-extrabold text-lg"
-                      style={{ color: heroCanOpen ? "#FFFFFF" : tc.fg }}
-                    >
-                      {heroPack.name}
-                    </Text>
-                    <Text
-                      className="font-nunito text-sm"
-                      style={{
-                        color: heroCanOpen
-                          ? "rgba(255,255,255,0.82)"
-                          : tc.fgMuted,
-                      }}
-                    >
-                      {isPackLimited(heroPack)
-                        ? heroPack.availability?.nextAvailableAt
-                          ? t("packs.weeklyLimitAvailable", {
-                              date: formatPackAvailabilityDate(
-                                heroPack.availability.nextAvailableAt,
-                              ),
-                            })
-                          : t("packs.weeklyLimitReached")
-                        : heroCanOpen
-                          ? t("packs.tapToOpen")
-                          : cheapestLockedPack
-                            ? t("packs.nextGoal", {
-                                name: heroPack.name,
-                                count: heroPack.cost - coins,
-                              })
-                            : t("packs.allAffordable")}
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center gap-2">
-                    <CoinIcon size={16} />
-                    <Text
-                      className="font-nunito-extrabold text-lg"
-                      style={{
-                        color: heroCanOpen ? "#FFFFFF" : tc.primaryStrong,
-                      }}
-                    >
-                      {heroPack.cost}
-                    </Text>
-                  </View>
-                </View>
-              </Pressable>
-            ) : null}
-          </View>
-        </Card>
-
-        {openError ? (
-          <Notice tone="danger" title={openError} />
+                {t("packs.openPack")}
+              </Button>
+            </View>
+          </Card>
         ) : null}
 
-        <View className="gap-4">
-          {packs.map((pack) => {
-            const canAfford = coins >= pack.cost;
-            const limitReached = isPackLimited(pack);
-            const canOpen = canOpenPackWithBalance(pack, coins);
-            const slug = slugifyPackName(pack.name);
-            const coinsNeeded = Math.max(0, pack.cost - coins);
-            const isFeatured = featuredPack?.id === pack.id;
-            const packSurfaceColor = pack.color
-              ? withAlpha(pack.color, "33")
-              : tc.surfaceMuted;
-            const statusLabel = canAfford
-              ? t("packs.readyNow")
-              : t("packs.needMoreCoinsShort", {
-                  count: coinsNeeded,
-                });
-            const limitAvailableLabel =
-              limitReached && pack.availability?.nextAvailableAt
-                ? t("packs.weeklyLimitAvailable", {
-                    date: formatPackAvailabilityDate(
-                      pack.availability.nextAvailableAt,
-                    ),
-                  })
-                : null;
+        {openError ? <Notice tone="danger" title={openError} /> : null}
 
-            return (
-              <Pressable
-                key={pack.id}
-                testID={`pack-card-${slug}`}
-                onPress={() => !isOpening && canOpen && void openPack(pack)}
-                disabled={isOpening || !canOpen}
-                style={{ opacity: canOpen ? 1 : 0.54 }}
-              >
-                <View
-                  className="rounded-ds-lg border p-ds-4"
-                  style={{
-                    backgroundColor: limitReached
-                      ? tc.surfaceMuted
-                      : packSurfaceColor,
-                    borderColor: limitReached
-                      ? tc.primaryBorder
-                      : isFeatured
-                        ? withAlpha(pack.color || tc.primary, "66")
-                        : withAlpha(pack.color || tc.primaryBorder, "2E"),
-                  }}
-                >
-                  <View className="flex-row items-start gap-4">
-                    <View className="items-center justify-center p-4">
-                      <PackIconVisual pack={pack} size={34} />
-                    </View>
+        {otherPacks.length > 0 ? (
+          <>
+            <SectionHeader
+              title={t("packs.allPacks")}
+              subtitle={t("packs.coinBalance", { count: coins })}
+            />
+            <Card flush>
+              {otherPacks.map((pack, index) => {
+                const limitReached = isPackLimited(pack);
+                const canOpen = canOpenPackWithBalance(pack, coins);
 
-                    <View className="flex-1 gap-4">
-                      <View className="gap-2">
-                        <View className="flex-row items-center justify-between gap-3">
-                          <Text className="flex-1 font-nunito-extrabold text-ds-h2 text-fg">
-                            {pack.name}
-                          </Text>
-                          <Chip tone="secondary" icon={Coins} label={String(pack.cost)} />
-                        </View>
-                        {isFeatured ? (
-                          <Chip
-                            tone="accent"
-                            icon={Sparkles}
-                            label={t("packs.recommended")}
-                          />
-                        ) : null}
-                        <Text className="font-nunito text-ds-sm text-fgMuted">
-                          {t("packs.cardsCount", { count: pack.cardCount })}
-                          {" · "}
-                          {pack.guaranteedRarity
-                            ? t("packs.guaranteed", {
-                                rarity: pack.guaranteedRarity,
-                              })
-                            : t("packs.standardOdds")}
-                        </Text>
-                      </View>
-
-                      {limitReached ? (
-                        <View
-                          className="flex-row items-center gap-ds-3 rounded-ds-md border px-ds-3 py-ds-2"
-                          style={{
-                            backgroundColor: tc.bg,
-                            borderColor: tc.primaryBorder,
-                          }}
-                        >
-                          <View
-                            className="h-8 w-8 items-center justify-center rounded-full"
-                            style={{ backgroundColor: tc.primaryTint }}
-                          >
-                            <ClockIcon size={15} color={tc.primaryText} />
-                          </View>
-                          <View className="min-w-0 flex-1 gap-0.5">
-                            <Text className="font-nunito-bold text-sm leading-5 text-fg">
-                              {t("packs.weeklyLimitReached")}
-                            </Text>
-                            {limitAvailableLabel ? (
-                              <Text className="font-nunito text-xs leading-4 text-fgMuted">
-                                {limitAvailableLabel}
-                              </Text>
-                            ) : null}
-                          </View>
-                        </View>
-                      ) : (
-                        <View className="flex-row items-center justify-between gap-3">
-                          <Text
-                            className="font-nunito text-xs"
-                            style={{
-                              color: canAfford ? tc.successText : tc.dangerText,
-                            }}
-                          >
-                            {statusLabel}
-                          </Text>
-
-                          <Text
-                            testID={`pack-open-cta-${slug}`}
-                            className="font-nunito-bold text-sm"
-                            style={{
-                              color: canOpen ? tc.primaryText : tc.fgMuted,
-                            }}
-                          >
-                            {t("packs.tapToOpen")}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                return (
+                  <View
+                    key={pack.id}
+                    style={{ opacity: canOpen || limitReached ? 1 : 0.62 }}
+                  >
+                    <ListRow
+                      testID={`pack-card-${slugifyPackName(pack.name)}`}
+                      title={pack.name}
+                      meta={getPackCaption(pack)}
+                      icon={PackageIcon}
+                      iconTone={getPackTone(pack)}
+                      trailingChip={
+                        limitReached
+                          ? {
+                              tone: "neutral",
+                              icon: Lock,
+                              label: t("packs.locked"),
+                            }
+                          : {
+                              tone: "secondary",
+                              icon: Coins,
+                              label: String(pack.cost),
+                            }
+                      }
+                      chevron
+                      divider={index < otherPacks.length - 1}
+                      accessibilityLabel={getPackAccessibilityLabel(pack)}
+                      onPress={() => {
+                        if (!isOpening) {
+                          void openPack(pack);
+                        }
+                      }}
+                    />
                   </View>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
+                );
+              })}
+            </Card>
+          </>
+        ) : null}
 
         <View style={{ height: storefrontScrollBottomSpacerHeight }} />
       </ScrollView>

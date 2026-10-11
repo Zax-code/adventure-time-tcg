@@ -52,26 +52,28 @@ function SpeedCalculusKeypadHarness() {
         Speed Calculus multi-touch
       </Text>
 
-      <AnswerBox
-        answer={answer}
-        shakeAnim={shakeAnim}
-        answerBoxBg={tc.surface}
-        answerBoxBorder={tc.primaryBorder}
-        answerBoxText={tc.primaryDark}
-        answerPlaceholderText={tc.fgMuted}
-      />
+      <View className="gap-ds-3 px-ds-4">
+        <AnswerBox
+          answer={answer}
+          shakeAnim={shakeAnim}
+          answerBoxBg={tc.surface}
+          answerBoxBorder={tc.primaryBorder}
+          answerBoxText={tc.fg}
+          answerPlaceholderText={tc.muted}
+        />
 
-      <Keypad
-        answer={answer}
-        keypadLocked={false}
-        submitDisabled
-        submitting={false}
-        onDigit={handleDigit}
-        onDelete={handleDelete}
-        onClear={() => setAnswer("")}
-        onToggleSign={handleToggleSign}
-        onSubmit={() => undefined}
-      />
+        <Keypad
+          answer={answer}
+          keypadLocked={false}
+          submitDisabled
+          submitting={false}
+          onDigit={handleDigit}
+          onDelete={handleDelete}
+          onClear={() => setAnswer("")}
+          onToggleSign={handleToggleSign}
+          onSubmit={() => undefined}
+        />
+      </View>
     </View>
   );
 }

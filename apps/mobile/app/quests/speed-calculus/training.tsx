@@ -30,10 +30,7 @@ import {
   type FeedbackType,
   type ToastType,
 } from "../../../src/features/quests/speed-calculus/constants";
-import {
-  getAnswerBoxPalette,
-  withAlpha,
-} from "../../../src/features/quests/speed-calculus/palette";
+import { getAnswerBoxPalette } from "../../../src/features/quests/speed-calculus/palette";
 import { TrainingHistoryCard } from "../../../src/features/quests/speed-calculus/training-history-card";
 import { TrainingSummaryCard } from "../../../src/features/quests/speed-calculus/training-summary-card";
 

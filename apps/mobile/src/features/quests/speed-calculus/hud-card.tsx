@@ -45,7 +45,16 @@ export function HudCard({
   const maxSeconds = runDurationSeconds;
   const timerIsLow = remainingSeconds <= Math.floor(maxSeconds * 0.33);
   const timerIsCritical = remainingSeconds <= 5;
-  const timerColor = timerIsCritical ? tc.dangerDark : timerIsLow ? tc.secondaryDark : tc.primaryDark;
+  const timerColor = timerIsCritical
+    ? tc.dangerDark
+    : timerIsLow
+      ? tc.secondaryDark
+      : tc.primaryText;
+  const progressColor = timerIsCritical
+    ? tc.dangerDark
+    : timerIsLow
+      ? tc.secondaryDark
+      : tc.primary;
   const timerProgress =
     activeRun && maxSeconds > 0
       ? Math.max(0, Math.min(1, remainingSeconds / maxSeconds))
@@ -80,10 +89,14 @@ export function HudCard({
     width: `${progressAnim.value * 100}%`,
   }));
 
-  // Game HUD anatomy (board 02): timer left, score right, ghost-sm Pause,
-  // then the draining progress track.
+  // Game HUD anatomy (board 02/04): timer left, score right, ghost-sm
+  // Pause, then the draining progress track. GameHud's ProgressBar cannot
+  // drain on the UI thread, so the HUD keeps its own animated track.
   return (
-    <View className="mx-ds-4 mt-ds-3 gap-[10px] rounded-ds-lg border border-primaryBorder bg-surface px-ds-4 py-ds-3">
+    <View
+      testID="speed-calculus-hud"
+      className="gap-[10px] rounded-ds-lg border border-primaryBorder bg-surface px-ds-4 py-ds-3"
+    >
       <View className="flex-row items-center gap-ds-3">
         <View className="flex-1">
           <Text
@@ -123,7 +136,7 @@ export function HudCard({
       <View className="h-ds-2 overflow-hidden rounded-ds-pill bg-primaryTint">
         <Animated.View
           className="h-full rounded-ds-pill"
-          style={[{ backgroundColor: timerColor }, progressStyle]}
+          style={[{ backgroundColor: progressColor }, progressStyle]}
         />
       </View>
     </View>

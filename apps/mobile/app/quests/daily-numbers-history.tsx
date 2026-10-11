@@ -1,29 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Archive from "lucide-react-native/icons/archive";
 
 import type {
+  DailyNumbersArchiveHistoryResponse,
   DailyNumbersArchiveModeSummary,
-  DailyNumbersArchiveStatus,
 } from "@adventure-time/api-client";
 
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { Card } from "../../src/components/ui/card";
+import { Notice } from "../../src/components/ui/notice";
 import {
   DAILY_NUMBERS_MODES,
-  getModeAccent,
   getModeLabelKey,
 } from "../../src/features/quests/daily-numbers/shared";
 import { navigateBackFromQuest } from "../../src/features/quests/quest-navigation";
-import {
-  QuestScreenDescription,
-  QuestScreenHeader,
-} from "../../src/features/quests/quest-screen-header";
+import { QuestScreenHeader } from "../../src/features/quests/quest-screen-header";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
-import { useThemeStore } from "../../src/stores/theme-store";
-import { THEME_COLORS } from "../../src/theme/themes";
 
 function formatArchiveDate(dateKey: string, locale: string) {
   const [year, month, day] = dateKey.split("-").map((part) => Number(part));
@@ -41,58 +38,9 @@ function formatArchiveDate(dateKey: string, locale: string) {
   });
 }
 
-function getStatusLabelKey(status: DailyNumbersArchiveStatus) {
-  if (status === "exact") {
-    return "quests.dailyNumbers.archiveStatusExact";
-  }
-
-  if (status === "solved") {
-    return "quests.dailyNumbers.archiveStatusSolved";
-  }
-
-  if (status === "tried") {
-    return "quests.dailyNumbers.archiveStatusTried";
-  }
-
-  return "quests.dailyNumbers.archiveStatusUnplayed";
-}
-
-function getStatusTone(
-  status: DailyNumbersArchiveStatus,
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
-) {
-  if (status === "exact") {
-    return {
-      bg: tc.successTint,
-      border: tc.successBorder,
-      text: tc.successText,
-    };
-  }
-
-  if (status === "solved") {
-    return {
-      bg: tc.infoTint,
-      border: tc.infoBorder,
-      text: tc.infoText,
-    };
-  }
-
-  if (status === "tried") {
-    return {
-      bg: tc.dangerTint,
-      border: tc.dangerBorder,
-      text: tc.dangerText,
-    };
-  }
-
-  return {
-    bg: tc.surface,
-    border: tc.primaryBorder,
-    text: tc.fgMuted,
-  };
-}
-
-function ArchiveModeChip({
+// One Stat Tile per mode: success tone once the mode has a result, neutral
+// while it is unplayed.
+function ArchiveModeTile({
   date,
   modeSummary,
 }: {
@@ -101,17 +49,27 @@ function ArchiveModeChip({
 }) {
   const router = useRouter();
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
-  const modeAccent = getModeAccent(modeSummary.mode, tc);
-  const statusTone = getStatusTone(modeSummary.status, tc);
+  const played = modeSummary.status !== "unplayed";
+  const modeLabel = t(getModeLabelKey(modeSummary.mode));
+  const statusLabel = played
+    ? t("quests.dailyNumbers.archiveStatusPlayed")
+    : t("quests.dailyNumbers.archiveStatusUnplayed");
   const resultCopy =
-    modeSummary.distance == null
+    modeSummary.finalValue == null
       ? t("quests.dailyNumbers.archiveNoResult")
-      : modeSummary.distance === 0
-        ? t("quests.dailyNumbers.archiveExactShort")
-        : t("quests.dailyNumbers.archiveDistanceShort", {
-            distance: modeSummary.distance,
+      : modeSummary.exact || modeSummary.distance === 0
+        ? t("quests.dailyNumbers.archiveResultExact", {
+            value: modeSummary.finalValue,
+          })
+        : t("quests.dailyNumbers.archiveResultDistance", {
+            value: modeSummary.finalValue,
+            distance: modeSummary.distance ?? 0,
           });
+  const container = played
+    ? "border-successBorder bg-successTint"
+    : "border-primaryBorder bg-surface";
+  const muted = played ? "text-successText" : "text-fgMuted";
+  const strong = played ? "text-successText" : "text-fg";
 
   return (
     <Pressable
@@ -121,42 +79,105 @@ function ArchiveModeChip({
           `/quests/daily-numbers-play?archiveDate=${date}&mode=${modeSummary.mode}` as never,
         )
       }
-      className="flex-1 rounded-ds-md border px-3 py-3"
-      style={{
-        minWidth: 96,
-        borderColor: statusTone.border,
-        backgroundColor: statusTone.bg,
-      }}
+      className={`min-w-0 flex-1 gap-ds-1 rounded-ds-md border px-ds-4 py-ds-3 active:opacity-70 ${container}`}
       accessibilityRole="button"
-      accessibilityLabel={t("quests.dailyNumbers.archiveOpenMode", {
-        mode: t(getModeLabelKey(modeSummary.mode)),
+      accessibilityLabel={`${t("quests.dailyNumbers.archiveOpenMode", {
+        mode: modeLabel,
         date,
-      })}
+      })}. ${statusLabel}. ${resultCopy}`}
     >
       <Text
-        className="text-center font-nunito-extrabold text-base"
-        style={{ color: modeAccent.text }}
+        className={`font-nunito-bold text-ds-caption ${muted}`}
+        numberOfLines={1}
       >
-        {t(getModeLabelKey(modeSummary.mode))}
+        {modeLabel}
       </Text>
       <Text
-        className="mt-1 text-center font-nunito-bold text-[11px]"
-        style={{ color: statusTone.text }}
+        className={`font-nunito-extrabold text-ds-body ${strong}`}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
       >
-        {t(getStatusLabelKey(modeSummary.status))}
+        {statusLabel}
       </Text>
-      <Text className="mt-1 text-center font-nunito-semibold text-[11px] text-fgMuted">
+      <Text
+        className={`font-nunito text-ds-caption ${muted}`}
+        numberOfLines={2}
+      >
         {resultCopy}
       </Text>
     </Pressable>
   );
 }
 
+type ArchiveDay = DailyNumbersArchiveHistoryResponse["days"][number];
+
+function getArchiveDayKey(day: ArchiveDay) {
+  return day.date;
+}
+
+function ArchiveListHeader() {
+  const { t } = useTranslation();
+
+  return (
+    <Notice
+      tone="info"
+      icon={Archive}
+      title={t("quests.dailyNumbers.archiveResultLabel")}
+      body={t("quests.dailyNumbers.archiveListSubtitle")}
+      testID="daily-numbers-archive-pill"
+    />
+  );
+}
+
+function ArchiveDaySeparator() {
+  return <View className="h-ds-3" />;
+}
+
+function ArchiveDayCard({ day }: { day: ArchiveDay }) {
+  const { locale, t } = useTranslation();
+
+  return (
+    <Card testID={`daily-numbers-archive-day-${day.date}`}>
+      <View>
+        <Text
+          accessibilityRole="header"
+          className="font-nunito-extrabold text-ds-h3 text-fg"
+        >
+          {formatArchiveDate(day.date, locale)}
+        </Text>
+        <Text className="font-nunito text-ds-caption text-fgMuted">
+          {t("quests.dailyNumbers.archiveDateMeta", { date: day.date })}
+        </Text>
+      </View>
+      <View className="flex-row gap-ds-2">
+        {DAILY_NUMBERS_MODES.map((mode) => {
+          const modeSummary = day.modes.find((item) => item.mode === mode);
+          if (!modeSummary) {
+            return null;
+          }
+
+          return (
+            <ArchiveModeTile
+              key={mode}
+              date={day.date}
+              modeSummary={modeSummary}
+            />
+          );
+        })}
+      </View>
+    </Card>
+  );
+}
+
+function renderArchiveDay({ item }: { item: ArchiveDay }) {
+  return <ArchiveDayCard day={item} />;
+}
+
 export default function DailyNumbersHistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { locale, t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
+  const { t } = useTranslation();
   const {
     data: history,
     error,
@@ -196,84 +217,27 @@ export default function DailyNumbersHistoryScreen() {
   }
 
   return (
-    <View className="flex-1 bg-bg">
-      <View
-        style={{ paddingTop: insets.top }}
-      >
-        <QuestScreenHeader
-          title={t("quests.dailyNumbers.title")}
-          backLabel={t("quests.dailyNumbers.backToQuests")}
-          backTestID="daily-numbers-history-back"
-          fallbackHref="/(tabs)/quests"
-        />
-      </View>
+    <View className="flex-1 bg-bg" style={{ paddingTop: insets.top }}>
+      <QuestScreenHeader
+        title={t("quests.dailyNumbers.historyTitle")}
+        backLabel={t("quests.dailyNumbers.backToQuests")}
+        backTestID="daily-numbers-history-back"
+        fallbackHref="/(tabs)/quests"
+      />
 
-      <ScrollView className="flex-1 bg-bg">
-        <View
-          style={{
-            paddingTop: 8,
-            paddingBottom: insets.bottom + 20,
-            paddingHorizontal: 14,
-          }}
-        >
-          <QuestScreenDescription>
-            {t("quests.dailyNumbers.archiveListSubtitle")}
-          </QuestScreenDescription>
-
-          <View className="gap-3">
-            <View
-              className="self-center rounded-full border px-4 py-1.5"
-              style={{
-                backgroundColor: tc.secondaryDark,
-                borderColor: tc.secondaryBorder,
-              }}
-              testID="daily-numbers-archive-pill"
-            >
-              <Text
-                className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
-                style={{ color: tc.secondaryText }}
-              >
-                {t("quests.dailyNumbers.archiveResultLabel")}
-              </Text>
-            </View>
-          </View>
-
-          <View className="mt-5 gap-3">
-            {history.days.map((day) => (
-              <View
-                key={day.date}
-                className="rounded-ds-md border bg-surface p-4"
-                style={{ borderColor: tc.primaryBorder }}
-              >
-                <Text className="font-nunito-extrabold text-lg text-fg">
-                  {formatArchiveDate(day.date, locale)}
-                </Text>
-                <Text className="mt-1 font-nunito-semibold text-xs text-fgMuted">
-                  {t("quests.dailyNumbers.archiveDateMeta", { date: day.date })}
-                </Text>
-                <View className="mt-3 flex-row flex-wrap gap-2">
-                  {DAILY_NUMBERS_MODES.map((mode) => {
-                    const modeSummary = day.modes.find(
-                      (item) => item.mode === mode,
-                    );
-                    if (!modeSummary) {
-                      return null;
-                    }
-
-                    return (
-                      <ArchiveModeChip
-                        key={mode}
-                        date={day.date}
-                        modeSummary={modeSummary}
-                      />
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-      </ScrollView>
+      <FlatList
+        className="flex-1 bg-bg"
+        contentContainerClassName="px-ds-4 pt-ds-3"
+        contentContainerStyle={{ paddingBottom: 24 }}
+        contentInset={{ bottom: insets.bottom }}
+        scrollIndicatorInsets={{ bottom: insets.bottom }}
+        data={history.days}
+        keyExtractor={getArchiveDayKey}
+        ListHeaderComponentClassName="mb-ds-3"
+        ListHeaderComponent={ArchiveListHeader}
+        ItemSeparatorComponent={ArchiveDaySeparator}
+        renderItem={renderArchiveDay}
+      />
     </View>
   );
 }

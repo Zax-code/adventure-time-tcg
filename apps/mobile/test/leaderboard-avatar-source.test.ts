@@ -39,11 +39,7 @@ describe("leaderboard avatar source", () => {
     );
   });
 
-  it("uses the authenticated avatar component on every leaderboard profile surface", () => {
-    const rankingsSource = readFileSync(
-      "src/features/leaderboards/rankings-screen.tsx",
-      "utf8",
-    );
+  it("uses the authenticated avatar component on the public profile", () => {
     const publicProfileSource = readFileSync(
       "src/features/leaderboards/public-profile-screen.tsx",
       "utf8",
@@ -53,7 +49,6 @@ describe("leaderboard avatar source", () => {
       "utf8",
     );
 
-    assert.match(rankingsSource, /<LeaderboardAvatar/);
     assert.match(publicProfileSource, /<LeaderboardAvatar/);
     assert.match(
       avatarComponentSource,

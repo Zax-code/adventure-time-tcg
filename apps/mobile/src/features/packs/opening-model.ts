@@ -1,4 +1,6 @@
 import * as Haptics from "expo-haptics";
+import Crown from "lucide-react-native/icons/crown";
+import Gem from "lucide-react-native/icons/gem";
 
 import type {
   CollectionResponse,
@@ -16,6 +18,7 @@ import {
   RARITY_COLORS_ICE,
   RARITY_COLORS_NIGHTOSPHERE,
 } from "../../components/theme";
+import type { Tone } from "../../components/ui/tokens";
 import { getCatalogImageUrl } from "../../lib/catalog-images";
 import type { ThemeName } from "../../theme/themes";
 
@@ -561,4 +564,35 @@ export function buildCardBackVisualMap(
         : [],
     ),
   );
+}
+
+const RARITY_TONE: Record<RarityName, Tone> = {
+  Legendary: "secondary",
+  Epic: "accent",
+  Rare: "info",
+  Uncommon: "success",
+  Common: "primary",
+};
+
+export function getRarityTone(rarity: string | null | undefined): Tone {
+  return RARITY_TONE[toRarityName(rarity ?? undefined)];
+}
+
+export function getRarityIcon(rarity: string | null | undefined) {
+  return toRarityName(rarity ?? undefined) === "Legendary" ? Crown : Gem;
+}
+
+// Shop row tone follows the guaranteed rarity, so every pack keeps one color.
+const PACK_TONE: Record<RarityName, Tone> = {
+  Common: "primary",
+  Uncommon: "info",
+  Rare: "success",
+  Epic: "accent",
+  Legendary: "secondary",
+};
+
+export function getPackTone(pack: Pick<Pack, "guaranteedRarity">): Tone {
+  return pack.guaranteedRarity
+    ? PACK_TONE[toRarityName(pack.guaranteedRarity)]
+    : "primary";
 }

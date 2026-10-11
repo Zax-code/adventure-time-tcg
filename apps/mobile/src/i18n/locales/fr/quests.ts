@@ -11,21 +11,19 @@ const quests = {
     retry: "Réessayer",
   },
   hub: {
-    subtitle:
-      "Tes défis, ta progression et tes récompenses du jour au même endroit.",
+    subtitle: "Tes défis, ta progression et tes récompenses au même endroit.",
     todayAdventure: "L'aventure du jour",
     finishedToday: "quêtes terminées aujourd'hui",
     customizeOrder: "Modifier l'ordre",
     orderTitle: "Choisis l'ordre de tes quêtes",
     orderSubtitle:
-      "La première quête disponible devient l'action principale du hub. Les changements sont enregistrés automatiquement sur cet appareil.",
+      "Ta première quête disponible devient l'action principale. Les changements sont enregistrés sur cet appareil.",
     orderPosition: "Priorité {position}",
     moveUp: "Monter",
     moveDown: "Descendre",
     resetOrder: "Rétablir l'ordre par défaut",
     upNext: "À toi de jouer",
-    upNextSubtitle:
-      "Commence, continue, consulte ta progression ou récupère une récompense.",
+    upNextSubtitle: "Commence, continue ou récupère une récompense.",
     finishedSection: "Terminées aujourd'hui",
     finishedSectionSubtitle:
       "Les quêtes terminées restent ici jusqu'à la réinitialisation quotidienne.",
@@ -34,12 +32,13 @@ const quests = {
     finished: "Terminée",
     inProgress: "En cours",
     fresh: "Nouvelle",
-    wordleCardDescription:
-      "Deux langues, avec une progression et une récompense distinctes.",
-    dailyNumbersCardDescription:
-      "Trois répartitions de nombres, chacune avec sa propre cible.",
+    languageFrench: "Français",
+    languageEnglish: "Anglais",
+    dailyNumbersCardDescription: "Trois grilles, une nouvelle cible chacune",
     perfectTimingCardDescription:
-      "Arrête un chronomètre masqué près de la cible du jour en trois tentatives maximum.",
+      "Arrête-toi près de la cible du jour · {total} tentatives",
+    speedCardDescription: "{total} manches chronométrées",
+    stepsMeta: "{source} · {steps} pas",
     speedSummary: "{used}/{total} manches · dernier score {score}",
     speedRuns: "{used}/{total} manches",
     wordleAttempts: "{used}/{total} essais",
@@ -54,7 +53,6 @@ const quests = {
     continueQuest: "Continuer {quest}",
     startQuest: "Commencer {quest}",
     openQuest: "Ouvrir {quest}",
-    openToPlay: "Ouvrir pour jouer",
     viewStepProgress: "Voir la progression des pas",
     keepGoing: "Continue comme ça",
     allDone: "Tout est terminé pour aujourd'hui",
@@ -136,15 +134,24 @@ const quests = {
     "Utilise 3 grands et 3 petits nombres, combine deux nombres à la fois, et approche-toi le plus possible de la cible.",
   wordle: {
     title: "Wordle quotidien",
-    subtitle: "Résous l'énigme pour terminer la quête du jour.",
     backToQuests: "Retour aux quêtes",
-    languageLabel: "Langue du Wordle",
     frenchWords: "Mot français",
     englishWords: "Mot anglais",
     attempts: "Essais restants",
     attemptsUsed: "Résolu en",
-    submit: "Valider",
-    clear: "Effacer la ligne",
+    reward: "Récompense",
+    enter: "Entrée",
+    delete: "Effacer",
+    helpButton: "Comment jouer",
+    helpTitle: "Comment jouer",
+    helpBody:
+      "Devine le mot du jour de cinq lettres en six essais. Les mots français et anglais ont chacun leur progression et leur récompense.",
+    helpCorrect: "Bonne lettre, bien placée.",
+    helpPresent: "Dans le mot, mais à une autre place.",
+    helpAbsent: "Absente du mot.",
+    helpKeys:
+      "Appuie sur Entrée pour valider un essai. Effacer retire la dernière lettre ; tu peux aussi toucher une lettre de la ligne en cours pour la retirer.",
+    helpClose: "Compris",
     wordLength: "Entre un mot de 5 lettres.",
     wordNotFound: "Mot introuvable dans le dictionnaire.",
     solved: "Énigme résolue.",
@@ -181,11 +188,12 @@ const quests = {
     shareUnavailable: "Le partage n'est pas disponible sur cet appareil.",
   },
   speedCalculusTitle: "Calcul mental rapide",
-  speedCalculusSubtitle:
-    "Trois manches maximum. Chaque manche dure {seconds} secondes, et seule ta dernière manche compte tant que tu n'as pas sécurisé ton score.",
-  speedCalculusRules: "Règles",
-  speedCalculusRuleLine:
-    "Tu as {seconds} secondes par manche. Chaque bonne réponse vaut {reward} pièces lorsque ton score est verrouillé.",
+  speedCalculusRunsMaxTitle: "Trois manches maximum",
+  speedCalculusRulesBody:
+    "Chaque manche dure {seconds} secondes et seule ta dernière manche compte tant que tu n'as pas sécurisé ton score.",
+  speedCalculusCoinsCaption: "pièces",
+  speedCalculusRunReward: "{reward} pièces",
+  speedCalculusNoRunsYetBody: "Termine une manche et son score s'affichera ici.",
   speedCalculusRunsLeft: "Manches restantes",
   speedCalculusLatestReward: "Récompense actuelle",
   speedCalculusLatestScore: "Dernier score",
@@ -217,7 +225,7 @@ const quests = {
   speedCalculusHistoryUserAnswer: "Ta réponse : {answer}",
   speedCalculusHistoryUnanswered: "Aucune réponse envoyée.",
   speedCalculusHistoryCorrectAnswer: "Bonne réponse : {answer}",
-  speedCalculusNoRunsYet: "Aucune manche terminée aujourd'hui.",
+  speedCalculusNoRunsYet: "Aucune manche terminée aujourd'hui",
   speedCalculusRunFinished:
     "Manche terminée : {score} bonnes réponses pour {reward} pièces si tu sécurises maintenant.",
   speedCalculusRunLocked:
@@ -283,7 +291,8 @@ const quests = {
     training: "Entraînement",
     todaysTarget: "Cible du jour",
     trainingTarget: "Cible d'entraînement",
-    timer: "Chronomètre",
+    whileRunning: "Chrono en cours",
+    timerHint: "Le chrono se masque après une seconde",
     start: "Démarrer",
     stop: "Arrêter",
     continue: "Continuer",
@@ -293,6 +302,7 @@ const quests = {
     trainingBody:
       "Entraîne-toi sans limite. L'entraînement n'utilise aucune tentative, ne donne aucune pièce et ne change pas la quête du jour.",
     attemptsRemaining: "Tentatives restantes",
+    bestToday: "Meilleur du jour",
     attempt: "Tentative {number}",
     finalized: "Finale",
     unused: "Non utilisée",
@@ -341,8 +351,7 @@ const quests = {
   dailyNumbers: {
     title: "Nombres du jour",
     archiveTitle: "Archives des nombres",
-    subtitle:
-      "Tape deux nombres et un opérateur pour créer un résultat. Plus tu améliores le plateau de départ, plus tu débloques la récompense.",
+    historyTitle: "Historique des Nombres du jour",
     archiveSubtitle:
       "Rejoue les anciens plateaux de Nombres du jour pour le défi. Les archives ne donnent pas de récompense.",
     archiveListSubtitle:
@@ -371,8 +380,6 @@ const quests = {
     availableNumbers: "Nombres disponibles",
     operators: "Opérateurs",
     selection: "Sélection en cours",
-    nextResult: "Prochain résultat",
-    noPreview: "Termine ta sélection pour prévisualiser le prochain nombre.",
     pickLeft: "Choisis un nombre",
     pickOperator: "Choisis un opérateur",
     pickRight: "Choisis un autre nombre",
@@ -471,14 +478,12 @@ const quests = {
     distanceLabel: "Écart",
     scoreLabel: "Score",
     archiveStatusUnplayed: "Non joué",
-    archiveStatusTried: "Essayé",
-    archiveStatusSolved: "Résolu",
-    archiveStatusExact: "Exact",
+    archiveStatusPlayed: "Joué",
     archiveNoResult: "Aucun résultat",
-    archiveExactShort: "Exact",
-    archiveDistanceShort: "À {distance}",
+    archiveResultExact: "{value} · exact",
+    archiveResultDistance: "{value} · à {distance}",
     archiveOpenMode: "Ouvrir l'archive {mode} du {date}",
-    archiveDateMeta: "Date d'archive : {date}",
+    archiveDateMeta: "Date d'archive {date}",
     archiveShareFooter: "Énigme d'archive - sans récompense",
     completedLabel: "Récompense débloquée",
     incompleteLabel: "Résultat envoyé",

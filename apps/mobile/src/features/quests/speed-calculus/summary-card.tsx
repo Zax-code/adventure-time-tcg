@@ -1,12 +1,15 @@
-import { Text, useWindowDimensions, View } from "react-native";
+import { View } from "react-native";
+import Play from "lucide-react-native/icons/play";
+import Timer from "lucide-react-native/icons/timer";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
+import { Notice } from "../../../components/ui/notice";
+import { StatTile } from "../../../components/ui/stat-tile";
 import { useTranslation } from "../../../i18n";
-import { CoinIcon, ShareIcon } from "../../../components/icons";
+import { ShareIcon } from "../../../components/icons";
 import { QuestActionButton } from "../quest-action-button";
-import { useThemeStore } from "../../../stores/theme-store";
-import { THEME_COLORS } from "../../../theme/themes";
 
 type SummaryCardProps = {
   state: SpeedRunState | null;
@@ -21,6 +24,8 @@ type SummaryCardProps = {
   sharing: boolean;
 };
 
+// Board 04 reward Card: three StatTiles over the run commands (start,
+// resume, cash out, share) and the locked / claim notice.
 export function SummaryCard({
   state,
   activeRun,
@@ -34,85 +39,71 @@ export function SummaryCard({
   sharing,
 }: SummaryCardProps) {
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-  const { fontScale } = useWindowDimensions();
-  const stackMetadata = fontScale >= 1.6;
+  const runsLeft = Math.max(0, (state?.maxRuns ?? 0) - (state?.runsUsed ?? 0));
+
   return (
-    <View
-      className="rounded-ds-lg border p-ds-4 gap-3"
-      style={{
-        borderColor: tc.secondaryBorder,
-        backgroundColor: tc.surface,
-      }}
-    >
-      <View
-        className={
-          stackMetadata
-            ? "items-stretch gap-3"
-            : "flex-row items-center justify-between gap-3"
-        }
-      >
-        <View>
-          <Text className="text-sm font-nunito-semibold text-primaryDark/70">
-            {t("quests.speedCalculusLatestReward")}
-          </Text>
-          <View className="flex-row items-center gap-2 mt-1">
-            <CoinIcon size={22} />
-            <Text className="text-2xl font-nunito-extrabold text-secondaryText">
-              {state?.rewardPreview ?? 0}
-            </Text>
-          </View>
-        </View>
-        <View className={stackMetadata ? "items-start" : "items-end"}>
-          <Text className="text-sm font-nunito-semibold text-primaryDark/70">
-            {t("quests.speedCalculusLatestScore")}
-          </Text>
-          <Text className="text-2xl font-nunito-extrabold text-primaryDark mt-1">
-            {state?.latestScore ?? 0}
-          </Text>
-        </View>
+    <Card tone="secondary" testID="speed-calculus-summary-card">
+      <View className="flex-row gap-ds-3">
+        <StatTile
+          className="flex-1"
+          label={t("quests.speedCalculusLatestReward")}
+          value={state?.rewardPreview ?? 0}
+          caption={t("quests.speedCalculusCoinsCaption")}
+        />
+        <StatTile
+          className="flex-1"
+          label={t("quests.speedCalculusLatestScore")}
+          value={state?.latestScore ?? 0}
+        />
+        <StatTile
+          className="flex-1"
+          label={t("quests.speedCalculusRunsLeft")}
+          value={runsLeft}
+        />
       </View>
 
       {activeRun?.isManuallyPaused ? (
         <Button
           tone="primary"
           size="lg"
+          icon={Play}
           onPress={onResumeRun}
           disabled={submitting}
+          loading={submitting}
         >
-          {submitting ? "..." : t("quests.speedCalculusResume")}
+          {t("quests.speedCalculusResume")}
         </Button>
       ) : null}
 
-      {!activeRun && state?.canStartRun && (
+      {!activeRun && state?.canStartRun ? (
         <Button
           tone="primary"
           size="lg"
+          icon={Timer}
           onPress={onStartRun}
           disabled={submitting}
+          loading={submitting}
+          testID="speed-calculus-start-run"
         >
-          {submitting
-                ? "..."
-                : t("quests.speedCalculusStartRun", {
-                    run: (state?.runsUsed ?? 0) + 1,
-                  })}
+          {t("quests.speedCalculusStartRun", {
+            run: (state?.runsUsed ?? 0) + 1,
+          })}
         </Button>
-      )}
+      ) : null}
 
-      {!activeRun && state?.canCashOut && (
+      {!activeRun && state?.canCashOut ? (
         <Button
           tone="secondary"
           size="lg"
           onPress={onCashOut}
           disabled={submitting}
+          loading={submitting}
         >
-          {submitting
-                ? "..."
-                : t("quests.speedCalculusCashOut", {
-                    reward: state?.rewardPreview ?? 0,
-                  })}
+          {t("quests.speedCalculusCashOut", {
+            reward: state?.rewardPreview ?? 0,
+          })}
         </Button>
-      )}
+      ) : null}
 
       {!activeRun && (state?.history.length ?? 0) > 0 ? (
         <QuestActionButton
@@ -131,40 +122,36 @@ export function SummaryCard({
         />
       ) : null}
 
-      {state?.locked && (
-        <View className="rounded-ds-md border border-successBorder bg-successTint p-4 mt-2">
-          <Text className="font-nunito-bold text-successText text-sm">
-            {state.claimed
+      {state?.locked ? (
+        <Notice
+          tone="success"
+          title={
+            state.claimed
               ? t("quests.speedCalculusClaimed")
               : t("quests.speedCalculusLocked", {
                   reward: state.rewardPreview,
-                })}
-          </Text>
-          {!state.claimed && (
-            <>
-              <Text className="font-nunito text-successText text-[13px] mt-1">
-                {t("quests.speedCalculusClaimReminder")}
-              </Text>
-              {state.questVersion ? (
-                <QuestActionButton
-                  tone="secondary"
-                  label={t("quests.speedCalculusClaimReward", {
-                    reward: state.rewardPreview,
-                  })}
-                  onPress={onClaim}
-                  loading={claiming}
-                  loadingMode="inline"
-                  style={{ marginTop: 12 }}
-                  accessibilityLabel={t("quests.speedCalculusClaimReward", {
-                    reward: state.rewardPreview,
-                  })}
-                  testID="speed-calculus-claim-reward"
-                />
-              ) : null}
-            </>
-          )}
-        </View>
-      )}
-    </View>
+                })
+          }
+          body={state.claimed ? undefined : t("quests.speedCalculusClaimReminder")}
+        >
+          {!state.claimed && state.questVersion ? (
+            <QuestActionButton
+              tone="secondary"
+              size="sm"
+              label={t("quests.speedCalculusClaimReward", {
+                reward: state.rewardPreview,
+              })}
+              onPress={onClaim}
+              loading={claiming}
+              loadingMode="inline"
+              accessibilityLabel={t("quests.speedCalculusClaimReward", {
+                reward: state.rewardPreview,
+              })}
+              testID="speed-calculus-claim-reward"
+            />
+          ) : null}
+        </Notice>
+      ) : null}
+    </Card>
   );
 }

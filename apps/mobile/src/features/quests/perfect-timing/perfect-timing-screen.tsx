@@ -30,10 +30,7 @@ import {
   type PerfectTimingTier,
 } from "@adventure-time/api-client";
 
-import {
-  QuestScreenDescription,
-  QuestScreenHeader,
-} from "../quest-screen-header";
+import { QuestScreenHeader } from "../quest-screen-header";
 import { SegmentedControl } from "../../../components/ui/segmented-control";
 import { QuestActionButton } from "../quest-action-button";
 import { formatQuestShareDate } from "../quest-share-date";
@@ -63,7 +60,6 @@ import {
   buildPerfectTimingShareResult,
   type PerfectTimingShareResult,
 } from "./share-result";
-import { TargetCard } from "./target-card";
 import { TrainingPanel } from "./training-panel";
 import type { TrainingPhase, Translate } from "./types";
 
@@ -168,10 +164,10 @@ function usePerfectTimingScreenView() {
   const trainingTargetMs = trainingTargetQuery.data?.targetMs ?? null;
   const scrollContentStyle = useMemo(
     () => ({
-      paddingTop: 8,
-      paddingBottom: Math.max(insets.bottom, 28),
+      paddingTop: 12,
+      paddingBottom: Math.max(insets.bottom, 24),
       paddingHorizontal: 16,
-      gap: 16,
+      gap: 12,
     }),
     [insets.bottom],
   );
@@ -575,7 +571,6 @@ function usePerfectTimingScreenView() {
   }
 
   const officialResult = state.currentResult;
-  const displayTargetMs = trainingMode ? trainingTargetMs : state.targetMs;
 
   return (
     <View className="flex-1 bg-bg">
@@ -591,27 +586,15 @@ function usePerfectTimingScreenView() {
         contentContainerStyle={scrollContentStyle}
         keyboardShouldPersistTaps="handled"
       >
-        <QuestScreenDescription>
+        <Text className="text-center font-nunito text-ds-sm text-fgMuted">
           {t("quests.perfectTiming.subtitle")}
-        </QuestScreenDescription>
+        </Text>
 
         <ModeSelector
           trainingMode={trainingMode}
           onChange={(next) => void changeMode(next)}
           t={t}
         />
-
-        {displayTargetMs != null ? (
-          <TargetCard
-            label={t(
-              trainingMode
-                ? "quests.perfectTiming.trainingTarget"
-                : "quests.perfectTiming.todaysTarget",
-            )}
-            targetMs={displayTargetMs}
-            locale={locale}
-          />
-        ) : null}
 
         {trainingMode ? (
           <TrainingPanel
@@ -627,6 +610,8 @@ function usePerfectTimingScreenView() {
             phase={trainingPhase}
             result={trainingResult}
             t={t}
+            targetLabel={t("quests.perfectTiming.trainingTarget")}
+            targetMs={trainingTargetMs}
             tc={tc}
             timerRunning={timerRunning}
             timerText={timerText}
@@ -652,7 +637,7 @@ function usePerfectTimingScreenView() {
             state={state}
             stopError={stopError}
             t={t}
-            tc={tc}
+            targetLabel={t("quests.perfectTiming.todaysTarget")}
             timerRunning={timerRunning}
             timerText={timerText}
           />

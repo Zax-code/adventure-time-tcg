@@ -41,7 +41,7 @@ tags:
       VIEW_NAME: overlay-00-collection-base
       VIEW_LINK: adventure-time:///collection
 - tapOn:
-    text: "Your cards stats.*"
+    id: collection-stats-tile
     optional: true
 - waitForAnimationToEnd
 - takeScreenshot: tmp-view-inventory-shots/overlay-01-collection-stats-modal
@@ -55,12 +55,12 @@ tags:
       VIEW_NAME: overlay-00b-collection-base
       VIEW_LINK: adventure-time:///collection
 - tapOn:
-    text: "Sort by.*"
+    id: collection-sort-button
     optional: true
 - waitForAnimationToEnd
 - takeScreenshot: tmp-view-inventory-shots/overlay-02-collection-sort-modal
 - tapOn:
-    text: "Close"
+    id: collection-sort-cancel
     optional: true
 - waitForAnimationToEnd
 - runFlow:

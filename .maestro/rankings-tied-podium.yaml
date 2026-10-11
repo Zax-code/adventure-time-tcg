@@ -1,5 +1,5 @@
 appId: love.leaetzak.adventuretime
-name: Rankings tied podium screenshot
+name: Rankings tied standings screenshot
 tags:
   - rankings
   - screenshots
@@ -36,17 +36,17 @@ tags:
     id: rankings-screen
 - scrollUntilVisible:
     element:
-      id: leaderboard-rank-group-3
+      id: leaderboard-row-3-3
     direction: DOWN
     timeout: 30000
     centerElement: true
 - assertVisible:
-    id: leaderboard-tied-podium
+    id: leaderboard-standings
 - assertVisible:
-    id: leaderboard-tied-rank-3-row-1
+    id: leaderboard-row-3
 - assertVisible:
-    id: leaderboard-tied-rank-3-row-2
+    id: leaderboard-row-3-2
 - assertVisible:
-    id: leaderboard-tied-rank-3-row-3
+    id: leaderboard-row-3-3
 - waitForAnimationToEnd
 - takeScreenshot: tmp-rankings-shots/tied-podium
