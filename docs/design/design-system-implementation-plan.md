@@ -342,6 +342,18 @@ Lot 4 as built:
 
 Acceptance: `admin-ui.tsx` exports only thin wrappers or is removed.
 
+Lot 5 as built: `admin-ui.tsx` keeps its export names and props (so the
+admin screens did not change) and every export is a thin wrapper:
+AdminButton → Button (the accent "warning" variant renders as ghost, since
+Button has no accent tone), AdminStat → StatTile with sentence-case labels,
+AdminNotice → Notice, AdminSegmentedControl → SegmentedControl (test ids
+`admin-segment-*` kept), AdminFilterChip/AdminChip/AbilityTypeChip → Chip,
+AdminSearchInput/AdminField → Input, AdminPanel → Card, AdminHero → the
+section Card under the shell's "Operations console" PageTitle (board 04),
+AdminModal → Dialog anatomy with a close IconButton and scrollable body,
+AdminEmptyState/AdminLoadingState → StatePanel. `ThemedExpoButton` had no
+callers left and is deleted.
+
 ### Lot 6: web parity
 
 - `apps/web/src/components/ui.tsx`: same names and metrics as mobile
