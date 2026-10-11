@@ -416,6 +416,30 @@ Ionicons logos. Coins are the Lucide `coins` glyph everywhere, replacing the
 illustrated gold coin. The PvP results overlay also moved to the Dialog
 anatomy and the backdrop token.
 
+### Lot 8: screens to board 04
+
+Lots 3 and 4 swapped primitives into the existing layouts and treated the
+"no copy or behavior change" rule as overriding board 04, so several screens
+kept their old structure. Lot 8 rebuilds every board 04 pair to its AFTER
+frame, with the copy and interaction changes the frames need (approved):
+
+- Wordle: language SegmentedControl, attempts Game HUD with the reward,
+  compact grid, GameKey keyboard with Enter and Delete (Delete removes one
+  letter), help Dialog in the header.
+- Speed Calculus hub (Notice, reward StatTiles, training card, Run history)
+  and run (HUD, question card, answer field, keypad grid, Clear/Submit).
+- Daily Numbers play (SegmentedControl modes, target StatTiles, selection
+  tiles, keypad grids) and history (Archive Notice, success tiles).
+- Perfect Timing (target card with StatTiles and Start, While running card).
+- Home greeting, Quests hub rows and the order sheet, Gifts, Rankings (flat
+  ranked list), Collection (Sort dialog with Apply), PvP hub, match history,
+  Settings and Admin Cards.
+- New Row F/G pairs on board 04 for the Packs tab, pack opening (ready,
+  reveal, summary) and the pack card sheet, implemented in the app.
+
+Known trade-offs: the Daily Numbers per-mode status line now lives only in
+the segment accessibility label; Rankings rows no longer show avatars.
+
 ## Verification per lot
 
 - `npm run typecheck`, `npm run doctor`, `cd apps/mobile && npx expo-doctor`.
