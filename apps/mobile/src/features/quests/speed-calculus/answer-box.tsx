@@ -4,6 +4,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
+import { glyphCenterStyle } from "../../../components/ui/game/game-state";
 import { useTranslation } from "../../../i18n";
 
 type AnswerBoxProps = {
@@ -30,7 +31,8 @@ export function AnswerBox({
   }));
 
   // Input anatomy (board 04): 56 high, radius 16, surface fill and the
-  // "Answer" placeholder. Feedback tints the field and a wrong answer
+  // "Answer" placeholder; the typed answer is 28/800, centered like the
+  // question above it. Feedback tints the field and a wrong answer
   // shakes it.
   return (
     <Animated.View
@@ -49,12 +51,15 @@ export function AnswerBox({
       <Text
         testID={answerTestID}
         accessibilityLabel={answerTestID}
-        className={`flex-1 text-[17px] leading-[23px] ${
-          answer ? "font-nunito-extrabold" : "font-nunito"
+        className={`flex-1 text-center ${
+          answer
+            ? "font-nunito-extrabold text-[28px] leading-[34px]"
+            : "font-nunito text-[17px] leading-[23px]"
         }`}
-        style={{
-          color: answer ? answerBoxText : answerPlaceholderText,
-        }}
+        style={[
+          { color: answer ? answerBoxText : answerPlaceholderText },
+          answer ? glyphCenterStyle(28) : undefined,
+        ]}
         numberOfLines={1}
       >
         {answer || t("quests.speedCalculusAnswerPlaceholder")}

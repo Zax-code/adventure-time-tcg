@@ -440,6 +440,22 @@ frame, with the copy and interaction changes the frames need (approved):
 Known trade-offs: the Daily Numbers per-mode status line now lives only in
 the segment accessibility label; Rankings rows no longer show avatars.
 
+### Lot 9: review revisions (board 05)
+
+The lot 8 review (2026-10-11) approved board 05 of the spec:
+
+- Rankings: podium (top three on pedestals with avatars, a crown on
+  first; ties share number and pedestal height) and 32 avatars in rows.
+- Daily Numbers: SegmentedControl options take a status icon
+  (circle-check claimed, circle-dot submitted) and a caption states the
+  selected mode's status.
+- Home: "Don't ask again" link under the notification prompt (persists
+  the hide flag); Featured cards carousel with page dots; Drop rates
+  leave Home for a Pack shop sheet (option B).
+- Step quest widget, iOS and Android, small and medium: surface
+  background, Icon Tile, coins Chip, count, 8-high bar and a status Chip,
+  in candy, ice and nightosphere.
+
 ## Verification per lot
 
 - `npm run typecheck`, `npm run doctor`, `cd apps/mobile && npx expo-doctor`.

@@ -9,7 +9,7 @@ import {
 import { ON_PRIMARY } from "@adventure-time/theme";
 
 import { type IconSlot, SlotIcon, useThemePalette } from "../tokens";
-import { GAME_CELL_CLASS, type GameCellState } from "./game-state";
+import { GAME_CELL_CLASS, type GameCellState, glyphCenterStyle } from "./game-state";
 
 export type GameKeyKind = "letter" | "enter" | "delete";
 
@@ -33,11 +33,12 @@ export interface GameKeyProps {
 
 const KIND_WIDTH: Record<GameKeyKind, string> = {
   letter: "w-[32px]",
-  enter: "w-[56px]",
+  enter: "w-full",
   delete: "w-[44px]",
 };
 
-// 44 high, radius 12, 15/800 label; Enter is a primary key.
+// 44 high, radius 12, 15/800 label. Enter is the full-width primary
+// "Submit" key under the keyboard.
 export function GameKey({
   label,
   state = "empty",
@@ -78,7 +79,8 @@ export function GameKey({
         <SlotIcon icon={icon} color={kind === "enter" ? ON_PRIMARY : tc.fg} size={18} />
       ) : (
         <Text
-          className={`font-nunito-extrabold ${kind === "enter" ? "text-ds-caption" : "text-ds-body"} ${classes.text}`}
+          className={`font-nunito-extrabold text-ds-body ${classes.text}`}
+          style={kind === "enter" ? undefined : glyphCenterStyle(15)}
         >
           {label}
         </Text>

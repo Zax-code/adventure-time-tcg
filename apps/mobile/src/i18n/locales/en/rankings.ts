@@ -22,7 +22,7 @@ const rankings = {
   emptyAction: "Go to quests",
   points: "{points} pts",
   you: "You",
-  youWithResult: "You · {result}",
+  tied: "tied",
   historyTitle: "Leaderboard history",
   historyBody: "No closed competition days or weeks yet.",
   periods: {

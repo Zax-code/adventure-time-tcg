@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 // Shared colors for letter tiles and keys in the quest games (board 02,
 // Game Tile and Game Key): correct = success, present = secondary,
 // absent = muted.
@@ -23,3 +25,12 @@ export const KEYPAD_KEY_CLASS: Record<KeypadKeyVariant, { container: string; tex
   used: { container: "bg-surface border-primaryBorder opacity-40", text: "text-fg" },
   action: { container: "bg-accentTint border-accentBorder", text: "text-accentText" },
 };
+
+// Nunito's line box leaves more room under capitals and digits than above
+// them, so centered tile letters and numbers sit about 0.1em high on iOS
+// (measured on device). Nudge them back to the optical center.
+export function glyphCenterStyle(fontSize: number) {
+  return Platform.OS === "ios"
+    ? { transform: [{ translateY: fontSize * 0.1 }] }
+    : undefined;
+}

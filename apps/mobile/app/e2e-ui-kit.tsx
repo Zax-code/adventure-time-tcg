@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AlarmClock from "lucide-react-native/icons/alarm-clock";
 import Check from "lucide-react-native/icons/check";
 import ChevronLeft from "lucide-react-native/icons/chevron-left";
+import CircleCheck from "lucide-react-native/icons/circle-check";
 import Clock from "lucide-react-native/icons/clock";
 import Coins from "lucide-react-native/icons/coins";
 import Gift from "lucide-react-native/icons/gift";
@@ -158,7 +159,7 @@ function UiKit() {
         <KitSection title="Segmented control" testID="e2e-ui-kit-segmented">
           <SegmentedControl
             options={[
-              { value: "daily", label: "Daily" },
+              { value: "daily", label: "Daily", icon: CircleCheck, iconTone: "success" },
               { value: "weekly", label: "Weekly" },
               { value: "history", label: "History", count: 12 },
             ]}
@@ -275,9 +276,9 @@ function UiKit() {
             <GameKey label="E" state="correct" />
             <GameKey label="R" state="present" />
             <GameKey label="T" state="absent" />
-            <GameKey label="Enter" kind="enter" />
             <GameKey label="⌫" kind="delete" accessibilityLabel="Delete" />
           </View>
+          <GameKey label="Submit" kind="enter" />
           <View className="flex-row flex-wrap gap-ds-2">
             <KeypadKey className="w-[80px]" label="7" />
             <KeypadKey className="w-[80px]" label="50" variant="selected" />

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Progress fill: the image level (0..10000) scales the pill width, keeping rounded ends. -->
+<scale xmlns:android="http://schemas.android.com/apk/res/android"
+  android:drawable="@drawable/step_quest_widget_shape_fill"
+  android:scaleGravity="left|center_vertical"
+  android:scaleWidth="100%" />

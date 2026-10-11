@@ -3,7 +3,7 @@ import { Text, View, type GestureResponderEvent } from "react-native";
 import Check from "lucide-react-native/icons/check";
 
 import { Button } from "../../../components/ui/button";
-import { KEYPAD_KEY_CLASS } from "../../../components/ui/game/game-state";
+import { glyphCenterStyle, KEYPAD_KEY_CLASS } from "../../../components/ui/game/game-state";
 import { useTranslation } from "../../../i18n";
 import { KEYPAD_ROWS, type KeypadKey } from "./constants";
 import {
@@ -228,6 +228,7 @@ export function Keypad({
                   className={`text-center font-nunito-extrabold ${
                     isAction ? "text-ds-body" : "text-[24px] leading-[29px]"
                   } ${classes.text}`}
+                  style={isAction ? undefined : glyphCenterStyle(24)}
                 >
                   {label}
                 </Text>

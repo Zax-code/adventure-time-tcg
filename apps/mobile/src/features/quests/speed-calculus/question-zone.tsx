@@ -9,6 +9,7 @@ import Animated, {
 import Svg, { Circle } from "react-native-svg";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
+import { glyphCenterStyle } from "../../../components/ui/game/game-state";
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
@@ -95,7 +96,10 @@ export function QuestionZone({
                 transform={`rotate(-90, ${RING_SIZE / 2}, ${RING_SIZE / 2})`}
               />
             </Svg>
-            <Text className="text-center font-nunito-extrabold text-[48px] leading-[58px] text-primaryText">
+            <Text
+              className="text-center font-nunito-extrabold text-[48px] leading-[58px] text-primaryText"
+              style={glyphCenterStyle(48)}
+            >
               {pauseRemainingSeconds}
             </Text>
           </View>

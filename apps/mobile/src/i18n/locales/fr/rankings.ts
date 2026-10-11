@@ -23,7 +23,7 @@ const rankings = {
   emptyAction: "Aller aux quêtes",
   points: "{points} pts",
   you: "Toi",
-  youWithResult: "Toi · {result}",
+  tied: "ex æquo",
   historyTitle: "Historique des classements",
   historyBody:
     "Aucun jour ni aucune semaine de compétition clôturés pour le moment.",

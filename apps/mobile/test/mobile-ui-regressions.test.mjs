@@ -218,13 +218,18 @@ describe("mobile UI regression contracts", () => {
     assert.match(rankingsSource, /pathname: "\/public-profile"/);
     assert.match(
       rankingsSource,
-      /data\.rows\.map\(\(row, index\) => \([\s\S]*?<RankingRow[\s\S]*?onPress=/,
+      /remainingRows\.map\(\(item, index\) => \([\s\S]*?<RankingRow[\s\S]*?onPress=/,
       "every standings row, tied or not, should open the public profile",
     );
     assert.match(
       rankingsSource,
       /<RankingRow[\s\S]*?row=\{data\.currentPlayer\}[\s\S]*?onPress=/,
       "the current player row outside the listed standings should open the profile too",
+    );
+    assert.match(
+      rankingsSource,
+      /<PodiumPlaceColumn[\s\S]*?onPress=\{\(\) => onPress\(place\.row\)\}/,
+      "every podium player, tied or not, should open the public profile",
     );
   });
 

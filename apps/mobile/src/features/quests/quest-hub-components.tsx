@@ -450,6 +450,7 @@ export function QuestLaunchSheet({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: 16,
+            paddingTop: 12,
             paddingBottom: 0,
             gap: 12,
           }}
@@ -604,6 +605,7 @@ export function QuestRecapSheet({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: 16,
+            paddingTop: 12,
             paddingBottom: 0,
             gap: 12,
           }}

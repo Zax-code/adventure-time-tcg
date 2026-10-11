@@ -42,7 +42,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import Archive from "lucide-react-native/icons/archive";
 import Check from "lucide-react-native/icons/check";
+import Circle from "lucide-react-native/icons/circle";
+import CircleCheck from "lucide-react-native/icons/circle-check";
+import CircleDot from "lucide-react-native/icons/circle-dot";
 import RotateCcwClock from "lucide-react-native/icons/rotate-ccw-clock";
+import type { LucideIcon } from "lucide-react-native";
 
 import {
   ApiClientError,
@@ -70,11 +74,13 @@ import {
 import { PageLoadingState } from "../../src/components/loading-state";
 import { Button } from "../../src/components/ui/button";
 import { Card } from "../../src/components/ui/card";
+import { glyphCenterStyle } from "../../src/components/ui/game/game-state";
 import { KeypadKey } from "../../src/components/ui/game/keypad-key";
 import { Notice } from "../../src/components/ui/notice";
 import { SegmentedControl } from "../../src/components/ui/segmented-control";
 import { StackHeader } from "../../src/components/ui/stack-header";
 import { StatTile } from "../../src/components/ui/stat-tile";
+import { ICON_STROKE_WIDTH, useThemePalette } from "../../src/components/ui/tokens";
 import { DailyNumbersQuestShareCard } from "../../src/features/quests/daily-numbers/quest-share-card";
 import {
   applyDailyNumbersOperation,
@@ -441,6 +447,18 @@ function displayOperator(operator: Operator) {
 
 // Keypad Key metrics (board 02): 56 high, radius 16, 24/800 numbers.
 const BOARD_NUMBER_TEXT_CLASS = "text-[24px] leading-[29px]";
+
+// adjustsFontSizeToFit collapses these tile labels to a few points on iOS,
+// so the size steps down by digit count instead (tiles fit four digits at 19).
+function getBoardNumberTextStyle(value: number | string) {
+  const length = String(value).length;
+  const fontSize = length <= 3 ? 24 : length === 4 ? 19 : length === 5 ? 16 : 13;
+  return {
+    fontSize,
+    lineHeight: Math.round(fontSize * 1.2),
+    ...glyphCenterStyle(fontSize),
+  };
+}
 const BOARD_TILE_HEIGHT_CLASS = "h-[56px]";
 
 const BOARD_TILE_WIDTH = "31.5%";
@@ -885,6 +903,35 @@ function MessageBanner({ message }: { message: MessageState }) {
   );
 }
 
+type ModeGlyph = "claimed" | "submitted" | "fresh";
+
+// Claimed modes get a check, played-but-unclaimed modes (submitted, reward
+// unlocked, archive result saved) a dot, fresh boards no segment icon.
+const MODE_GLYPH_ICON: Record<ModeGlyph, LucideIcon> = {
+  claimed: CircleCheck,
+  submitted: CircleDot,
+  fresh: Circle,
+};
+
+function getModeGlyph(
+  state: DailyNumbersBoardState | undefined,
+  archiveMode: boolean,
+): ModeGlyph {
+  if (archiveMode && state?.submission) {
+    return "submitted";
+  }
+
+  if (state?.claimed) {
+    return "claimed";
+  }
+
+  if (state?.completed || state?.submission) {
+    return "submitted";
+  }
+
+  return "fresh";
+}
+
 function ModeTabs({
   activeMode,
   archiveMode,
@@ -898,33 +945,63 @@ function ModeTabs({
   onSelectMode: (mode: DailyNumbersMode) => void;
   t: TranslateFn;
 }) {
-  // The played/fresh status has no room in a Segmented Control; it stays in
-  // each segment's accessibility label.
+  const tc = useThemePalette();
   const options = modeCards.map(({ mode, state, isLoading }) => {
     const statusLabel =
       archiveMode && state?.submission
         ? t("quests.dailyNumbers.archiveSavedLabel")
         : getModeStatusLabel(state, isLoading, t);
+    const glyph = getModeGlyph(state, archiveMode);
     const modeLabel = t(getModeLabelKey(mode));
 
     return {
       value: mode,
       label: modeLabel,
+      icon: glyph === "fresh" ? undefined : MODE_GLYPH_ICON[glyph],
+      iconTone: glyph === "claimed" ? ("success" as const) : ("info" as const),
       accessibilityLabel: `${modeLabel}. ${statusLabel}`,
       testID: `daily-numbers-mode-${mode}`,
+      glyph,
+      statusLabel,
     };
   });
+  const activeOption =
+    options.find((option) => option.value === activeMode) ?? options[0];
+  const CaptionIcon = activeOption ? MODE_GLYPH_ICON[activeOption.glyph] : null;
 
   return (
-    <SegmentedControl
-      options={options}
-      value={activeMode}
-      onChange={(mode) => {
-        triggerSelectionHaptic();
-        onSelectMode(mode);
-      }}
-      testID="daily-numbers-mode-tabs"
-    />
+    <>
+      <SegmentedControl
+        options={options}
+        value={activeMode}
+        onChange={(mode) => {
+          triggerSelectionHaptic();
+          onSelectMode(mode);
+        }}
+        testID="daily-numbers-mode-tabs"
+      />
+      {activeOption && CaptionIcon ? (
+        <View
+          className="flex-row items-center justify-center gap-[6px]"
+          testID="daily-numbers-mode-status"
+        >
+          <CaptionIcon
+            size={14}
+            color={
+              activeOption.glyph === "claimed"
+                ? tc.successText
+                : activeOption.glyph === "submitted"
+                  ? tc.infoText
+                  : tc.fgMuted
+            }
+            strokeWidth={ICON_STROKE_WIDTH}
+          />
+          <Text className="font-nunito-semibold text-ds-sm text-fgMuted">
+            {`${activeOption.label} · ${activeOption.statusLabel}`}
+          </Text>
+        </View>
+      ) : null}
+    </>
   );
 }
 
@@ -1782,17 +1859,18 @@ function AvailableNumbersGrid({
                   </Text>
                 ) : null}
                 <Text
-                  className={`${BOARD_NUMBER_TEXT_CLASS} text-center font-nunito-extrabold ${
+                  className={`${BOARD_NUMBER_TEXT_CLASS} w-full text-center font-nunito-extrabold ${
                     availability.selected
                       ? "text-white"
                       : derived
                         ? "text-primaryText"
                         : "text-fg"
                   }`}
-                  style={{ fontVariant: ["tabular-nums"] }}
+                  style={[
+                    getBoardNumberTextStyle(tile.value),
+                    { fontVariant: ["tabular-nums"] },
+                  ]}
                   numberOfLines={1}
-                  adjustsFontSizeToFit={String(tile.value).length > 3}
-                  minimumFontScale={0.68}
                 >
                   {tile.value}
                 </Text>
@@ -1940,13 +2018,14 @@ function EquationResult({
           <Text
             className={`${BOARD_NUMBER_TEXT_CLASS} w-full text-center font-nunito-extrabold ${resultTextClassName}`}
             numberOfLines={1}
-            adjustsFontSizeToFit={String(previewState.result).length > 3}
-            minimumFontScale={0.6}
-            style={{ fontVariant: ["tabular-nums"] }}
+            style={[
+              getBoardNumberTextStyle(previewState.result),
+              { fontVariant: ["tabular-nums"] },
+            ]}
           >
             {previewState.result}
           </Text>
-          {!committing ? (
+          {!committing && exactHitPreview ? (
             <View
               pointerEvents="none"
               className="absolute bottom-0.5 right-1.5"
@@ -1954,9 +2033,9 @@ function EquationResult({
               importantForAccessibility="no-hide-descendants"
             >
               <Text
-                className={`font-nunito-extrabold text-[11px] ${exactHitPreview ? "text-successDark" : "text-white"}`}
+                className="font-nunito-extrabold text-[11px] text-successDark"
               >
-                {exactHitPreview ? "✦" : "↓"}
+                ✦
               </Text>
             </View>
           ) : null}
@@ -2006,11 +2085,9 @@ function SelectionSlot({
       accessibilityLabel={accessibilityLabel}
     >
       <Text
-        className={`${BOARD_NUMBER_TEXT_CLASS} text-center font-nunito-extrabold ${text}`}
+        className={`${BOARD_NUMBER_TEXT_CLASS} w-full text-center font-nunito-extrabold ${text}`}
         numberOfLines={1}
-        adjustsFontSizeToFit={label.length > 2}
-        minimumFontScale={0.6}
-        style={{ fontVariant: ["tabular-nums"] }}
+        style={[getBoardNumberTextStyle(label), { fontVariant: ["tabular-nums"] }]}
       >
         {label}
       </Text>

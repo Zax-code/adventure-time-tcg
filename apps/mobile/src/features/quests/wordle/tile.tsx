@@ -8,6 +8,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { glyphCenterStyle } from "../../../components/ui/game/game-state";
+
 const NARROW_TILE_LETTER_STYLE = {
   minWidth: 12,
   textAlign: "center" as const,
@@ -105,6 +107,7 @@ export function WordleTile({
         className={`text-[24px] leading-[29px] font-nunito-extrabold ${letterCls}`}
         style={[
           letter === "I" ? NARROW_TILE_LETTER_STYLE : undefined,
+          glyphCenterStyle(24),
           letterAnimatedStyle,
         ]}
       >
