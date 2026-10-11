@@ -3,6 +3,7 @@ const common = {
   cancel: "Cancel",
   close: "Close",
   delete: "Delete",
+  tryAgain: "Try again",
   launch: {
     eyebrow: "Adventure Time TCG",
     title: "Sharpening the deck",
