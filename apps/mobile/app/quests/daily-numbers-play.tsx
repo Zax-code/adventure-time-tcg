@@ -446,6 +446,14 @@ function displayOperator(operator: Operator) {
 
 // Keypad Key metrics (board 02): 56 high, radius 16, 24/800 numbers.
 const BOARD_NUMBER_TEXT_CLASS = "text-[24px] leading-[29px]";
+
+// adjustsFontSizeToFit collapses these tile labels to a few points on iOS,
+// so the size steps down by digit count instead (tiles fit four digits at 19).
+function getBoardNumberTextStyle(value: number | string) {
+  const length = String(value).length;
+  const fontSize = length <= 3 ? 24 : length === 4 ? 19 : length === 5 ? 16 : 13;
+  return { fontSize, lineHeight: Math.round(fontSize * 1.2) };
+}
 const BOARD_TILE_HEIGHT_CLASS = "h-[56px]";
 
 const BOARD_TILE_WIDTH = "31.5%";
@@ -1853,10 +1861,11 @@ function AvailableNumbersGrid({
                         ? "text-primaryText"
                         : "text-fg"
                   }`}
-                  style={{ fontVariant: ["tabular-nums"] }}
+                  style={[
+                    getBoardNumberTextStyle(tile.value),
+                    { fontVariant: ["tabular-nums"] },
+                  ]}
                   numberOfLines={1}
-                  adjustsFontSizeToFit={String(tile.value).length > 3}
-                  minimumFontScale={0.68}
                 >
                   {tile.value}
                 </Text>
@@ -2004,9 +2013,10 @@ function EquationResult({
           <Text
             className={`${BOARD_NUMBER_TEXT_CLASS} w-full text-center font-nunito-extrabold ${resultTextClassName}`}
             numberOfLines={1}
-            adjustsFontSizeToFit={String(previewState.result).length > 3}
-            minimumFontScale={0.6}
-            style={{ fontVariant: ["tabular-nums"] }}
+            style={[
+              getBoardNumberTextStyle(previewState.result),
+              { fontVariant: ["tabular-nums"] },
+            ]}
           >
             {previewState.result}
           </Text>
@@ -2072,9 +2082,7 @@ function SelectionSlot({
       <Text
         className={`${BOARD_NUMBER_TEXT_CLASS} w-full text-center font-nunito-extrabold ${text}`}
         numberOfLines={1}
-        adjustsFontSizeToFit={label.length > 3}
-        minimumFontScale={0.6}
-        style={{ fontVariant: ["tabular-nums"] }}
+        style={[getBoardNumberTextStyle(label), { fontVariant: ["tabular-nums"] }]}
       >
         {label}
       </Text>

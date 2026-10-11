@@ -33,17 +33,22 @@ describe("Daily Numbers equation result layout", () => {
     assert.match(
       equationResultSource,
       /className=\{`\$\{BOARD_NUMBER_TEXT_CLASS\} w-full /,
-      "the result number should own the tile width before native font fitting",
+      "the result number should own the tile width",
     );
     assert.match(
       equationResultSource,
       /className="absolute bottom-0\.5 right-1\.5"/,
-      "the action arrow should not consume result-number layout width",
+      "the exact-hit mark should not consume result-number layout width",
+    );
+    assert.doesNotMatch(
+      equationResultSource,
+      /adjustsFontSizeToFit/,
+      "native font fitting collapses tile numbers on iOS; size by digit count instead",
     );
     assert.match(
       equationResultSource,
-      /adjustsFontSizeToFit=\{String\(previewState\.result\)\.length > 3\}/,
-      "three-digit results should keep normal tile typography while longer results auto-fit the selection tile",
+      /getBoardNumberTextStyle\(previewState\.result\)/,
+      "the result number should step its size down by digit count",
     );
   });
 
