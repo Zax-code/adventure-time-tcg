@@ -63,7 +63,7 @@ export function QuestionZone({
           testID="speed-calculus-pause-countdown"
           style={{ transform: [{ translateY: -20 }] }}
         >
-          <Text className="text-[10px] font-nunito-bold uppercase tracking-[4px] text-primary/50 mb-5">
+          <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-primary/50 mb-5">
             {t("quests.speedCalculusResumeCountdownTitle")}
           </Text>
           <View className="relative w-32 h-32 flex items-center justify-center">
@@ -107,7 +107,7 @@ export function QuestionZone({
         >
           <Text
             accessibilityLabel={`speed-calculus-question-label-${(activeRun?.questionIndex ?? 0) + 1}`}
-            className="text-[10px] font-nunito-bold uppercase tracking-[4px] text-primary/40"
+            className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-primary/40"
             testID={`speed-calculus-question-label-${(activeRun?.questionIndex ?? 0) + 1}`}
           >
             {t("quests.speedCalculusQuestionNumber", {

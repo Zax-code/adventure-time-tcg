@@ -34,19 +34,18 @@ export function AnswerBox({
       testID={answerTestID}
       accessibilityLabel={answerTestID}
       accessible
-      className="mx-4 rounded-2xl border-2 px-5 items-center h-20"
+      className="mx-4 rounded-ds-md border-2 px-5 items-center h-20"
       style={[
         {
           borderColor: answerBoxBorder,
           backgroundColor: answerBoxBg,
-          boxShadow: `0px 4px 12px ${answerBoxBorder}`,
         },
         animatedStyle,
       ]}
     >
       <View className="flex-1 items-center justify-center pt-2">
         <Text
-          className="text-[10px] font-nunito-bold uppercase tracking-[4px] mb-1 opacity-[0.55]"
+          className="text-ds-overline font-nunito-bold uppercase tracking-[1px] mb-1 opacity-[0.55]"
           style={{ color: answerBoxText }}
         >
           {t("quests.speedCalculusAnswerPlaceholder")}

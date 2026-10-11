@@ -1151,7 +1151,7 @@ function useWordleScreenView() {
         </QuestScreenDescription>
 
         <View className="rounded-2xl border-2 border-primaryTint bg-surface p-4 shadow shadow-black/10">
-          <Text className="mb-3 text-center text-xs font-nunito-bold uppercase tracking-[1px] text-fgMuted">
+          <Text className="mb-3 text-center text-ds-overline font-nunito-bold uppercase tracking-[1px] text-fgMuted">
             {t("quests.wordle.languageLabel")}
           </Text>
           <View className="flex-row gap-3">
@@ -1521,7 +1521,7 @@ function useWordleScreenView() {
                   ListHeaderComponent={
                     <View className="gap-3">
                       <View className="rounded-2xl border border-primaryTint bg-bg px-3 py-2">
-                        <Text className="text-xs font-nunito-bold uppercase tracking-[1px] text-fgMuted">
+                        <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-fgMuted">
                           {t("quests.wordle.definitionWordLabel")}
                         </Text>
                         <Text className="mt-1 text-base font-nunito-extrabold text-primaryStrong">
@@ -1530,7 +1530,7 @@ function useWordleScreenView() {
                       </View>
 
                       {definitionQueryData.variants.length > 1 ? (
-                        <Text className="text-xs font-nunito-bold uppercase tracking-[1px] text-fgMuted">
+                        <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-fgMuted">
                           {t("quests.wordle.definitionChoicesLabel")}
                         </Text>
                       ) : null}

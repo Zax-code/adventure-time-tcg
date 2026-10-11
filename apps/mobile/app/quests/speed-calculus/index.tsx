@@ -25,6 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { ApiClientError, apiClient } from "../../../src/lib/api";
+import { Button } from "../../../src/components/ui/button";
 import { useTranslation } from "../../../src/i18n";
 import { PageLoadingState } from "../../../src/components/loading-state";
 import { PageErrorState } from "../../../src/components/error-state";
@@ -888,10 +889,9 @@ function useSpeedCalculusScreenView() {
           accessibilityLabel={toast.message}
           accessibilityLiveRegion="polite"
           accessibilityRole="alert"
-          className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
+          className={`absolute left-4 right-4 z-[100] rounded-ds-sm p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
           style={{
             top: insets.top + 8,
-            boxShadow: `0px 4px 8px ${withAlpha(toast.type === "success" ? tc.successDark : tc.dangerDark, "2E")}`,
           }}
         >
           <Text
@@ -932,10 +932,9 @@ function useSpeedCalculusScreenView() {
 
         {/* ── Rules Card ──────────────────────────────────────────── */}
         <View
-          className="rounded-3xl border-2 border-primaryTint p-5"
+          className="rounded-ds-lg border border-primaryBorder p-ds-4"
           style={{
             backgroundColor: tc.surfaceMuted,
-            boxShadow: `0px 4px 12px ${withAlpha(tc.primaryDark, "24")}`,
           }}
         >
           <View
@@ -946,7 +945,7 @@ function useSpeedCalculusScreenView() {
             }
           >
             <View className="min-w-0 flex-1">
-              <Text className="text-xs font-nunito-bold uppercase text-primary/70 tracking-[3.5px]">
+              <Text className="text-ds-overline font-nunito-bold uppercase text-primary/70 tracking-[1px]">
                 {t("quests.speedCalculusRules")}
               </Text>
               <Text className="text-sm font-nunito mt-2 text-primaryDark/80 leading-5">
@@ -957,7 +956,7 @@ function useSpeedCalculusScreenView() {
               </Text>
             </View>
             <View
-              className={`${stackMetadata ? "items-start self-stretch" : "items-center"} rounded-2xl px-4 py-3`}
+              className={`${stackMetadata ? "items-start self-stretch" : "items-center"} rounded-ds-md px-4 py-3`}
               style={{ backgroundColor: tc.primaryTint }}
             >
               <Text className="text-xs font-nunito-semibold text-primaryDark/70">
@@ -985,33 +984,26 @@ function useSpeedCalculusScreenView() {
         />
 
         <View
-          className="rounded-3xl border-2 p-5"
+          className="rounded-ds-lg border p-ds-4"
           style={{
-            borderColor: tc.secondaryBorder,
+            borderColor: tc.primaryBorder,
             backgroundColor: tc.surface,
-            boxShadow: `0px 4px 12px ${withAlpha(tc.secondaryDark, "24")}`,
           }}
         >
-          <Text className="text-xs font-nunito-bold uppercase tracking-[3.5px] text-secondaryText/80">
+          <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-secondaryText/80">
             {t("quests.speedCalculusTrainingTitle")}
           </Text>
           <Text className="mt-2 text-sm font-nunito leading-5 text-primaryDark/80">
             {t("quests.speedCalculusTrainingBody")}
           </Text>
-          <Pressable
+          <Button
+            tone="ghost"
+            size="lg"
+            className="mt-ds-4"
             onPress={() => router.push("/quests/speed-calculus/training")}
-            className="mt-4 rounded-2xl overflow-hidden"
-            style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
           >
-            <View
-              className="items-center rounded-2xl px-5 py-4"
-              style={{ backgroundColor: tc.secondary }}
-            >
-              <Text className="font-nunito-bold text-[15px] text-secondaryText">
-                {t("quests.speedCalculusTrainingOpen")}
-              </Text>
-            </View>
-          </Pressable>
+            {t("quests.speedCalculusTrainingOpen")}
+          </Button>
         </View>
 
         {/* ── Run History ──────────────────────────────────────────── */}

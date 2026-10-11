@@ -1,9 +1,18 @@
-import { Modal, Pressable, Text, View } from "react-native";
+import { Modal, Text, View } from "react-native";
 import type { SharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
+import Pause from "lucide-react-native/icons/pause";
+
+import { Button } from "../../../components/ui/button";
+import { IconTile } from "../../../components/ui/icon-tile";
+import {
+  getBackdropColor,
+  getElevation,
+  useThemeName,
+} from "../../../components/ui/tokens";
 import { useTranslation } from "../../../i18n";
 import { type FeedbackType } from "./constants";
 import { HudCard } from "./hud-card";
@@ -89,6 +98,7 @@ export function ActiveRunPanel({
   onDismiss,
 }: ActiveRunPanelProps) {
   const insets = useSafeAreaInsets();
+  const themeName = useThemeName();
   const { t } = useTranslation();
 
   return (
@@ -173,37 +183,37 @@ export function ActiveRunPanel({
           )}
 
           {isManuallyPaused ? (
-            <View className="absolute inset-0 items-center justify-center bg-primaryBg/95 px-6">
-              <View className="w-full max-w-[320px] rounded-[28px] border border-primaryBorder bg-surface px-6 py-7 items-center">
-                <Text className="text-[11px] font-nunito-bold uppercase tracking-[3px] text-primary/60">
-                  {t("quests.speedCalculusPausedTitle")}
-                </Text>
-                <Text className="mt-3 text-center font-nunito-extrabold text-3xl text-primaryDark">
-                  {t("quests.speedCalculusPausedHeading")}
-                </Text>
-                <Text className="mt-3 text-center font-nunito text-sm text-primaryDark/70">
-                  {t("quests.speedCalculusPausedBody")}
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={onResume}
-                  className="mt-6 w-full rounded-2xl bg-primary px-5 py-3 items-center"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-                >
-                  <Text className="font-nunito-extrabold text-base text-primaryBg">
-                    {t("quests.speedCalculusResume")}
+            <View
+              className="absolute inset-0 items-center justify-center p-ds-6"
+              style={{ backgroundColor: getBackdropColor(themeName) }}
+            >
+              <View
+                className="w-full max-w-[342px] items-center gap-ds-4 rounded-ds-xl bg-surface p-ds-5"
+                style={{ boxShadow: getElevation(themeName, "overlay") }}
+              >
+                <IconTile icon={Pause} size={48} />
+                <View className="items-center gap-[6px]">
+                  <Text className="font-nunito-bold text-ds-overline uppercase tracking-[1px] text-fgMuted">
+                    {t("quests.speedCalculusPausedTitle")}
                   </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={onLeavePaused}
-                  className="mt-3"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
-                >
-                  <Text className="font-nunito-semibold text-sm text-primaryDark/70">
+                  <Text
+                    accessibilityRole="header"
+                    className="text-center font-nunito-extrabold text-[20px] leading-[24px] text-fg"
+                  >
+                    {t("quests.speedCalculusPausedHeading")}
+                  </Text>
+                  <Text className="text-center font-nunito text-ds-body text-fgMuted">
+                    {t("quests.speedCalculusPausedBody")}
+                  </Text>
+                </View>
+                <View className="w-full flex-row gap-ds-3">
+                  <Button tone="ghost" onPress={onLeavePaused} className="flex-1">
                     {pausedBackLabel}
-                  </Text>
-                </Pressable>
+                  </Button>
+                  <Button onPress={onResume} className="flex-1">
+                    {t("quests.speedCalculusResume")}
+                  </Button>
+                </View>
               </View>
             </View>
           ) : null}

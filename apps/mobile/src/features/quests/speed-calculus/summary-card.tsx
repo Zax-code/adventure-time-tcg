@@ -1,13 +1,12 @@
-import { Pressable, Text, useWindowDimensions, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Text, useWindowDimensions, View } from "react-native";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
+import { Button } from "../../../components/ui/button";
 import { useTranslation } from "../../../i18n";
 import { CoinIcon, ShareIcon } from "../../../components/icons";
 import { QuestActionButton } from "../quest-action-button";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
-import { withAlpha } from "./palette";
 
 type SummaryCardProps = {
   state: SpeedRunState | null;
@@ -40,11 +39,10 @@ export function SummaryCard({
   const stackMetadata = fontScale >= 1.6;
   return (
     <View
-      className="rounded-3xl border-2 p-5 gap-3"
+      className="rounded-ds-lg border p-ds-4 gap-3"
       style={{
         borderColor: tc.secondaryBorder,
         backgroundColor: tc.surface,
-        boxShadow: `0px 4px 12px ${withAlpha(tc.secondaryDark, "24")}`,
       }}
     >
       <View
@@ -76,98 +74,44 @@ export function SummaryCard({
       </View>
 
       {activeRun?.isManuallyPaused ? (
-        <Pressable
+        <Button
+          tone="primary"
+          size="lg"
           onPress={onResumeRun}
           disabled={submitting}
-          className="rounded-2xl overflow-hidden mt-2"
-          style={({ pressed }) => ({
-            opacity: submitting ? 0.5 : pressed ? 0.9 : 1,
-          })}
         >
-          <LinearGradient
-            colors={[tc.secondary, tc.secondaryDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{
-              paddingVertical: 14,
-              alignItems: "center",
-              borderRadius: 16,
-            }}
-          >
-            <Text
-              className="font-nunito-bold text-[15px]"
-              style={{ color: tc.secondaryText }}
-            >
-              {submitting ? "..." : t("quests.speedCalculusResume")}
-            </Text>
-          </LinearGradient>
-        </Pressable>
+          {submitting ? "..." : t("quests.speedCalculusResume")}
+        </Button>
       ) : null}
 
       {!activeRun && state?.canStartRun && (
-        <Pressable
+        <Button
+          tone="primary"
+          size="lg"
           onPress={onStartRun}
           disabled={submitting}
-          className="rounded-2xl overflow-hidden mt-2"
-          style={({ pressed }) => ({
-            opacity: submitting ? 0.5 : pressed ? 0.9 : 1,
-          })}
         >
-          <LinearGradient
-            colors={[tc.primary, tc.primaryDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{
-              paddingVertical: 14,
-              alignItems: "center",
-              borderRadius: 16,
-            }}
-          >
-            <Text
-              className="font-nunito-bold text-[15px]"
-              style={{ color: tc.primaryBg }}
-            >
-              {submitting
+          {submitting
                 ? "..."
                 : t("quests.speedCalculusStartRun", {
                     run: (state?.runsUsed ?? 0) + 1,
                   })}
-            </Text>
-          </LinearGradient>
-        </Pressable>
+        </Button>
       )}
 
       {!activeRun && state?.canCashOut && (
-        <Pressable
+        <Button
+          tone="secondary"
+          size="lg"
           onPress={onCashOut}
           disabled={submitting}
-          className="rounded-2xl overflow-hidden"
-          style={({ pressed }) => ({
-            opacity: submitting ? 0.5 : pressed ? 0.9 : 1,
-          })}
         >
-          <LinearGradient
-            colors={[tc.success, tc.successDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{
-              paddingVertical: 14,
-              alignItems: "center",
-              borderRadius: 16,
-            }}
-          >
-            <Text
-              className="font-nunito-bold text-[15px]"
-              style={{ color: tc.successText }}
-            >
-              {submitting
+          {submitting
                 ? "..."
                 : t("quests.speedCalculusCashOut", {
                     reward: state?.rewardPreview ?? 0,
                   })}
-            </Text>
-          </LinearGradient>
-        </Pressable>
+        </Button>
       )}
 
       {!activeRun && (state?.history.length ?? 0) > 0 ? (
@@ -188,7 +132,7 @@ export function SummaryCard({
       ) : null}
 
       {state?.locked && (
-        <View className="rounded-2xl border border-successBorder bg-successTint p-4 mt-2">
+        <View className="rounded-ds-md border border-successBorder bg-successTint p-4 mt-2">
           <Text className="font-nunito-bold text-successText text-sm">
             {state.claimed
               ? t("quests.speedCalculusClaimed")

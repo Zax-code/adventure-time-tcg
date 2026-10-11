@@ -27,10 +27,9 @@ export function RunHistoryCard({
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   return (
     <View
-      className="rounded-3xl border-2 border-primaryTint p-5"
+      className="rounded-ds-lg border border-primaryBorder p-ds-4"
       style={{
         backgroundColor: tc.surfaceMuted,
-        boxShadow: `0px 4px 12px ${withAlpha(tc.primaryDark, "24")}`,
       }}
     >
       <View className="flex-row items-center gap-2">
@@ -51,7 +50,7 @@ export function RunHistoryCard({
             return (
               <Animated.View
                 key={run.runNumber}
-                className="rounded-2xl border border-primaryTint p-4"
+                className="rounded-ds-md border border-primaryBorder p-4"
                 layout={LinearTransition.duration(300)}
                 style={{ backgroundColor: tc.primaryBg }}
               >
@@ -83,10 +82,9 @@ export function RunHistoryCard({
                       </Text>
                     </View>
                     <View
-                      className="flex-row items-center gap-1 rounded-[20px] border border-primaryTint px-3 py-1"
+                      className="flex-row items-center gap-1 rounded-ds-pill border border-primaryBorder px-3 py-1"
                       style={{
                         backgroundColor: tc.surface,
-                        boxShadow: `0px 1px 2px ${withAlpha(tc.primaryDark, "18")}`,
                       }}
                     >
                       <Text className="text-xs font-nunito-semibold text-primaryDark">
@@ -114,9 +112,8 @@ export function RunHistoryCard({
                     {run.history.map((entry) => (
                       <View
                         key={`${run.runNumber}-${entry.index}`}
-                        className={`rounded-2xl border px-3 py-2 ${entry.isCorrect ? "border-successBorder bg-successTint" : "border-dangerBorder bg-dangerTint"}`}
+                        className={`rounded-ds-md border px-3 py-2 ${entry.isCorrect ? "border-successBorder bg-successTint" : "border-dangerBorder bg-dangerTint"}`}
                         style={{
-                          boxShadow: `0px 1px 2px ${withAlpha( entry.isCorrect ? tc.successDark : tc.dangerDark, "18", )}`,
                         }}
                       >
                         <View className="flex-row items-center justify-between gap-3">

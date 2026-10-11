@@ -33,7 +33,7 @@ export function FeedbackBanner({
     <View className="h-[58px] mt-2.5 mx-4 justify-center">
       {feedback && pauseRemainingSeconds === 0 && currentQuestion && (
         <Animated.View
-          className={`rounded-2xl border py-2.5 px-4 items-center ${
+          className={`rounded-ds-md border py-2.5 px-4 items-center ${
             feedback.kind === "incorrect"
               ? "border-dangerBorder bg-dangerTint"
               : "border-successBorder bg-successTint"
