@@ -1,15 +1,33 @@
 import { Text, View } from "react-native";
+import Play from "lucide-react-native/icons/play";
 
 import type {
   PerfectTimingAttempt,
   PerfectTimingState,
 } from "@adventure-time/api-client";
 
+import { StatTile } from "../../../components/ui/stat-tile";
 import type { Locale } from "../../../i18n/types";
 import { QuestActionButton } from "../quest-action-button";
+import { formatPerfectTimingMilliseconds } from "./model";
 import { ResultCard } from "./result-card";
+import { TargetCard } from "./target-card";
 import { TimerCard } from "./timer-card";
-import type { ThemeColors, Translate } from "./types";
+import type { Translate } from "./types";
+
+// Elapsed time of today's closest stopped attempt, or a dash before any.
+function bestTodayLabel(state: PerfectTimingState, locale: Locale) {
+  let best: PerfectTimingAttempt | null = null;
+  for (const attempt of state.attempts) {
+    if (attempt.deviationMs == null || attempt.elapsedMs == null) continue;
+    if (best == null || attempt.deviationMs < (best.deviationMs ?? Infinity)) {
+      best = attempt;
+    }
+  }
+  return best?.elapsedMs != null
+    ? formatPerfectTimingMilliseconds(best.elapsedMs, locale)
+    : "\u2014";
+}
 
 export function OfficialPanel({
   continuePending,
@@ -29,7 +47,7 @@ export function OfficialPanel({
   state,
   stopError,
   t,
-  tc,
+  targetLabel,
   timerRunning,
   timerText,
 }: {
@@ -50,35 +68,60 @@ export function OfficialPanel({
   state: PerfectTimingState;
   stopError: boolean;
   t: Translate;
-  tc: ThemeColors;
+  targetLabel: string;
   timerRunning: boolean;
   timerText: string;
 }) {
+  const canStart = !timerRunning && state.status === "ready" && !stopError;
   const showKeep =
     state.status === "result" && result?.tier != null && result.tier !== "miss";
 
   return (
-    <View className="gap-4">
-      <View className="flex-row items-center justify-between px-1">
-        <Text className="font-nunito-bold text-sm text-fgMuted">
-          {t("quests.perfectTiming.attemptsRemaining")}
-        </Text>
-        <Text className="font-nunito-extrabold text-sm text-fg">
-          {state.remainingAttempts} / {state.maxAttempts}
-        </Text>
-      </View>
+    <View className="gap-ds-3">
+      <TargetCard label={targetLabel} targetMs={state.targetMs} locale={locale}>
+        <View className="flex-row gap-ds-2">
+          <StatTile
+            className="flex-1"
+            label={t("quests.perfectTiming.attemptsRemaining")}
+            value={`${state.remainingAttempts} / ${state.maxAttempts}`}
+            testID="perfect-timing-attempts-remaining"
+          />
+          <StatTile
+            className="flex-1"
+            label={t("quests.perfectTiming.bestToday")}
+            value={bestTodayLabel(state, locale)}
+            testID="perfect-timing-best-today"
+          />
+        </View>
+        {canStart ? (
+          <QuestActionButton
+            tone="primary"
+            size="lg"
+            leadingIcon={Play}
+            label={t("quests.perfectTiming.start")}
+            onPress={onStart}
+            loading={startPending}
+            testID="perfect-timing-start"
+          />
+        ) : null}
+        {canStart && startError ? (
+          <Text
+            accessibilityRole="alert"
+            className="text-center font-nunito-bold text-ds-sm text-dangerText"
+          >
+            {t("quests.perfectTiming.startError")}
+          </Text>
+        ) : null}
+      </TargetCard>
 
       {timerRunning ? (
-        <>
-          <TimerCard timerRunning timerText={timerText} t={t} />
-          <QuestActionButton
-            tone="danger"
-            size="lg"
-            label={t("quests.perfectTiming.stop")}
-            onPress={onStop}
-            testID="perfect-timing-stop"
-          />
-        </>
+        <TimerCard
+          timerRunning
+          timerText={timerText}
+          onStop={onStop}
+          stopTestID="perfect-timing-stop"
+          t={t}
+        />
       ) : null}
 
       {stopError ? (
@@ -92,27 +135,6 @@ export function OfficialPanel({
             onPress={onRetrySave}
             testID="perfect-timing-retry-save"
           />
-        </View>
-      ) : null}
-
-      {!timerRunning && state.status === "ready" && !stopError ? (
-        <View className="gap-3">
-          <QuestActionButton
-            tone="primary"
-            size="lg"
-            label={t("quests.perfectTiming.start")}
-            onPress={onStart}
-            loading={startPending}
-            testID="perfect-timing-start"
-          />
-          {startError ? (
-            <Text
-              accessibilityRole="alert"
-              className="text-center font-nunito-bold text-sm text-dangerDark"
-            >
-              {t("quests.perfectTiming.startError")}
-            </Text>
-          ) : null}
         </View>
       ) : null}
 

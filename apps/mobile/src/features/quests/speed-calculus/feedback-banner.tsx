@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Text } from "react-native";
 import Animated, {
   type SharedValue,
   useAnimatedStyle,
@@ -29,33 +29,35 @@ export function FeedbackBanner({
     transform: [{ translateY: feedbackSlide.value }],
   }));
 
+  if (!feedback || pauseRemainingSeconds !== 0 || !currentQuestion) {
+    return null;
+  }
+
+  // Floats over the bottom of the question Card so answering never shifts
+  // the keypad under the player's fingers.
   return (
-    <View className="h-[58px] mt-2.5 mx-4 justify-center">
-      {feedback && pauseRemainingSeconds === 0 && currentQuestion && (
-        <Animated.View
-          className={`rounded-ds-md border py-2.5 px-4 items-center ${
-            feedback.kind === "incorrect"
-              ? "border-dangerBorder bg-dangerTint"
-              : "border-successBorder bg-successTint"
-          }`}
-          style={animatedStyle}
-        >
-          <Text
-            className={`font-nunito-bold text-sm text-center ${
-              feedback.kind === "incorrect"
-                ? "text-dangerDark"
-                : "text-successDark"
-            }`}
-          >
-            {feedback.message}
-          </Text>
-          {feedback.kind === "incorrect" && feedback.questionLabel && (
-            <Text className="font-nunito-semibold text-dangerDark text-[11px] mt-0.5 uppercase tracking-[3px]">
-              {feedback.questionLabel} = {feedback.correctAnswer}
-            </Text>
-          )}
-        </Animated.View>
-      )}
-    </View>
+    <Animated.View
+      pointerEvents="none"
+      accessibilityLiveRegion="polite"
+      className={`absolute bottom-ds-2 left-ds-2 right-ds-2 items-center rounded-ds-md border px-ds-3 py-ds-2 ${
+        feedback.kind === "incorrect"
+          ? "border-dangerBorder bg-dangerTint"
+          : "border-successBorder bg-successTint"
+      }`}
+      style={animatedStyle}
+    >
+      <Text
+        className={`text-center font-nunito-bold text-ds-sm ${
+          feedback.kind === "incorrect" ? "text-dangerText" : "text-successText"
+        }`}
+      >
+        {feedback.message}
+      </Text>
+      {feedback.kind === "incorrect" && feedback.questionLabel ? (
+        <Text className="font-nunito-bold text-ds-overline uppercase tracking-[1px] text-dangerText">
+          {feedback.questionLabel} = {feedback.correctAnswer}
+        </Text>
+      ) : null}
+    </Animated.View>
   );
 }

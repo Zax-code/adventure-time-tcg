@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { Text, View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -19,9 +19,12 @@ type QuestionZoneProps = {
   pauseRemainingSeconds: number;
   currentQuestion: Question | null;
   activeRun: NonNullable<SpeedRunState["activeRun"]> | null;
+  // Floats over the card bottom (the answer feedback pill).
+  overlay?: ReactNode;
 };
 
-const RING_R = 54;
+const RING_SIZE = 112;
+const RING_R = 52;
 const RING_C = 2 * Math.PI * RING_R;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -29,6 +32,7 @@ export function QuestionZone({
   pauseRemainingSeconds,
   currentQuestion,
   activeRun,
+  overlay,
 }: QuestionZoneProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
@@ -54,35 +58,33 @@ export function QuestionZone({
     strokeDashoffset: pauseRingProgress.value * RING_C,
   }));
 
+  // Board 04 question Card: "QUESTION N" overline over the 48/800
+  // expression. It takes the free height above the answer field, and the
+  // feedback pill floats at its bottom so the keypad never moves.
   return (
-    <View className="flex-1 items-center justify-center px-6">
+    <View className="min-h-[102px] flex-1 items-center justify-center overflow-hidden rounded-ds-lg border border-primaryBorder bg-surface p-ds-4">
       {pauseRemainingSeconds > 0 ? (
         <View
           accessibilityLabel="speed-calculus-pause-countdown"
-          className="flex flex-col items-center justify-center"
+          className="items-center justify-center gap-ds-2"
           testID="speed-calculus-pause-countdown"
-          style={{ transform: [{ translateY: -20 }] }}
         >
-          <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-primary/50 mb-5">
+          <Text className="font-nunito-bold text-ds-overline uppercase tracking-[1px] text-fgMuted">
             {t("quests.speedCalculusResumeCountdownTitle")}
           </Text>
-          <View className="relative w-32 h-32 flex items-center justify-center">
-            <Svg
-              width="128"
-              height="128"
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-            >
+          <View className="h-[112px] w-[112px] items-center justify-center">
+            <Svg width={RING_SIZE} height={RING_SIZE} style={{ position: "absolute" }}>
               <Circle
-                cx="64"
-                cy="64"
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
                 r={RING_R}
                 stroke={tc.primaryBorder}
                 strokeWidth="4"
                 fill={tc.primaryTint}
               />
               <AnimatedCircle
-                cx="64"
-                cy="64"
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
                 r={RING_R}
                 stroke={tc.primary}
                 strokeWidth="4"
@@ -90,10 +92,10 @@ export function QuestionZone({
                 strokeDasharray={RING_C}
                 animatedProps={pauseRingProps}
                 strokeLinecap="round"
-                transform="rotate(-90, 64, 64)"
+                transform={`rotate(-90, ${RING_SIZE / 2}, ${RING_SIZE / 2})`}
               />
             </Svg>
-            <Text className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center align-middle font-nunito-extrabold text-primaryDark text-[56px]">
+            <Text className="text-center font-nunito-extrabold text-[48px] leading-[58px] text-primaryText">
               {pauseRemainingSeconds}
             </Text>
           </View>
@@ -101,33 +103,36 @@ export function QuestionZone({
       ) : currentQuestion ? (
         <View
           accessibilityLabel="speed-calculus-question-active"
-          className="items-center w-full"
+          className="w-full items-center gap-[2px]"
           testID="speed-calculus-question-active"
-          style={{ transform: [{ translateY: -20 }] }}
         >
           <Text
             accessibilityLabel={`speed-calculus-question-label-${(activeRun?.questionIndex ?? 0) + 1}`}
-            className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-primary/40"
+            className="font-nunito-bold text-ds-overline uppercase tracking-[1px] text-fgMuted"
             testID={`speed-calculus-question-label-${(activeRun?.questionIndex ?? 0) + 1}`}
           >
             {t("quests.speedCalculusQuestionNumber", {
               current: (activeRun?.questionIndex ?? 0) + 1,
             })}
           </Text>
-          <View className="w-12 h-px mt-2 mb-5 bg-primaryBorder" />
           <Text
-            className="font-nunito-extrabold text-primaryDark text-center text-[62px] leading-[70px]"
+            className="text-center font-nunito-extrabold text-[48px] leading-[58px] text-primaryText"
             adjustsFontSizeToFit
             numberOfLines={1}
-            style={{ transform: [{ translateY: -3 }] }}
           >
-            {currentQuestion.left} {currentQuestion.operator}{" "}
+            {currentQuestion.left} {formatOperator(currentQuestion.operator)}{" "}
             {currentQuestion.right}
           </Text>
         </View>
       ) : (
-        <Text className="text-sm font-nunito text-primaryDark/30">···</Text>
+        <Text className="font-nunito text-ds-sm text-fgMuted">···</Text>
       )}
+      {overlay}
     </View>
   );
+}
+
+// The design sets subtraction with a true minus sign.
+function formatOperator(operator: string) {
+  return operator === "-" ? "\u2212" : operator;
 }

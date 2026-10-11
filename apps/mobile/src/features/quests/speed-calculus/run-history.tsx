@@ -1,16 +1,16 @@
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
 } from "react-native-reanimated";
+import Timer from "lucide-react-native/icons/timer";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
+import { ListRow } from "../../../components/ui/list-row";
+import { SectionHeader } from "../../../components/ui/section-header";
+import { StatePanel } from "../../../components/ui/state-panel";
 import { useTranslation } from "../../../i18n";
-import { CoinIcon, SparklesIcon } from "../../../components/icons";
-import { useThemeStore } from "../../../stores/theme-store";
-import { THEME_COLORS } from "../../../theme/themes";
-import { withAlpha } from "./palette";
 
 type RunHistoryCardProps = {
   state: SpeedRunState | null;
@@ -18,142 +18,113 @@ type RunHistoryCardProps = {
   onToggle: (runNumber: number) => void;
 };
 
+// Board 04: a "Run history" SectionHeader in the page, then one Card per
+// run (expandable answer details) or the empty StatePanel.
 export function RunHistoryCard({
   state,
   openRuns,
   onToggle,
 }: RunHistoryCardProps) {
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const history = state?.history ?? [];
+
   return (
-    <View
-      className="rounded-ds-lg border border-primaryBorder p-ds-4"
-      style={{
-        backgroundColor: tc.surfaceMuted,
-      }}
-    >
-      <View className="flex-row items-center gap-2">
-        <SparklesIcon size={20} color={tc.primaryDark} />
-        <Text className="text-lg font-nunito-bold text-primaryDark">
-          {t("quests.speedCalculusRunHistory")}
-        </Text>
-      </View>
+    <View className="gap-ds-3">
+      <SectionHeader title={t("quests.speedCalculusRunHistory")} />
 
-      {(state?.history ?? []).length === 0 ? (
-        <Text className="text-sm font-nunito mt-4 text-primaryDark/70">
-          {t("quests.speedCalculusNoRunsYet")}
-        </Text>
+      {history.length === 0 ? (
+        <StatePanel
+          icon={Timer}
+          title={t("quests.speedCalculusNoRunsYet")}
+          body={t("quests.speedCalculusNoRunsYetBody")}
+          testID="speed-calculus-run-history-empty"
+        />
       ) : (
-        <View className="gap-3 mt-4">
-          {(state?.history ?? []).map((run) => {
-            const isOpen = openRuns[run.runNumber] ?? false;
-            return (
-              <Animated.View
-                key={run.runNumber}
-                className="rounded-ds-md border border-primaryBorder p-4"
-                layout={LinearTransition.duration(300)}
-                style={{ backgroundColor: tc.primaryBg }}
-              >
-                <Pressable
-                  onPress={() => onToggle(run.runNumber)}
-                  className="flex-row items-center justify-between gap-3"
-                >
-                  <View className="flex-1">
-                    <Text className="text-[15px] font-nunito-bold text-primaryDark">
-                      {t("quests.speedCalculusRunLabel", {
-                        run: run.runNumber,
-                        total: state?.maxRuns ?? 3,
-                      })}
-                    </Text>
-                    <Text className="text-[13px] font-nunito mt-2 text-primaryDark/80">
-                      {run.status === "abandoned"
-                        ? t("quests.speedCalculusRunExpired")
-                        : t("quests.speedCalculusRunSummary", {
-                            score: run.score,
-                            answered: run.totalAnswered,
-                          })}
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center gap-3">
-                    <View className="flex-row items-center gap-1">
-                      <CoinIcon size={16} />
-                      <Text className="text-sm font-nunito-bold text-secondaryText">
-                        {run.reward}
-                      </Text>
-                    </View>
-                    <View
-                      className="flex-row items-center gap-1 rounded-ds-pill border border-primaryBorder px-3 py-1"
-                      style={{
-                        backgroundColor: tc.surface,
-                      }}
-                    >
-                      <Text className="text-xs font-nunito-semibold text-primaryDark">
-                        {t("quests.speedCalculusRunDetailsToggle")}
-                      </Text>
-                      <Text
-                        className="text-sm font-nunito-semibold text-primaryDark"
-                        style={{
-                          transform: [{ rotate: isOpen ? "90deg" : "0deg" }],
-                        }}
-                      >
-                        {"\u203A"}
-                      </Text>
-                    </View>
-                  </View>
-                </Pressable>
+        history.map((run) => {
+          const isOpen = openRuns[run.runNumber] ?? false;
+          return (
+            <Animated.View
+              key={run.runNumber}
+              className="overflow-hidden rounded-ds-lg border border-primaryBorder bg-surface"
+              layout={LinearTransition.duration(300)}
+            >
+              <ListRow
+                title={t("quests.speedCalculusRunLabel", {
+                  run: run.runNumber,
+                  total: state?.maxRuns ?? 3,
+                })}
+                meta={
+                  run.status === "abandoned"
+                    ? t("quests.speedCalculusRunExpired")
+                    : t("quests.speedCalculusRunSummary", {
+                        score: run.score,
+                        answered: run.totalAnswered,
+                      })
+                }
+                trailingChip={{
+                  label: t("quests.speedCalculusRunReward", {
+                    reward: run.reward,
+                  }),
+                  tone: "secondary",
+                }}
+                chevron
+                divider={isOpen}
+                onPress={() => onToggle(run.runNumber)}
+                accessibilityLabel={t("quests.speedCalculusRunLabel", {
+                  run: run.runNumber,
+                  total: state?.maxRuns ?? 3,
+                })}
+                testID={`speed-calculus-run-${run.runNumber}`}
+              />
 
-                {isOpen && (
-                  <Animated.View
-                    className="pt-4 mt-4 gap-2 border-t"
-                    entering={FadeIn.duration(180)}
-                    exiting={FadeOut.duration(140)}
-                    style={{ borderTopColor: withAlpha(tc.primaryTint, "B3") }}
-                  >
-                    {run.history.map((entry) => (
-                      <View
-                        key={`${run.runNumber}-${entry.index}`}
-                        className={`rounded-ds-md border px-3 py-2 ${entry.isCorrect ? "border-successBorder bg-successTint" : "border-dangerBorder bg-dangerTint"}`}
-                        style={{
-                        }}
-                      >
-                        <View className="flex-row items-center justify-between gap-3">
-                          <Text
-                            className={`text-[13px] font-nunito-semibold ${entry.isCorrect ? "text-successText" : "text-dangerText"}`}
-                          >
-                            {t("quests.speedCalculusHistoryQuestion", {
-                              current: entry.index + 1,
-                            })}
-                          </Text>
-                          <Text
-                            className={`text-[13px] font-nunito-semibold ${entry.isCorrect ? "text-successDark" : "text-dangerDark"}`}
-                          >
-                            {entry.left} {entry.operator} {entry.right}
-                          </Text>
-                        </View>
+              {isOpen ? (
+                <Animated.View
+                  className="gap-ds-2 p-ds-4"
+                  entering={FadeIn.duration(180)}
+                  exiting={FadeOut.duration(140)}
+                >
+                  {run.history.map((entry) => (
+                    <View
+                      key={`${run.runNumber}-${entry.index}`}
+                      className={`rounded-ds-md border px-ds-3 py-ds-2 ${entry.isCorrect ? "border-successBorder bg-successTint" : "border-dangerBorder bg-dangerTint"}`}
+                    >
+                      <View className="flex-row items-center justify-between gap-ds-3">
                         <Text
-                          className={`text-[13px] font-nunito mt-1 ${entry.isCorrect ? "text-successDark" : "text-dangerDark"}`}
+                          className={`font-nunito-bold text-ds-sm ${entry.isCorrect ? "text-successText" : "text-dangerText"}`}
                         >
-                          {entry.wasAnswered
-                            ? t("quests.speedCalculusHistoryUserAnswer", {
-                                answer: entry.userAnswer ?? "",
-                              })
-                            : t("quests.speedCalculusHistoryUnanswered")}
+                          {t("quests.speedCalculusHistoryQuestion", {
+                            current: entry.index + 1,
+                          })}
                         </Text>
-                        {entry.correctAnswer !== null && (
-                          <Text className="text-[13px] font-nunito text-dangerDark mt-0.5">
-                            {t("quests.speedCalculusHistoryCorrectAnswer", {
-                              answer: entry.correctAnswer,
-                            })}
-                          </Text>
-                        )}
+                        <Text
+                          className={`font-nunito-bold text-ds-sm ${entry.isCorrect ? "text-successText" : "text-dangerText"}`}
+                        >
+                          {entry.left} {entry.operator} {entry.right}
+                        </Text>
                       </View>
-                    ))}
-                  </Animated.View>
-                )}
-              </Animated.View>
-            );
-          })}
-        </View>
+                      <Text
+                        className={`mt-ds-1 font-nunito text-ds-sm ${entry.isCorrect ? "text-successText" : "text-dangerText"}`}
+                      >
+                        {entry.wasAnswered
+                          ? t("quests.speedCalculusHistoryUserAnswer", {
+                              answer: entry.userAnswer ?? "",
+                            })
+                          : t("quests.speedCalculusHistoryUnanswered")}
+                      </Text>
+                      {entry.correctAnswer !== null ? (
+                        <Text className="font-nunito text-ds-sm text-dangerText">
+                          {t("quests.speedCalculusHistoryCorrectAnswer", {
+                            answer: entry.correctAnswer,
+                          })}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))}
+                </Animated.View>
+              ) : null}
+            </Animated.View>
+          );
+        })
       )}
     </View>
   );

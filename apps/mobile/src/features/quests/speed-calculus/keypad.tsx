@@ -1,14 +1,10 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  Text,
-  View,
-  type GestureResponderEvent,
-  type ViewStyle,
-} from "react-native";
+import { useCallback, useRef, useState, type ReactNode } from "react";
+import { Text, View, type GestureResponderEvent } from "react-native";
+import Check from "lucide-react-native/icons/check";
 
+import { Button } from "../../../components/ui/button";
+import { KEYPAD_KEY_CLASS } from "../../../components/ui/game/game-state";
 import { useTranslation } from "../../../i18n";
-import { useThemeStore } from "../../../stores/theme-store";
-import { THEME_COLORS } from "../../../theme/themes";
 import { KEYPAD_ROWS, type KeypadKey } from "./constants";
 import {
   getChangedTouchIdentifiers,
@@ -18,42 +14,11 @@ import {
 
 type InteractiveKeyId = KeypadKey | "CLEAR" | "SUBMIT";
 
-const KEY_GAP = 8;
-const KEY_HEIGHT = 56;
-const KEY_RADIUS = 16;
-
-const KEYPAD_GRID_STYLE: ViewStyle = { gap: KEY_GAP };
-const KEYPAD_ROW_STYLE: ViewStyle = {
-  flexDirection: "row",
-  gap: KEY_GAP,
-};
-const ACTION_ROW_STYLE: ViewStyle = {
-  flexDirection: "row",
-  gap: KEY_GAP,
-  marginTop: KEY_GAP,
-};
-const KEY_BASE_STYLE: ViewStyle = {
-  flex: 1,
-  height: KEY_HEIGHT,
-  borderRadius: KEY_RADIUS,
-  borderWidth: 1,
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: 0,
-};
-const SUBMIT_KEY_STYLE: ViewStyle = {
-  flex: 2,
-  height: KEY_HEIGHT,
-  borderRadius: KEY_RADIUS,
-  overflow: "hidden",
-  minWidth: 0,
-};
-const SUBMIT_FILL_STYLE: ViewStyle = {
-  flex: 1,
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: KEY_RADIUS,
-};
+// Board 04: 3-column Keypad Key grid (8 between columns, 12 between rows)
+// and a Clear / Submit Button row. Touches within half a row gap of a key
+// still land on the nearest key.
+const ROW_GAP = 12;
+const KEY_HIT_SLOP = ROW_GAP / 2;
 
 type KeypadProps = {
   answer: string;
@@ -72,26 +37,32 @@ type KeyButtonProps = {
   testID: string;
   disabled: boolean;
   pressed: boolean;
-  style: ViewStyle;
+  className: string;
   children: ReactNode;
   onPress: () => void;
   onBoundsChange: (
     keyId: InteractiveKeyId,
     bounds: KeyBounds<InteractiveKeyId>,
   ) => void;
+  // Buttons dim themselves when disabled.
+  dimWhenDisabled?: boolean;
   scalePressed?: number;
   pressedOpacity?: number;
 };
 
+// A visual key. It never receives touches itself (the keypad container
+// routes every pointer), it only reports its bounds and shows the pressed
+// state.
 function KeyButton({
   keyId,
   testID,
   disabled,
   pressed,
-  style,
+  className,
   children,
   onPress,
   onBoundsChange,
+  dimWhenDisabled = true,
   scalePressed = 0.95,
   pressedOpacity = 0.7,
 }: KeyButtonProps) {
@@ -123,9 +94,10 @@ function KeyButton({
       }}
       onLayout={measureBounds}
       pointerEvents="none"
+      className={className}
       style={{
-        ...style,
-        opacity: disabled ? 0.45 : showPressed ? pressedOpacity : 1,
+        opacity:
+          disabled && dimWhenDisabled ? 0.45 : showPressed ? pressedOpacity : 1,
         transform: [{ scale: showPressed ? scalePressed : 1 }],
       }}
     >
@@ -152,39 +124,12 @@ export function Keypad({
   onSubmit,
 }: KeypadProps) {
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const keyBoundsRef = useRef(
     new Map<InteractiveKeyId, KeyBounds<InteractiveKeyId>>(),
   );
   const activeTouchesRef = useRef(new Map<number | string, InteractiveKeyId>());
   const [pressedKeys, setPressedKeys] = useState<Set<InteractiveKeyId>>(
     () => new Set(),
-  );
-  // Keypad Key palette (board 02): digits default, ± action, delete and
-  // clear operator, submit selected.
-  const digitKeyStyle = useMemo<ViewStyle>(
-    () => ({
-      ...KEY_BASE_STYLE,
-      backgroundColor: tc.surface,
-      borderColor: tc.primaryBorder,
-    }),
-    [tc.primaryBorder, tc.surface],
-  );
-  const operatorKeyStyle = useMemo<ViewStyle>(
-    () => ({
-      ...KEY_BASE_STYLE,
-      backgroundColor: tc.primaryTint,
-      borderColor: tc.primaryTint,
-    }),
-    [tc.primaryTint],
-  );
-  const actionKeyStyle = useMemo<ViewStyle>(
-    () => ({
-      ...KEY_BASE_STYLE,
-      backgroundColor: tc.accentTint,
-      borderColor: tc.accentBorder,
-    }),
-    [tc.accentBorder, tc.accentTint],
   );
 
   const activateKey = useCallback(
@@ -214,7 +159,7 @@ export function Keypad({
       const presses = getKeyPressesForChangedTouches(
         event,
         [...keyBoundsRef.current.values()],
-        KEY_GAP / 2,
+        KEY_HIT_SLOP,
       );
       let pressedStateChanged = false;
 
@@ -248,79 +193,64 @@ export function Keypad({
 
   return (
     <View
-      className="mx-ds-4 mt-ds-3 rounded-ds-lg border border-primaryBorder bg-surface p-ds-2"
+      className="gap-ds-3"
       onTouchStart={handleKeypadTouchStart}
       onTouchEnd={releaseKeypadTouches}
       onTouchCancel={releaseKeypadTouches}
     >
-      <View style={KEYPAD_GRID_STYLE}>
-        {KEYPAD_ROWS.map((row) => (
-          <View key={row.join("")} style={KEYPAD_ROW_STYLE}>
-            {row.map((key) => {
-              const k = key as KeypadKey;
-              const isDisabled =
-                k === "DEL" ? keypadLocked || !answer : keypadLocked;
-              const isDigit = /^\d$/.test(k);
-              const fontSizeClass = isDigit
-                ? "text-[24px] leading-[29px]"
-                : k === "±"
-                  ? "text-ds-h3"
-                  : "text-ds-sm";
+      {KEYPAD_ROWS.map((row) => (
+        <View key={row.join("")} className="flex-row gap-ds-2">
+          {row.map((key) => {
+            const k = key as KeypadKey;
+            const isDisabled =
+              k === "DEL" ? keypadLocked || !answer : keypadLocked;
+            const isAction = k === "DEL" || k === "±";
+            const classes = KEYPAD_KEY_CLASS[isAction ? "action" : "default"];
+            const label =
+              k === "±"
+                ? t("quests.speedCalculusToggleNegative")
+                : k === "DEL"
+                  ? t("quests.speedCalculusDelete")
+                  : k;
 
-              const label =
-                k === "±"
-                  ? t("quests.speedCalculusToggleNegative")
-                  : k === "DEL"
-                    ? t("quests.speedCalculusDelete")
-                    : k;
-
-              const keyStyle =
-                k === "DEL"
-                  ? operatorKeyStyle
-                  : k === "±"
-                    ? actionKeyStyle
-                    : digitKeyStyle;
-
-              const keyTextClass =
-                k === "DEL"
-                  ? `font-nunito-extrabold text-center text-primaryText ${fontSizeClass}`
-                  : k === "±"
-                    ? `font-nunito-extrabold text-center text-accentText ${fontSizeClass}`
-                    : `font-nunito-extrabold text-center text-fg ${fontSizeClass}`;
-
-              return (
-                <KeyButton
-                  key={k}
-                  keyId={k}
-                  testID={keyTestID(k)}
-                  disabled={isDisabled}
-                  pressed={pressedKeys.has(k)}
-                  style={keyStyle}
-                  onPress={() => activateKey(k)}
-                  onBoundsChange={updateKeyBounds}
+            return (
+              <KeyButton
+                key={k}
+                keyId={k}
+                testID={keyTestID(k)}
+                disabled={isDisabled}
+                pressed={pressedKeys.has(k)}
+                className={`h-[56px] min-w-0 flex-1 items-center justify-center rounded-ds-md border ${classes.container}`}
+                onPress={() => activateKey(k)}
+                onBoundsChange={updateKeyBounds}
+              >
+                <Text
+                  className={`text-center font-nunito-extrabold ${
+                    isAction ? "text-ds-body" : "text-[24px] leading-[29px]"
+                  } ${classes.text}`}
                 >
-                  <Text className={keyTextClass}>{label}</Text>
-                </KeyButton>
-              );
-            })}
-          </View>
-        ))}
-      </View>
+                  {label}
+                </Text>
+              </KeyButton>
+            );
+          })}
+        </View>
+      ))}
 
-      {/* Action row: Clear + Submit — same height/radius as grid keys */}
-      <View style={ACTION_ROW_STYLE}>
+      <View className="flex-row gap-ds-3">
         <KeyButton
           keyId="CLEAR"
           testID={keyTestID("CLEAR")}
           disabled={keypadLocked || !answer}
           pressed={pressedKeys.has("CLEAR")}
-          style={operatorKeyStyle}
+          className="w-[120px]"
+          dimWhenDisabled={false}
           onPress={() => activateKey("CLEAR")}
           onBoundsChange={updateKeyBounds}
         >
-          <Text className="text-ds-sm font-nunito-extrabold text-primaryText">
+          <Button tone="ghost" size="lg" disabled={keypadLocked || !answer}>
             {t("quests.speedCalculusClear")}
-          </Text>
+          </Button>
         </KeyButton>
 
         <KeyButton
@@ -328,17 +258,21 @@ export function Keypad({
           testID={keyTestID("SUBMIT")}
           disabled={submitDisabled}
           pressed={pressedKeys.has("SUBMIT")}
-          style={SUBMIT_KEY_STYLE}
+          className="min-w-0 flex-1"
+          dimWhenDisabled={false}
           onPress={() => activateKey("SUBMIT")}
           onBoundsChange={updateKeyBounds}
           scalePressed={0.99}
           pressedOpacity={0.9}
         >
-          <View style={[SUBMIT_FILL_STYLE, { backgroundColor: tc.primary }]}>
-            <Text className="text-ds-body font-nunito-extrabold text-white">
-              {submitting ? "···" : t("quests.speedCalculusSubmit")}
-            </Text>
-          </View>
+          <Button
+            size="lg"
+            icon={Check}
+            disabled={submitDisabled}
+            loading={submitting}
+          >
+            {t("quests.speedCalculusSubmit")}
+          </Button>
         </KeyButton>
       </View>
     </View>

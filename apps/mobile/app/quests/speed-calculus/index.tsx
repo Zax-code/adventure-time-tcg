@@ -6,12 +6,13 @@ import {
   Alert,
   AppState,
   type AppStateStatus,
-  Pressable,
   ScrollView,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
+import ArrowRight from "lucide-react-native/icons/arrow-right";
+import Dumbbell from "lucide-react-native/icons/dumbbell";
+import History from "lucide-react-native/icons/rotate-ccw-clock";
 import {
   useSharedValue,
   withSequence,
@@ -26,15 +27,15 @@ import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { ApiClientError, apiClient } from "../../../src/lib/api";
 import { Button } from "../../../src/components/ui/button";
+import { Card } from "../../../src/components/ui/card";
+import { IconTile } from "../../../src/components/ui/icon-tile";
+import { Notice } from "../../../src/components/ui/notice";
+import { StackHeader } from "../../../src/components/ui/stack-header";
 import { useTranslation } from "../../../src/i18n";
 import { PageLoadingState } from "../../../src/components/loading-state";
 import { PageErrorState } from "../../../src/components/error-state";
 import { navigateBackFromQuest } from "../../../src/features/quests/quest-navigation";
 import { formatQuestShareDate } from "../../../src/features/quests/quest-share-date";
-import {
-  QuestScreenDescription,
-  QuestScreenHeader,
-} from "../../../src/features/quests/quest-screen-header";
 import { useQuestResetStore } from "../../../src/stores/quest-reset-store";
 import { useSessionStore } from "../../../src/stores/session-store";
 import { useThemeStore } from "../../../src/stores/theme-store";
@@ -56,10 +57,7 @@ import {
   type ToastType,
   type FeedbackType,
 } from "../../../src/features/quests/speed-calculus/constants";
-import {
-  getAnswerBoxPalette,
-  withAlpha,
-} from "../../../src/features/quests/speed-calculus/palette";
+import { getAnswerBoxPalette } from "../../../src/features/quests/speed-calculus/palette";
 
 type ActiveSpeedRun = NonNullable<SpeedRunState["activeRun"]>;
 
@@ -70,8 +68,6 @@ export default function SpeedCalculusScreen() {
 function useSpeedCalculusScreenView() {
   const { locale, t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { fontScale } = useWindowDimensions();
-  const stackMetadata = fontScale >= 1.6;
   const queryClient = useQueryClient();
   const patchUser = useSessionStore((session) => session.patchUser);
   const lastQuestResetAt = useQuestResetStore((state) => state.lastResetAt);
@@ -105,6 +101,8 @@ function useSpeedCalculusScreenView() {
   const questVersionRef = useRef<string | null>(null);
   const mutationEpochRef = useRef(0);
   const shareCardRef = useRef<View>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const historyOffsetRef = useRef(0);
   const shakeAnim = useSharedValue(0);
   const feedbackSlide = useSharedValue(-20);
   const feedbackOpacity = useSharedValue(0);
@@ -752,6 +750,13 @@ function useSpeedCalculusScreenView() {
     return () => subscription.remove();
   }, []);
 
+  const scrollToHistory = useCallback(() => {
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, historyOffsetRef.current - 12),
+      animated: true,
+    });
+  }, []);
+
   // ── Toggle run history accordion ─────────────────────────────────
   const toggleRunHistory = useCallback((runNumber: number) => {
     setOpenRuns((prev) => ({ ...prev, [runNumber]: !prev[runNumber] }));
@@ -906,70 +911,40 @@ function useSpeedCalculusScreenView() {
       )}
 
       <View style={{ paddingTop: insets.top }}>
-        <QuestScreenHeader
+        <StackHeader
           title={t("quests.speedCalculusTitle")}
           backLabel={t("quests.wordle.backToQuests")}
           backTestID="speed-calculus-back"
-          fallbackHref="/(tabs)/quests"
+          onBack={() => navigateBackFromQuest(router, "/(tabs)/quests")}
+          trailing={{
+            icon: History,
+            accessibilityLabel: t("quests.speedCalculusRunHistory"),
+            onPress: scrollToHistory,
+            testID: "speed-calculus-history-button",
+          }}
         />
       </View>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingVertical: 16,
-          gap: 16,
+          paddingTop: 12,
+          paddingBottom: 40,
+          gap: 12,
         }}
-        contentInset={{ bottom: insets.bottom + 16 }}
-        scrollIndicatorInsets={{ bottom: insets.bottom + 16 }}
+        contentInset={{ bottom: insets.bottom }}
+        scrollIndicatorInsets={{ bottom: insets.bottom }}
         keyboardShouldPersistTaps="handled"
       >
-        <QuestScreenDescription>
-          {t("quests.speedCalculusSubtitle", {
+        <Notice
+          tone="info"
+          title={t("quests.speedCalculusRunsMaxTitle")}
+          body={t("quests.speedCalculusRulesBody", {
             seconds: state?.runDurationSeconds ?? 30,
           })}
-        </QuestScreenDescription>
+        />
 
-        {/* ── Rules Card ──────────────────────────────────────────── */}
-        <View
-          className="rounded-ds-lg border border-primaryBorder p-ds-4"
-          style={{
-            backgroundColor: tc.surfaceMuted,
-          }}
-        >
-          <View
-            className={
-              stackMetadata
-                ? "items-stretch gap-4"
-                : "flex-row items-center justify-between gap-4"
-            }
-          >
-            <View className="min-w-0 flex-1">
-              <Text className="text-ds-overline font-nunito-bold uppercase text-primary/70 tracking-[1px]">
-                {t("quests.speedCalculusRules")}
-              </Text>
-              <Text className="text-sm font-nunito mt-2 text-primaryDark/80 leading-5">
-                {t("quests.speedCalculusRuleLine", {
-                  seconds: state?.runDurationSeconds ?? 30,
-                  reward: state?.rewardPerAnswer ?? 2,
-                })}
-              </Text>
-            </View>
-            <View
-              className={`${stackMetadata ? "items-start self-stretch" : "items-center"} rounded-ds-md px-4 py-3`}
-              style={{ backgroundColor: tc.primaryTint }}
-            >
-              <Text className="text-xs font-nunito-semibold text-primaryDark/70">
-                {t("quests.speedCalculusRunsLeft")}
-              </Text>
-              <Text className="text-2xl font-nunito-extrabold text-primaryDark">
-                {Math.max(0, (state?.maxRuns ?? 0) - (state?.runsUsed ?? 0))}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ── Summary Card ────────────────────────────────────────── */}
         <SummaryCard
           state={state}
           activeRun={activeRun}
@@ -983,35 +958,39 @@ function useSpeedCalculusScreenView() {
           sharing={isSharing}
         />
 
-        <View
-          className="rounded-ds-lg border p-ds-4"
-          style={{
-            borderColor: tc.primaryBorder,
-            backgroundColor: tc.surface,
-          }}
-        >
-          <Text className="text-ds-overline font-nunito-bold uppercase tracking-[1px] text-secondaryText/80">
-            {t("quests.speedCalculusTrainingTitle")}
-          </Text>
-          <Text className="mt-2 text-sm font-nunito leading-5 text-primaryDark/80">
-            {t("quests.speedCalculusTrainingBody")}
-          </Text>
+        <Card>
+          <View className="flex-row gap-ds-3">
+            <IconTile icon={Dumbbell} tone="success" />
+            <View className="flex-1 gap-[2px]">
+              <Text className="font-nunito-extrabold text-ds-h3 text-fg">
+                {t("quests.speedCalculusTrainingTitle")}
+              </Text>
+              <Text className="font-nunito text-ds-sm text-fgMuted">
+                {t("quests.speedCalculusTrainingBody")}
+              </Text>
+            </View>
+          </View>
           <Button
             tone="ghost"
-            size="lg"
-            className="mt-ds-4"
+            icon={ArrowRight}
             onPress={() => router.push("/quests/speed-calculus/training")}
+            testID="speed-calculus-open-training"
           >
             {t("quests.speedCalculusTrainingOpen")}
           </Button>
-        </View>
+        </Card>
 
-        {/* ── Run History ──────────────────────────────────────────── */}
-        <RunHistoryCard
-          state={state}
-          openRuns={openRuns}
-          onToggle={toggleRunHistory}
-        />
+        <View
+          onLayout={(event) => {
+            historyOffsetRef.current = event.nativeEvent.layout.y;
+          }}
+        >
+          <RunHistoryCard
+            state={state}
+            openRuns={openRuns}
+            onToggle={toggleRunHistory}
+          />
+        </View>
       </ScrollView>
 
       <ActiveRunPanel

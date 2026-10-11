@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Text } from "react-native";
 import Animated, {
   type SharedValue,
   useAnimatedStyle,
@@ -29,12 +29,15 @@ export function AnswerBox({
     transform: [{ translateX: shakeAnim.value }],
   }));
 
+  // Input anatomy (board 04): 56 high, radius 16, surface fill and the
+  // "Answer" placeholder. Feedback tints the field and a wrong answer
+  // shakes it.
   return (
     <Animated.View
       testID={answerTestID}
       accessibilityLabel={answerTestID}
       accessible
-      className="mx-4 rounded-ds-md border-2 px-5 items-center h-20"
+      className="h-[56px] flex-row items-center rounded-ds-md border px-ds-4"
       style={[
         {
           borderColor: answerBoxBorder,
@@ -43,24 +46,19 @@ export function AnswerBox({
         animatedStyle,
       ]}
     >
-      <View className="flex-1 items-center justify-center pt-2">
-        <Text
-          className="text-ds-overline font-nunito-bold uppercase tracking-[1px] mb-1 opacity-[0.55]"
-          style={{ color: answerBoxText }}
-        >
-          {t("quests.speedCalculusAnswerPlaceholder")}
-        </Text>
-        <Text
-          testID={answerTestID}
-          accessibilityLabel={answerTestID}
-          className="font-nunito-extrabold text-center text-[40px] leading-[46px]"
-          style={{
-            color: answer ? answerBoxText : answerPlaceholderText,
-          }}
-        >
-          {answer || "\u2014"}
-        </Text>
-      </View>
+      <Text
+        testID={answerTestID}
+        accessibilityLabel={answerTestID}
+        className={`flex-1 text-[17px] leading-[23px] ${
+          answer ? "font-nunito-extrabold" : "font-nunito"
+        }`}
+        style={{
+          color: answer ? answerBoxText : answerPlaceholderText,
+        }}
+        numberOfLines={1}
+      >
+        {answer || t("quests.speedCalculusAnswerPlaceholder")}
+      </Text>
     </Animated.View>
   );
 }

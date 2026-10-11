@@ -1,9 +1,11 @@
 import { ActivityIndicator, Text, View } from "react-native";
+import Play from "lucide-react-native/icons/play";
 
 import type { Locale } from "../../../i18n/types";
 import { QuestActionButton } from "../quest-action-button";
 import type { PerfectTimingLocalResult } from "./model";
 import { ResultCard } from "./result-card";
+import { TargetCard } from "./target-card";
 import { TimerCard } from "./timer-card";
 import type { ThemeColors, TrainingPhase, Translate } from "./types";
 
@@ -20,6 +22,8 @@ export function TrainingPanel({
   phase,
   result,
   t,
+  targetLabel,
+  targetMs,
   tc,
   timerRunning,
   timerText,
@@ -36,12 +40,42 @@ export function TrainingPanel({
   phase: TrainingPhase;
   result: PerfectTimingLocalResult | null;
   t: Translate;
+  targetLabel: string;
+  targetMs: number | null;
   tc: ThemeColors;
   timerRunning: boolean;
   timerText: string;
 }) {
+  const canStart =
+    !timerRunning && phase === "ready" && !isLoading && !isRefreshing;
+
   return (
-    <View className="gap-4">
+    <View className="gap-ds-3">
+      {targetMs != null ? (
+        <TargetCard label={targetLabel} targetMs={targetMs} locale={locale}>
+          {canStart ? (
+            <QuestActionButton
+              tone="primary"
+              size="lg"
+              leadingIcon={Play}
+              label={t("quests.perfectTiming.start")}
+              onPress={onStart}
+              testID="perfect-timing-training-start"
+            />
+          ) : null}
+        </TargetCard>
+      ) : null}
+
+      {timerRunning ? (
+        <TimerCard
+          timerRunning
+          timerText={timerText}
+          onStop={onStop}
+          stopTestID="perfect-timing-training-stop"
+          t={t}
+        />
+      ) : null}
+
       <Text className="rounded-ds-md border border-infoBorder bg-infoTint p-4 font-nunito text-sm leading-5 text-infoText">
         {t("quests.perfectTiming.trainingBody")}
       </Text>
@@ -64,29 +98,6 @@ export function TrainingPanel({
             testID="perfect-timing-training-target-retry"
           />
         </View>
-      ) : null}
-
-      {timerRunning ? (
-        <>
-          <TimerCard timerRunning timerText={timerText} t={t} />
-          <QuestActionButton
-            tone="danger"
-            size="lg"
-            label={t("quests.perfectTiming.stop")}
-            onPress={onStop}
-            testID="perfect-timing-training-stop"
-          />
-        </>
-      ) : null}
-
-      {!timerRunning && phase === "ready" && !isLoading && !isRefreshing ? (
-        <QuestActionButton
-          tone="primary"
-          size="lg"
-          label={t("quests.perfectTiming.start")}
-          onPress={onStart}
-          testID="perfect-timing-training-start"
-        />
       ) : null}
 
       {phase !== "result" && !isLoading && !hasError ? (

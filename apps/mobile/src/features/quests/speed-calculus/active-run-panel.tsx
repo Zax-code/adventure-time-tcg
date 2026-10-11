@@ -120,57 +120,61 @@ export function ActiveRunPanel({
           className="flex-1 bg-primaryBg"
           style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
         >
-          <HudCard
-            activeRun={activeRun}
-            runDurationSeconds={runDurationSeconds}
-            sessionLabel={sessionLabel}
-            remainingSeconds={remainingSeconds}
-            pauseRemainingSeconds={pauseRemainingSeconds}
-            displayedCorrectAnswers={displayedCorrectAnswers}
-            isManuallyPaused={isManuallyPaused}
-            onPause={onPause}
-            pauseDisabled={
-              !activeRun ||
-              pauseRemainingSeconds > 0 ||
-              isManuallyPaused ||
-              submitting
-            }
-          />
+          {/* Board 04 run layout: HUD, question Card, answer field, keypad. */}
+          <View className="flex-1 gap-ds-3 px-ds-4 pb-ds-6 pt-ds-3">
+            <HudCard
+              activeRun={activeRun}
+              runDurationSeconds={runDurationSeconds}
+              sessionLabel={sessionLabel}
+              remainingSeconds={remainingSeconds}
+              pauseRemainingSeconds={pauseRemainingSeconds}
+              displayedCorrectAnswers={displayedCorrectAnswers}
+              isManuallyPaused={isManuallyPaused}
+              onPause={onPause}
+              pauseDisabled={
+                !activeRun ||
+                pauseRemainingSeconds > 0 ||
+                isManuallyPaused ||
+                submitting
+              }
+            />
 
-          <FeedbackBanner
-            feedback={feedback}
-            feedbackSlide={feedbackSlide}
-            feedbackOpacity={feedbackOpacity}
-            pauseRemainingSeconds={pauseRemainingSeconds}
-            currentQuestion={currentQuestion}
-          />
+            <QuestionZone
+              pauseRemainingSeconds={pauseRemainingSeconds}
+              currentQuestion={currentQuestion}
+              activeRun={activeRun}
+              overlay={
+                <FeedbackBanner
+                  feedback={feedback}
+                  feedbackSlide={feedbackSlide}
+                  feedbackOpacity={feedbackOpacity}
+                  pauseRemainingSeconds={pauseRemainingSeconds}
+                  currentQuestion={currentQuestion}
+                />
+              }
+            />
 
-          <QuestionZone
-            pauseRemainingSeconds={pauseRemainingSeconds}
-            currentQuestion={currentQuestion}
-            activeRun={activeRun}
-          />
+            <AnswerBox
+              answer={answer}
+              shakeAnim={shakeAnim}
+              answerBoxBg={answerBoxBg}
+              answerBoxBorder={answerBoxBorder}
+              answerBoxText={answerBoxText}
+              answerPlaceholderText={answerPlaceholderText}
+            />
 
-          <AnswerBox
-            answer={answer}
-            shakeAnim={shakeAnim}
-            answerBoxBg={answerBoxBg}
-            answerBoxBorder={answerBoxBorder}
-            answerBoxText={answerBoxText}
-            answerPlaceholderText={answerPlaceholderText}
-          />
-
-          <Keypad
-            answer={answer}
-            keypadLocked={keypadLocked}
-            submitDisabled={submitDisabled}
-            submitting={submitting}
-            onDigit={onDigit}
-            onDelete={onDelete}
-            onClear={onClear}
-            onToggleSign={onToggleSign}
-            onSubmit={onSubmit}
-          />
+            <Keypad
+              answer={answer}
+              keypadLocked={keypadLocked}
+              submitDisabled={submitDisabled}
+              submitting={submitting}
+              onDigit={onDigit}
+              onDelete={onDelete}
+              onClear={onClear}
+              onToggleSign={onToggleSign}
+              onSubmit={onSubmit}
+            />
+          </View>
 
           {showRoundOver && (
             <RoundOverOverlay
