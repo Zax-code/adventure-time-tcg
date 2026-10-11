@@ -923,13 +923,17 @@ function PodiumPlaceColumn({
       />
       <Text
         numberOfLines={1}
-        className="w-full text-center font-nunito-extrabold text-ds-sm text-fg"
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        className={`w-full text-center font-nunito-extrabold text-fg ${compact ? "text-[11px]" : "text-ds-sm"}`}
       >
         {place.row.profile.displayName}
       </Text>
       <Text
         numberOfLines={1}
-        className="font-nunito-extrabold text-ds-sm tabular-nums text-primaryText"
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        className={`w-full text-center font-nunito-extrabold tabular-nums text-primaryText ${compact ? "text-[11px]" : "text-ds-sm"}`}
       >
         {formatPoints(place.row.points, locale, t)}
       </Text>
