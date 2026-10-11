@@ -127,7 +127,7 @@ Run any flow through the wrapper (never raw `maestro test`): `MOBILE_TEST_PASSWO
 |------|---------|---------|-------------|
 | `rankings-screenshots.yaml` | Rankings focused screenshots | wrapper | 2026-08-17 |
 | `rankings-board-results-screenshots.yaml` | Rankings board result screenshots | wrapper | 2026-08-17 |
-| `rankings-tied-podium.yaml` | Rankings tied standings screenshot | wrapper | 2026-08-19 |
+| `rankings-tied-podium.yaml` | Rankings tied podium screenshot | wrapper | 2026-08-19 |
 | `rankings-weekly-summaries.yaml` | Rankings weekly summary screenshots | wrapper | 2026-08-19 |
 
 ### Admin

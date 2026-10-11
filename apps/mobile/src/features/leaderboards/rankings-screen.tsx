@@ -1,4 +1,5 @@
 import Check from "lucide-react-native/icons/check";
+import Crown from "lucide-react-native/icons/crown";
 import Info from "lucide-react-native/icons/info";
 import Radio from "lucide-react-native/icons/radio";
 import Trophy from "lucide-react-native/icons/trophy";
@@ -46,6 +47,12 @@ import {
 } from "../../theme/layout";
 import { THEME_COLORS } from "../../theme/themes";
 import { formatLeaderboardRawResult } from "./format-raw-result";
+import { RankingsAvatar } from "./rankings-avatar";
+import {
+  buildRankingsPresentation,
+  type PodiumPlace,
+  type TopRank,
+} from "./rankings-presentation";
 import {
   RANKINGS_PREVIEW_DATA,
   RANKINGS_TIED_PREVIEW_DATA,
@@ -58,6 +65,7 @@ import { PageTitle } from "../../components/ui/page-title";
 import { SectionHeader } from "../../components/ui/section-header";
 import { SegmentedControl } from "../../components/ui/segmented-control";
 import { StatePanel } from "../../components/ui/state-panel";
+import { ICON_STROKE_WIDTH, useThemePalette } from "../../components/ui/tokens";
 
 type MainPeriod = "daily" | "weekly" | "history";
 type LivePeriod = "today" | "yesterday" | "current_week" | "last_week";
@@ -564,6 +572,10 @@ function RankingsContent({
   const { locale, t } = useTranslation();
   const router = useRouter();
   const closeCountdown = useCloseCountdown(data.period);
+  const { podiumSlots, hasTopRankTie, remainingRows } = useMemo(
+    () => buildRankingsPresentation(data.rows),
+    [data.rows],
+  );
   const currentPlayerListed = data.currentPlayer
     ? data.rows.some((row) => isCurrentPlayer(row, data.currentPlayer))
     : false;
@@ -617,18 +629,30 @@ function RankingsContent({
       </Card>
 
       {data.rows.length > 0 ? (
-        <Card flush testID="leaderboard-standings">
-          {data.rows.map((row, index) => (
-            <RankingRow
-              key={row.profile.handle}
-              row={row}
-              tieIndex={countEarlierTies(data.rows, index)}
-              divider={index < data.rows.length - 1}
-              current={isCurrentPlayer(row, data.currentPlayer)}
-              onPress={() => openProfile(row)}
+        <>
+          {podiumSlots.length > 0 ? (
+            <Podium
+              slots={podiumSlots}
+              tied={hasTopRankTie}
+              onPress={openProfile}
             />
-          ))}
-        </Card>
+          ) : null}
+          {remainingRows.length > 0 ? (
+            <Card flush testID="leaderboard-standings">
+              {remainingRows.map((item, index) => (
+                <RankingRow
+                  key={item.row.profile.handle}
+                  row={item.row}
+                  tieIndex={item.tieIndex}
+                  tied={item.tied}
+                  divider={index < remainingRows.length - 1}
+                  current={isCurrentPlayer(item.row, data.currentPlayer)}
+                  onPress={() => openProfile(item.row)}
+                />
+              ))}
+            </Card>
+          ) : null}
+        </>
       ) : (
         <StatePanel
           icon={Trophy}
@@ -791,9 +815,142 @@ function HistoryWeek({
   );
 }
 
+const PODIUM_STYLE: Record<
+  TopRank,
+  { ring: string; pedestal: string; rankText: string; height: number }
+> = {
+  1: {
+    ring: "border-secondary",
+    pedestal: "bg-secondaryTint",
+    rankText: "text-secondaryText",
+    height: 88,
+  },
+  2: {
+    ring: "border-infoBorder",
+    pedestal: "bg-infoTint",
+    rankText: "text-infoText",
+    height: 64,
+  },
+  3: {
+    ring: "border-accentBorder",
+    pedestal: "bg-accentTint",
+    rankText: "text-accentText",
+    height: 48,
+  },
+};
+
+function formatPoints(
+  points: number,
+  locale: "en" | "fr",
+  t: ReturnType<typeof useTranslation>["t"],
+) {
+  return t("rankings.points", {
+    points: points.toLocaleString(locale === "fr" ? "fr-FR" : "en-US"),
+  });
+}
+
+function Podium({
+  slots,
+  tied,
+  onPress,
+}: {
+  slots: Array<PodiumPlace<LeaderboardRow> | null>;
+  tied: boolean;
+  onPress: (row: LeaderboardRow) => void;
+}) {
+  // Five tied columns need smaller avatars to fit a 390-wide phone.
+  const compact = slots.length > 3;
+
+  return (
+    <View
+      className="flex-row items-end gap-ds-2 overflow-hidden rounded-ds-lg border border-primaryBorder bg-surface px-ds-3 pt-ds-4"
+      testID={tied ? "leaderboard-tied-podium" : "leaderboard-podium"}
+    >
+      {slots.map((place, index) =>
+        place ? (
+          <PodiumPlaceColumn
+            key={place.row.profile.handle}
+            place={place}
+            compact={compact}
+            onPress={() => onPress(place.row)}
+          />
+        ) : (
+          <View key={index === 0 ? "empty-left" : "empty-right"} className="flex-1" />
+        ),
+      )}
+    </View>
+  );
+}
+
+function PodiumPlaceColumn({
+  place,
+  compact,
+  onPress,
+}: {
+  place: PodiumPlace<LeaderboardRow>;
+  compact: boolean;
+  onPress: () => void;
+}) {
+  const { locale, t } = useTranslation();
+  const tc = useThemePalette();
+  const style = PODIUM_STYLE[place.rank];
+  const first = place.rank === 1;
+  const avatarSize = first ? (compact ? 56 : 72) : compact ? 44 : 56;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      className="min-w-0 flex-1 items-center gap-[6px]"
+      testID={
+        place.tieIndex > 0
+          ? `leaderboard-podium-${place.rank}-${place.tieIndex + 1}`
+          : `leaderboard-podium-${place.rank}`
+      }
+    >
+      {first ? (
+        <Crown
+          size={24}
+          color={tc.secondaryText}
+          strokeWidth={ICON_STROKE_WIDTH}
+        />
+      ) : null}
+      <RankingsAvatar
+        profile={place.row.profile}
+        size={avatarSize}
+        ringWidth={3}
+        ringClassName={style.ring}
+      />
+      <Text
+        numberOfLines={1}
+        className="w-full text-center font-nunito-extrabold text-ds-sm text-fg"
+      >
+        {place.row.profile.displayName}
+      </Text>
+      <Text
+        numberOfLines={1}
+        className="font-nunito-extrabold text-ds-sm tabular-nums text-primaryText"
+      >
+        {formatPoints(place.row.points, locale, t)}
+      </Text>
+      <View
+        className={`w-full items-center rounded-t-ds-md border border-b-0 border-primaryBorder pt-[10px] ${style.pedestal}`}
+        style={{ height: style.height }}
+      >
+        <Text
+          className={`font-nunito-extrabold text-ds-h2 tabular-nums ${style.rankText}`}
+        >
+          {place.row.rank}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 function RankingRow({
   row,
   tieIndex = 0,
+  tied = false,
   divider,
   current,
   onPress,
@@ -801,13 +958,20 @@ function RankingRow({
   row: LeaderboardRow;
   // Tied players share a rank; the second and later ones get a suffixed testID.
   tieIndex?: number;
+  tied?: boolean;
   divider: boolean;
   current?: boolean;
   onPress?: () => void;
 }) {
   const { locale, t } = useTranslation();
   const result = formatLeaderboardRawResult(row.rawResult, locale, t);
-  const first = row.rank === 1;
+  const meta = [
+    current ? t("rankings.you") : null,
+    result || null,
+    tied ? t("rankings.tied") : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <Pressable
@@ -822,55 +986,38 @@ function RankingRow({
           : `leaderboard-row-${row.rank}`
       }
     >
-      <View
-        className={`size-8 items-center justify-center rounded-ds-pill border ${
-          first
-            ? "border-secondaryBorder bg-secondaryTint"
-            : "border-primaryBorder bg-surface"
-        }`}
-      >
-        <Text
-          className={`font-nunito-extrabold text-ds-sm tabular-nums ${
-            first ? "text-secondaryText" : "text-fg"
-          }`}
-        >
+      <View className="size-8 items-center justify-center rounded-ds-pill border border-primaryBorder bg-surfaceMuted">
+        <Text className="font-nunito-extrabold text-ds-sm tabular-nums text-fg">
           {row.rank}
         </Text>
       </View>
-      <View className="min-w-0 flex-1 gap-[2px]">
+      <RankingsAvatar
+        profile={row.profile}
+        size={32}
+        ringWidth={2}
+        ringClassName="border-surface"
+      />
+      <View className="min-w-0 flex-1">
         <Text
           numberOfLines={1}
           className="font-nunito-bold text-ds-body text-fg"
         >
           {row.profile.displayName}
         </Text>
-        {result || current ? (
+        {meta ? (
           <Text
             numberOfLines={2}
             className="font-nunito text-ds-sm tabular-nums text-fgMuted"
           >
-            {current
-              ? result
-                ? t("rankings.youWithResult", { result })
-                : t("rankings.you")
-              : result}
+            {meta}
           </Text>
         ) : null}
       </View>
       <Text className="font-nunito-extrabold text-ds-body tabular-nums text-primaryText">
-        {t("rankings.points", { points: row.points.toLocaleString(locale === "fr" ? "fr-FR" : "en-US") })}
+        {formatPoints(row.points, locale, t)}
       </Text>
     </Pressable>
   );
-}
-
-function countEarlierTies(rows: LeaderboardRow[], index: number) {
-  let count = 0;
-  for (let earlier = index - 1; earlier >= 0; earlier -= 1) {
-    if (rows[earlier].rank !== rows[index].rank) break;
-    count += 1;
-  }
-  return count;
 }
 
 function isCurrentPlayer(
