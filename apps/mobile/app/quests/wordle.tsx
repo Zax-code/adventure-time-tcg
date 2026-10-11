@@ -36,6 +36,7 @@ import { apiClient } from "../../src/lib/api";
 import { ShareIcon } from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { GAME_CELL_CLASS, type GameCellState } from "../../src/components/ui/game/game-state";
 import { QuestActionButton } from "../../src/features/quests/quest-action-button";
 import { navigateBackFromQuest } from "../../src/features/quests/quest-navigation";
 import {
@@ -122,30 +123,16 @@ function getWordleQuestType(locale: WordleLocale) {
   return locale === "fr" ? "wordle_daily_fr" : "wordle_daily_en";
 }
 
-function tileBgBorderClass(state?: LetterState): string {
-  if (state === "correct") return "bg-successDark border-successDark";
-  if (state === "present") return "bg-secondary border-secondary";
-  if (state === "absent") return "bg-muted border-muted";
-  return "bg-surface border-primaryTint";
-}
-
-function tileLetterClass(state?: LetterState): string {
-  if (state === "correct" || state === "present") return "text-white";
-  if (state === "absent") return "text-fg";
-  return "text-primaryDark";
+function cellState(state?: LetterState): GameCellState {
+  return state ?? "empty";
 }
 
 function keyBgBorderClass(state?: LetterState): string {
-  if (state === "correct") return "bg-successDark border-successDark";
-  if (state === "present") return "bg-secondary border-secondary";
-  if (state === "absent") return "bg-surfaceMuted border-primaryTint";
-  return "bg-surface border-primaryTint";
+  return GAME_CELL_CLASS[cellState(state)].container;
 }
 
 function keyLetterClass(state?: LetterState): string {
-  if (state === "correct" || state === "present") return "text-white";
-  if (state === "absent") return "text-fgMuted";
-  return "text-primaryStrong";
+  return GAME_CELL_CLASS[cellState(state)].text;
 }
 
 export default function WordleScreen() {
@@ -1222,8 +1209,10 @@ function useWordleScreenView() {
                       : undefined;
                     const displayLetter = removingLetter ?? letter;
                     const evalState = getTileState(rowIndex, colIndex);
-                    const bgBorderCls = tileBgBorderClass(evalState);
-                    const letterCls = tileLetterClass(evalState);
+                    const tileState: GameCellState =
+                      evalState ?? (displayLetter ? "filled" : "empty");
+                    const bgBorderCls = GAME_CELL_CLASS[tileState].container;
+                    const letterCls = GAME_CELL_CLASS[tileState].text;
                     const isAnimatingRow = animatingRows.has(rowIndex);
                     const isRemovingCell = removingLetter != null;
 
@@ -1235,7 +1224,7 @@ function useWordleScreenView() {
                     return (
                       <Pressable
                         key={`${rowIndex}-${colIndex}`}
-                        style={{ flex: 1, height: 48 }}
+                        style={{ flex: 1, height: 56 }}
                         onPress={
                           isTappable ? () => removeLetter(colIndex) : undefined
                         }
@@ -1338,7 +1327,7 @@ function useWordleScreenView() {
         </View>
 
         {/* ── Keyboard card ───────────────────────────────────────────────── */}
-        <View className="rounded-[28px] border-2 border-primaryTint bg-surface p-3 shadow shadow-black/10">
+        <View className="rounded-ds-lg border border-primaryBorder bg-surface p-ds-3">
           <View
             onLayout={(e) => setRowContainerWidth(e.nativeEvent.layout.width)}
             className="gap-2"
@@ -1373,7 +1362,7 @@ function useWordleScreenView() {
                           key={letter}
                           accessibilityLabel={`wordle-key-${letter}`}
                           accessibilityRole="button"
-                          className={`h-[56px] rounded-2xl border-2 items-center justify-center shadow shadow-black/10 ${keyCls}`}
+                          className={`h-[44px] rounded-ds-sm border items-center justify-center ${keyCls}`}
                           disabled={inputLocked}
                           hitSlop={KEY_HIT_SLOP}
                           onPress={() => {
@@ -1389,7 +1378,7 @@ function useWordleScreenView() {
                           testID={`wordle-key-${letter}`}
                         >
                           <Text
-                            className={`text-sm font-nunito-extrabold ${keyLetterClass(kState)}`}
+                            className={`text-ds-body font-nunito-extrabold ${keyLetterClass(kState)}`}
                           >
                             {letter}
                           </Text>
@@ -1402,13 +1391,13 @@ function useWordleScreenView() {
             })()}
           </View>
 
-          <View className="mt-3 h-px bg-primaryTint" />
+          <View className="mt-ds-3 h-px bg-primaryBorder" />
           {/* Clear + Submit row */}
           <View className="mt-3 flex-row gap-2">
             <Pressable
               accessibilityLabel="wordle-key-CLEAR"
               accessibilityRole="button"
-              className="flex-1 h-[56px] rounded-2xl border-2 border-primaryTint bg-surfaceMuted items-center justify-center shadow shadow-black/10"
+              className="flex-1 h-[44px] rounded-ds-sm border border-primaryBorder bg-surface items-center justify-center"
               disabled={rowClearDisabled}
               hitSlop={KEY_HIT_SLOP}
               onPress={() => {
@@ -1437,7 +1426,7 @@ function useWordleScreenView() {
               }}
               testID="wordle-key-CLEAR"
             >
-              <Text className="text-xs font-nunito-extrabold text-primaryStrong">
+              <Text className="text-ds-sm font-nunito-extrabold text-fg">
                 {t("quests.wordle.clear")}
               </Text>
             </Pressable>
@@ -1445,7 +1434,7 @@ function useWordleScreenView() {
             <Pressable
               accessibilityLabel="wordle-key-SUBMIT"
               accessibilityRole="button"
-              className="flex-1 h-[56px] rounded-2xl overflow-hidden shadow shadow-black/10"
+              className="flex-1 h-[44px] rounded-ds-sm overflow-hidden bg-primary"
               disabled={submitLocked}
               hitSlop={KEY_HIT_SLOP}
               onPress={() => {
@@ -1472,20 +1461,11 @@ function useWordleScreenView() {
               }}
               testID="wordle-key-SUBMIT"
             >
-              <LinearGradient
-                colors={[tc.primary, tc.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text className="text-xs font-nunito-extrabold text-white">
+              <View className="flex-1 items-center justify-center">
+                <Text className="text-ds-sm font-nunito-extrabold text-white">
                   {submitting ? "…" : t("quests.wordle.submit")}
                 </Text>
-              </LinearGradient>
+              </View>
             </Pressable>
           </View>
         </View>
