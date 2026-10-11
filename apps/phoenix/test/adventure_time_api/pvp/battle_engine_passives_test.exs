@@ -3,7 +3,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
 
   alias AdventureTimeApi.Pvp.BattleEngine
 
-  defp make_unit(overrides \\ %{}) do
+  defp make_unit(overrides) do
     Map.merge(
       %{
         "instanceId" => "u1",

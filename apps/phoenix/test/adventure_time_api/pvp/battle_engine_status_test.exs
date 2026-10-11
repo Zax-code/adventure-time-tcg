@@ -5,7 +5,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
 
   # ── Helpers ───────────────────────────────────────────────────────────────
 
-  defp make_unit(overrides \\ %{}) do
+  defp make_unit(overrides) do
     Map.merge(
       %{
         "instanceId" => "u1",
