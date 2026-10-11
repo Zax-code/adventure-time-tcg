@@ -494,7 +494,7 @@
 				CODE_SIGN_ENTITLEMENTS = AdventureTimeNative/AdventureTimeNative.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 57;
+				CURRENT_PROJECT_VERSION = 70;
 				DEVELOPMENT_TEAM = MDPYMBZQ36;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -507,7 +507,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.22;
+				MARKETING_VERSION = 1.0.35;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -531,14 +531,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = AdventureTimeNative/AdventureTimeNative.entitlements;
-				CURRENT_PROJECT_VERSION = 57;
+				CURRENT_PROJECT_VERSION = 70;
 				INFOPLIST_FILE = AdventureTimeNative/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.22;
+				MARKETING_VERSION = 1.0.35;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -697,7 +697,7 @@
 				CODE_SIGN_ENTITLEMENTS = StepQuestWidgetExtension/StepQuestWidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 57;
+				CURRENT_PROJECT_VERSION = 70;
 				DEVELOPMENT_TEAM = MDPYMBZQ36;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StepQuestWidgetExtension/Info.plist;
@@ -707,7 +707,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.22;
+				MARKETING_VERSION = 1.0.35;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = love.leaetzak.adventuretime.stepquestwidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -723,7 +723,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = StepQuestWidgetExtension/StepQuestWidgetExtension.entitlements;
-				CURRENT_PROJECT_VERSION = 57;
+				CURRENT_PROJECT_VERSION = 70;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StepQuestWidgetExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
@@ -732,7 +732,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.22;
+				MARKETING_VERSION = 1.0.35;
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = love.leaetzak.adventuretime.stepquestwidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
