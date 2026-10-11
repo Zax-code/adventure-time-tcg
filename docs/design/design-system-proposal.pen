@@ -11306,7 +11306,7 @@
               "fill": "#7A6A5E",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "The four quest games and the battle board share one control kit. Game Tile: 56 square, radius 16, 24/800 letter; states empty / filled / correct (success) / present (secondary) / absent (muted). Game Key: 32x44 radius 12 surface key with 15/800 label, same four states; wide keys (Enter, Delete) are 52 wide. Keypad Key: 56 high, radius 16, 24/800, for Daily Numbers numbers, operators and the Speed Calculus pad; a selected key uses primary. Game HUD: a Card with timer / counter Stat Tiles, a Progress bar and a Ghost-sm Pause. Results use the shared Dialog.",
+              "content": "The four quest games and the battle board share one control kit. Game Tile: 56 square, radius 16, 24/800 letter; states empty / filled / correct (success) / present (secondary) / absent (muted). Game Key: 32x44 radius 12 surface key with 15/800 label, same four states; Delete is 44 wide; Submit is a full-width primary key under the keyboard. Tile letters and digits get a 0.1em downward nudge on iOS to sit on the optical center. Keypad Key: 56 high, radius 16, 24/800, for Daily Numbers numbers, operators and the Speed Calculus pad; a selected key uses primary. Game HUD: a Card with timer / counter Stat Tiles, a Progress bar and a Ghost-sm Pause. Results use the shared Dialog.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
               "fontSize": 13
@@ -11541,7 +11541,7 @@
                   "id": "WVdF1",
                   "name": "Note",
                   "fill": "#7A6A5E",
-                  "content": "Game Key: letters 32 wide, Enter 56, Delete 44; same states as tiles",
+                  "content": "Game Key: letters 32 wide, Delete 44, Submit full width under the keyboard; same states as tiles",
                   "fontFamily": "$font",
                   "fontSize": 13
                 }
@@ -32740,23 +32740,6 @@
                                       "gap": 4,
                                       "children": [
                                         {
-                                          "id": "FNUPV",
-                                          "type": "ref",
-                                          "ref": "ksoEY",
-                                          "name": "Key Enter",
-                                          "width": 56,
-                                          "height": 40,
-                                          "fill": "$primary",
-                                          "stroke": "$primary",
-                                          "descendants": {
-                                            "Ml5G7": {
-                                              "content": "Enter",
-                                              "fill": "$onPrimary",
-                                              "fontSize": 11
-                                            }
-                                          }
-                                        },
-                                        {
                                           "id": "sbfYz",
                                           "type": "ref",
                                           "ref": "ksoEY",
@@ -32885,6 +32868,23 @@
                                           }
                                         }
                                       ]
+                                    },
+                                    {
+                                      "id": "FNUPV",
+                                      "type": "ref",
+                                      "ref": "ksoEY",
+                                      "name": "Key Submit",
+                                      "width": "fill_container",
+                                      "height": 44,
+                                      "fill": "$primary",
+                                      "stroke": "$primary",
+                                      "descendants": {
+                                        "Ml5G7": {
+                                          "content": "Submit",
+                                          "fill": "$onPrimary",
+                                          "fontSize": 15
+                                        }
+                                      }
                                     }
                                   ]
                                 }
