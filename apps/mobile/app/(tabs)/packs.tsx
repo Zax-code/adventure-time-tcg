@@ -11,6 +11,9 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import Check from "lucide-react-native/icons/check";
+import Coins from "lucide-react-native/icons/coins";
+import Sparkles from "lucide-react-native/icons/sparkles";
 import {
   cancelAnimation,
   Easing,
@@ -111,6 +114,9 @@ import {
   type Pack,
   type RarityName,
 } from "../../src/features/packs/opening-model";
+import { Card } from "../../src/components/ui/card";
+import { Chip } from "../../src/components/ui/chip";
+import { Notice } from "../../src/components/ui/notice";
 import { PageTitle } from "../../src/components/ui/page-title";
 
 export default function PacksScreen() {
@@ -1350,9 +1356,9 @@ function usePacksScreenView() {
         className="flex-1"
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: 16,
           paddingBottom: 24,
-          gap: 18,
+          gap: 12,
         }}
         scrollIndicatorInsets={{ bottom: bottomTabPadding }}
       >
@@ -1360,20 +1366,12 @@ function usePacksScreenView() {
         <PageTitle
           title={t("packs.title")}
           subtitle={t("packs.subtitle")}
-          className="mb-ds-4"
+          className="mb-ds-2"
         />
-        <View
-          style={{
-            borderRadius: 30,
-            padding: 22,
-            borderWidth: 1,
-            borderColor: tc.primaryBorder,
-            backgroundColor: tc.surface,
-          }}
-        >
+        <Card>
           <View className="gap-3">
             <View className="gap-3">
-              <Text className="font-nunito text-sm leading-6 text-fgMuted">
+              <Text className="font-nunito text-ds-body text-fgMuted">
                 {featuredPack
                   ? t("packs.nextGoalValue", {
                       name: featuredPack.name,
@@ -1384,14 +1382,13 @@ function usePacksScreenView() {
             </View>
           </View>
 
-          <View className="mt-5 gap-3">
-            <SectionBadge
-              icon={<CheckIcon size={12} color={tc.successText} />}
+          <View className="gap-ds-3">
+            <Chip
+              tone="success"
+              icon={Check}
               label={t("packs.affordableCount", {
                 count: affordablePacks.length,
               })}
-              backgroundColor={tc.successTint}
-              textColor={tc.successText}
             />
 
             {heroPack ? (
@@ -1403,7 +1400,7 @@ function usePacksScreenView() {
                 style={{ opacity: heroCanOpen ? 1 : 0.62 }}
               >
                 <View
-                  className="flex-row items-center justify-between rounded-[24px] px-5 py-4"
+                  className="flex-row items-center justify-between rounded-ds-md px-ds-4 py-ds-4"
                   style={{
                     backgroundColor: heroCanOpen
                       ? tc.primaryStrong
@@ -1458,20 +1455,10 @@ function usePacksScreenView() {
               </Pressable>
             ) : null}
           </View>
-        </View>
+        </Card>
 
         {openError ? (
-          <View
-            className="rounded-[24px] border p-4"
-            style={{
-              backgroundColor: tc.dangerTint,
-              borderColor: tc.dangerBorder,
-            }}
-          >
-            <Text className="font-nunito-semibold text-sm leading-6 text-dangerText">
-              {openError}
-            </Text>
-          </View>
+          <Notice tone="danger" title={openError} />
         ) : null}
 
         <View className="gap-4">
@@ -1508,7 +1495,7 @@ function usePacksScreenView() {
                 style={{ opacity: canOpen ? 1 : 0.54 }}
               >
                 <View
-                  className="rounded-[30px] border p-4"
+                  className="rounded-ds-lg border p-ds-4"
                   style={{
                     backgroundColor: limitReached
                       ? tc.surfaceMuted
@@ -1528,27 +1515,19 @@ function usePacksScreenView() {
                     <View className="flex-1 gap-4">
                       <View className="gap-2">
                         <View className="flex-row items-center justify-between gap-3">
-                          <Text className="flex-1 font-nunito-extrabold text-[22px] leading-[26px] text-fg">
+                          <Text className="flex-1 font-nunito-extrabold text-ds-h2 text-fg">
                             {pack.name}
                           </Text>
-                          <View className="shrink-0 flex-row items-center gap-2">
-                            <CoinIcon size={18} />
-                            <Text className="font-nunito-extrabold text-lg leading-[26px] text-fg">
-                              {pack.cost}
-                            </Text>
-                          </View>
+                          <Chip tone="secondary" icon={Coins} label={String(pack.cost)} />
                         </View>
                         {isFeatured ? (
-                          <SectionBadge
-                            icon={
-                              <SparklesIcon size={11} color={tc.accentText} />
-                            }
+                          <Chip
+                            tone="accent"
+                            icon={Sparkles}
                             label={t("packs.recommended")}
-                            backgroundColor={tc.accentTint}
-                            textColor={tc.accentText}
                           />
                         ) : null}
-                        <Text className="font-nunito text-sm leading-6 text-fgMuted">
+                        <Text className="font-nunito text-ds-sm text-fgMuted">
                           {t("packs.cardsCount", { count: pack.cardCount })}
                           {" · "}
                           {pack.guaranteedRarity
@@ -1561,7 +1540,7 @@ function usePacksScreenView() {
 
                       {limitReached ? (
                         <View
-                          className="flex-row items-center gap-3 rounded-2xl border px-3 py-2"
+                          className="flex-row items-center gap-ds-3 rounded-ds-md border px-ds-3 py-ds-2"
                           style={{
                             backgroundColor: tc.bg,
                             borderColor: tc.primaryBorder,
