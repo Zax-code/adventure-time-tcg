@@ -2,7 +2,7 @@ import { type FormEvent, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { AppleLogoIcon, GoogleLogoIcon } from "../../components/icons";
+import { AppleLogoIcon, GoogleLogoIcon } from "../../components/brand-logos";
 import { Button, Field, FormStatus } from "../../components/ui";
 import { useAuth } from "../../auth/auth-provider";
 import {
