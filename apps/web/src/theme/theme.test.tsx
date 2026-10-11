@@ -10,6 +10,7 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  getThemeEffectCssVariables,
   THEME_COLORS,
   THEME_CSS_VARIABLES,
   THEME_NAMES,
@@ -85,9 +86,10 @@ describe("ThemeProvider", () => {
 
       expect(blockStart).toBeGreaterThanOrEqual(0);
 
-      for (const [variableName, expectedValue] of Object.entries(
-        THEME_CSS_VARIABLES[themeName],
-      )) {
+      for (const [variableName, expectedValue] of Object.entries({
+        ...THEME_CSS_VARIABLES[themeName],
+        ...getThemeEffectCssVariables(themeName),
+      })) {
         const match = block.match(
           new RegExp(`${variableName}:\\s*([^;]+);`, "i"),
         );

@@ -3,8 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tailwind-tokens": "./generated/tailwind-tokens.cjs"
+  },
   "scripts": {
+    "build": "node --experimental-strip-types --no-warnings scripts/generate.ts",
+    "check": "node --experimental-strip-types --no-warnings scripts/generate.ts --check",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

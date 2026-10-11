@@ -246,3 +246,120 @@ export const THEME_CSS_VARIABLES: Record<ThemeName, ThemeCssVariables> = {
   ice: getThemeCssVariables("ice"),
   nightosphere: getThemeCssVariables("nightosphere"),
 };
+
+// Non-color scales from the design system spec
+// (docs/design/design-system-proposal.pen, board 01 Foundations).
+
+export const RADIUS = {
+  sm: 12,
+  md: 16,
+  lg: 24,
+  xl: 28,
+  pill: 999,
+} as const;
+
+export const SPACE = {
+  1: 4,
+  2: 8,
+  3: 12,
+  4: 16,
+  5: 20,
+  6: 24,
+  8: 32,
+} as const;
+
+export const FONT_WEIGHT = {
+  regular: 400,
+  semibold: 600,
+  bold: 700,
+  extrabold: 800,
+} as const;
+
+export const LINE_HEIGHT = {
+  title: 1.2,
+  body: 1.45,
+} as const;
+
+export const TYPE = {
+  display: { size: 34, lineHeight: LINE_HEIGHT.title },
+  h1: { size: 28, lineHeight: LINE_HEIGHT.title },
+  h2: { size: 22, lineHeight: LINE_HEIGHT.title },
+  h3: { size: 17, lineHeight: LINE_HEIGHT.title },
+  body: { size: 15, lineHeight: LINE_HEIGHT.body },
+  sm: { size: 13, lineHeight: LINE_HEIGHT.body },
+  caption: { size: 12, lineHeight: LINE_HEIGHT.body },
+  overline: { size: 11, lineHeight: LINE_HEIGHT.body },
+} as const;
+
+export type TypeRole = keyof typeof TYPE;
+
+export function getLineHeightPx(role: TypeRole): number {
+  return Math.round(TYPE[role].size * TYPE[role].lineHeight);
+}
+
+export const CONTROL = {
+  lg: 52,
+  md: 44,
+  sm: 36,
+  iconButton: 40,
+  input: 48,
+  header: 56,
+  tabBar: 68,
+} as const;
+
+export interface ShadowToken {
+  color: string;
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+}
+
+export interface ThemeElevation {
+  // Cards and tiles are flat: 1px primaryBorder, no shadow.
+  float: ShadowToken;
+  overlay: ShadowToken;
+}
+
+// float uses the spec's $shadow color. overlay is drawn at 20% primaryStrong in
+// the spec for candy only; ice follows the same rule and nightosphere keeps
+// its black shadow at a higher opacity.
+export const SHADOW = {
+  candy: {
+    float: { color: "#BE185D1F", offsetX: 0, offsetY: 4, blur: 12 },
+    overlay: { color: "#BE185D33", offsetX: 0, offsetY: 12, blur: 32 },
+  },
+  ice: {
+    float: { color: "#1E40AF1F", offsetX: 0, offsetY: 4, blur: 12 },
+    overlay: { color: "#1E40AF33", offsetX: 0, offsetY: 12, blur: 32 },
+  },
+  nightosphere: {
+    float: { color: "#00000080", offsetX: 0, offsetY: 4, blur: 12 },
+    overlay: { color: "#000000A6", offsetX: 0, offsetY: 12, blur: 32 },
+  },
+} as const satisfies Record<ThemeName, ThemeElevation>;
+
+// The one scrim behind sheets, dialogs and full-screen takeovers.
+export const BACKDROP = {
+  candy: "#4A223270",
+  ice: "#1F293770",
+  nightosphere: "#060110D6",
+} as const satisfies Record<ThemeName, string>;
+
+export const THEME_EFFECT_CSS_VARIABLE_NAMES = {
+  backdrop: "--color-backdrop",
+  shadow: "--color-shadow",
+} as const;
+
+export type ThemeEffectCssVariables = Record<
+  (typeof THEME_EFFECT_CSS_VARIABLE_NAMES)[keyof typeof THEME_EFFECT_CSS_VARIABLE_NAMES],
+  string
+>;
+
+export function getThemeEffectCssVariables(
+  themeName: ThemeName,
+): ThemeEffectCssVariables {
+  return {
+    [THEME_EFFECT_CSS_VARIABLE_NAMES.backdrop]: BACKDROP[themeName],
+    [THEME_EFFECT_CSS_VARIABLE_NAMES.shadow]: SHADOW[themeName].float.color,
+  };
+}

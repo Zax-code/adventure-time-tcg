@@ -160,6 +160,9 @@ jobs:
       - name: Typecheck workspaces
         run: npm run typecheck
 
+      - name: Check generated theme tokens
+        run: npm run check -w @adventure-time/theme
+
       - name: Run workspace build scripts
         run: npm run build
 
