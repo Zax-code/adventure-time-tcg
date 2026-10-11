@@ -3958,11 +3958,7 @@ function DailyNumbersPlayView({
   return (
     <View className="flex-1 bg-bg">
       <View
-        className="bg-bg pb-2"
-        style={{
-          paddingTop: insets.top + 10,
-          paddingHorizontal: compact ? 12 : 16,
-        }}
+        style={{ paddingTop: insets.top }}
       >
         <QuestScreenHeader
           title={t("quests.dailyNumbers.title")}

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { ComponentType } from "react";
 import { ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
 import type {
@@ -20,6 +21,7 @@ import {
   WordleQuestIcon,
 } from "../../components/icons";
 import { PageLoadingState } from "../../components/loading-state";
+import { StackHeader } from "../../components/ui/stack-header";
 import { useTranslation } from "../../i18n";
 import { apiClient } from "../../lib/api";
 import { useThemeStore } from "../../stores/theme-store";
@@ -80,6 +82,7 @@ export function PublicProfileScreen() {
     preview?: string;
   }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { locale, t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const isPreview = process.env.EXPO_PUBLIC_E2E_AUTH === "1" && preview === "1";
@@ -101,21 +104,16 @@ export function PublicProfileScreen() {
   const profile = isPreview ? PUBLIC_PROFILE_PREVIEW_DATA : queryData;
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: t("rankings.profile.title"),
-          headerBackButtonDisplayMode: "minimal",
-          headerShadowVisible: false,
-          headerStyle: { backgroundColor: tc.bg },
-          headerTintColor: tc.primaryText,
-          headerTitleStyle: {
-            color: tc.fg,
-            fontFamily: "Nunito_800ExtraBold",
-          },
-        }}
-      />
+    <View className="flex-1 bg-bg">
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={{ paddingTop: insets.top }}>
+        <StackHeader
+          title={t("rankings.profile.title")}
+          onBack={() => router.back()}
+          backLabel={t("common.errorStates.backAction")}
+          backTestID="public-profile-back"
+        />
+      </View>
       {queryIsLoading && !isPreview ? (
         <PageLoadingState
           title={t("rankings.profile.loadingTitle")}
@@ -130,7 +128,6 @@ export function PublicProfileScreen() {
         />
       ) : profile ? (
         <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
           className="flex-1 bg-bg"
           contentContainerStyle={{
             paddingHorizontal: 16,
@@ -308,7 +305,7 @@ export function PublicProfileScreen() {
           </View>
         </ScrollView>
       ) : null}
-    </>
+    </View>
   );
 }
 

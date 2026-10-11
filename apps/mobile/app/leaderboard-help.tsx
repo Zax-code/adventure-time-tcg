@@ -81,7 +81,6 @@ export default function LeaderboardHelpScreen() {
     <ModalSheetRoute
       onClose={() => router.back()}
       sheetBackgroundColor={tc.bg}
-      handleColor={tc.muted}
       sheetStyle={THEME_VARS[themeName]}
       title={t("rankings.help.title")}
     >

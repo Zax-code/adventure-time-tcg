@@ -560,7 +560,6 @@ function useSettingsScreenView() {
     <ModalSheetRoute
       onClose={() => router.back()}
       sheetBackgroundColor={tc.bg}
-      handleColor={tc.primaryBorder}
       sheetStyle={THEME_VARS[themeName]}
       title={t("settings.title")}
       subtitle={t("settings.subtitle")}

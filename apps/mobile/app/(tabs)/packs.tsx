@@ -111,6 +111,7 @@ import {
   type Pack,
   type RarityName,
 } from "../../src/features/packs/opening-model";
+import { PageTitle } from "../../src/components/ui/page-title";
 
 export default function PacksScreen() {
   return usePacksScreenView();
@@ -1356,6 +1357,11 @@ function usePacksScreenView() {
         scrollIndicatorInsets={{ bottom: bottomTabPadding }}
       >
         <View style={{ height: headerHeight }} />
+        <PageTitle
+          title={t("packs.title")}
+          subtitle={t("packs.subtitle")}
+          className="mb-ds-4"
+        />
         <View
           style={{
             borderRadius: 30,
@@ -1367,15 +1373,6 @@ function usePacksScreenView() {
         >
           <View className="gap-3">
             <View className="gap-3">
-              <SectionBadge
-                icon={<PackIcon size={14} color={tc.primaryText} />}
-                label={t("packs.title")}
-                backgroundColor={tc.surfaceMuted}
-                textColor={tc.primaryText}
-              />
-              <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
-                {t("packs.subtitle")}
-              </Text>
               <Text className="font-nunito text-sm leading-6 text-fgMuted">
                 {featuredPack
                   ? t("packs.nextGoalValue", {

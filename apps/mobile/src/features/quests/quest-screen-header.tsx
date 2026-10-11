@@ -1,9 +1,7 @@
-import Ionicons from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Text } from "react-native";
 
-import { useThemeStore } from "../../stores/theme-store";
-import { THEME_COLORS } from "../../theme/themes";
+import { StackHeader } from "../../components/ui/stack-header";
 import { navigateBackFromQuest } from "./quest-navigation";
 
 type QuestScreenHeaderProps = {
@@ -13,6 +11,9 @@ type QuestScreenHeaderProps = {
   fallbackHref?: string;
 };
 
+// Quest screens' StackHeader. Render it directly under the safe area with no
+// horizontal padding around it so every pushed screen's header sits at the
+// same position.
 export function QuestScreenHeader({
   title,
   backLabel,
@@ -20,48 +21,14 @@ export function QuestScreenHeader({
   fallbackHref = "/(tabs)/quests",
 }: QuestScreenHeaderProps) {
   const router = useRouter();
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
-
-  const handleBack = () => {
-    navigateBackFromQuest(router, fallbackHref);
-  };
 
   return (
-    <View className="gap-2">
-      <View className="min-h-11 flex-row items-center">
-        <Pressable
-          onPress={handleBack}
-          hitSlop={4}
-          className="h-11 w-11 items-center justify-center rounded-2xl border border-primaryBorder bg-surface"
-          style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
-          accessibilityRole="button"
-          accessibilityLabel={backLabel}
-          testID={backTestID}
-        >
-          <Ionicons name="chevron-back" size={22} color={tc.primaryDark} />
-        </Pressable>
-
-        <View className="flex-1 px-3">
-          <Text
-            className="text-center font-nunito-extrabold text-[22px] leading-7 text-fg"
-            accessibilityRole="header"
-            accessibilityLabel={title}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.6}
-            minimumFontScale={0.72}
-            numberOfLines={2}
-          >
-            {title}
-          </Text>
-        </View>
-
-        <View
-          className="h-11 w-11"
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        />
-      </View>
-    </View>
+    <StackHeader
+      title={title}
+      backLabel={backLabel}
+      backTestID={backTestID}
+      onBack={() => navigateBackFromQuest(router, fallbackHref)}
+    />
   );
 }
 

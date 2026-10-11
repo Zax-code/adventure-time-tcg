@@ -63,6 +63,7 @@ import {
   useMinuteNow,
 } from "../../src/features/pvp/turn-timeout";
 import { getPvpMatchResultView } from "../../src/features/pvp/match-result";
+import { PageTitle } from "../../src/components/ui/page-title";
 
 type ToastState = {
   message: string;
@@ -805,6 +806,11 @@ function usePvpScreenView() {
           testID="pvp-lobby-hero"
           style={{ paddingTop: headerHeight }}
         >
+          <PageTitle
+            title={t("pvp.lobby.title")}
+            subtitle={t("pvp.lobby.subtitle")}
+            className="mb-ds-2"
+          />
           <View
             style={{
               backgroundColor: tc.surfaceMuted,
@@ -817,19 +823,6 @@ function usePvpScreenView() {
             <View className="gap-4 px-4 py-5">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1 gap-3">
-                  <View className="flex-row items-center gap-3">
-                    <View className="h-12 w-12 items-center justify-center rounded-3xl bg-primaryTint">
-                      <SwordsIcon size={26} color={tc.primaryDark} />
-                    </View>
-                    <View className="flex-1 gap-1">
-                      <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
-                        {t("pvp.lobby.title")}
-                      </Text>
-                      <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                        {t("pvp.lobby.subtitle")}
-                      </Text>
-                    </View>
-                  </View>
                   <View className="flex-row gap-2" testID="pvp-lobby-overview">
                     <View className="flex-1 rounded-2xl bg-surface px-3 py-2.5">
                       <Text className="font-nunito-extrabold text-2xl text-fg">

@@ -3,7 +3,6 @@ import { BottomSheet } from "@swmansion/react-native-bottom-sheet";
 import {
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
   type StyleProp,
@@ -17,6 +16,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { RADIUS } from "@adventure-time/theme";
+
+import { SheetHeader } from "./ui/sheet-header";
+import { getBackdropColor, useThemeName } from "./ui/tokens";
+
 const MIN_TOP_GAP = 56;
 const TOP_PADDING = 16;
 
@@ -24,7 +28,6 @@ export function ModalSheetRoute({
   children,
   onClose,
   sheetBackgroundColor,
-  handleColor,
   sheetStyle,
   title,
   subtitle,
@@ -32,12 +35,12 @@ export function ModalSheetRoute({
   children: ReactNode;
   onClose: () => void;
   sheetBackgroundColor: string;
-  handleColor: string;
   sheetStyle?: StyleProp<ViewStyle>;
   title?: string;
   subtitle?: string;
 }) {
   const insets = useSafeAreaInsets();
+  const themeName = useThemeName();
   const { height } = useWindowDimensions();
   const topGap = Math.max(insets.top + TOP_PADDING, MIN_TOP_GAP);
   const sheetHeight = Math.max(0, height - topGap);
@@ -59,8 +62,8 @@ export function ModalSheetRoute({
           StyleSheet.absoluteFill,
           {
             backgroundColor: sheetBackgroundColor,
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
+            borderTopLeftRadius: RADIUS.xl,
+            borderTopRightRadius: RADIUS.xl,
           },
         ]}
       />
@@ -82,7 +85,7 @@ export function ModalSheetRoute({
       <Animated.View
         className="absolute inset-0"
         style={[
-          { backgroundColor: "rgba(0,0,0,0.4)" },
+          { backgroundColor: getBackdropColor(themeName) },
           backdropAnimatedStyle,
         ]}
       >
@@ -110,35 +113,14 @@ export function ModalSheetRoute({
             {
               height: sheetHeight,
               overflow: "hidden",
-              borderTopLeftRadius: 32,
-              borderTopRightRadius: 32,
+              borderTopLeftRadius: RADIUS.xl,
+              borderTopRightRadius: RADIUS.xl,
               backgroundColor: sheetBackgroundColor,
             },
             sheetStyle,
           ]}
         >
-          <View className="border-b border-primaryTint px-5 pb-4 pt-3">
-            <View
-              className="mx-auto h-1.5 w-10 rounded-full"
-              style={{ backgroundColor: handleColor }}
-            />
-            {title ? (
-              <Text
-                className="mt-3 text-center font-nunito-extrabold text-2xl leading-8 text-fg"
-                numberOfLines={2}
-              >
-                {title}
-              </Text>
-            ) : null}
-            {subtitle ? (
-              <Text
-                className="mt-1 text-center font-nunito-semibold text-sm leading-5 text-fgMuted"
-                numberOfLines={2}
-              >
-                {subtitle}
-              </Text>
-            ) : null}
-          </View>
+          <SheetHeader title={title} subtitle={subtitle} />
 
           <View className="flex-1">{children}</View>
         </View>

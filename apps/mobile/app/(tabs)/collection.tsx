@@ -28,6 +28,7 @@ import { useSharedValue, withTiming } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
+import { RADIUS } from "@adventure-time/theme";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
 import { CardTile } from "../../src/components/card-tile";
@@ -41,6 +42,9 @@ import {
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { PrimaryButton } from "../../src/components/button";
+import { PageTitle } from "../../src/components/ui/page-title";
+import { SheetHeader } from "../../src/components/ui/sheet-header";
+import { getBackdropColor } from "../../src/components/ui/tokens";
 import { ThemedExpoTextInput } from "../../src/components/expo-ui/themed-text-input";
 import { ThemedModal } from "../../src/components/themed-modal";
 import { ToastBanner } from "../../src/components/toast-banner";
@@ -104,8 +108,8 @@ function DustInfoSheet({
           StyleSheet.absoluteFill,
           {
             backgroundColor: surfaceColor,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
+            borderTopLeftRadius: RADIUS.xl,
+            borderTopRightRadius: RADIUS.xl,
           },
         ]}
       />
@@ -517,26 +521,11 @@ function useCollectionScreenView() {
   const allCards = rawCards ?? [];
   const ownedCount = ownedCards.length;
   const notOwnedCount = Math.max(allCards.length - ownedCount, 0);
-  const dustSheetScrim =
-    themeName === "nightosphere" ? "rgba(6,1,10,0.84)" : "rgba(74,34,50,0.44)";
+  const dustSheetScrim = getBackdropColor(themeName);
 
   const listHeader = (
     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
-      {/* Title */}
-      <Text
-        style={{
-          fontSize: 30,
-          fontFamily: "Nunito_800ExtraBold",
-          color: tc.primaryDark,
-          textAlign: "center",
-          marginBottom: 12,
-          textShadowColor: "rgba(0,0,0,0.15)",
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 3,
-        }}
-      >
-        {t("collection.title")}
-      </Text>
+      <PageTitle title={t("collection.title")} className="mb-ds-3" />
 
       {/* Dust pill — centered */}
       <View style={{ alignItems: "center", marginBottom: 8 }}>
@@ -1048,6 +1037,10 @@ function useCollectionScreenView() {
           surfaceColor={tc.surface}
         >
           <View style={dustModalStyles.sheetContainer}>
+            <SheetHeader
+              title={t("collection.dustModal.title")}
+              subtitle={t("collection.dustModal.description")}
+            />
             <LinearGradient
               colors={[tc.secondaryTint, tc.primaryBg]}
               start={{ x: 0, y: 0 }}
@@ -1059,74 +1052,6 @@ function useCollectionScreenView() {
                 gap: 12,
               }}
             >
-              <View
-                style={{
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
-                <View
-                  style={{
-                    width: 40,
-                    height: 4,
-                    borderRadius: 999,
-                    backgroundColor: tc.secondaryBorder,
-                  }}
-                />
-                <View
-                  style={{
-                    width: "100%",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 10,
-                      flex: 1,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 19,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: tc.secondary,
-                      }}
-                    >
-                      <DustIcon size={20} color={tc.secondaryText} />
-                    </View>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text
-                        className="text-secondaryText"
-                        style={{
-                          fontSize: 18,
-                          fontFamily: "Nunito_800ExtraBold",
-                        }}
-                      >
-                        {t("collection.dustModal.title")}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          lineHeight: 17,
-                          color: tc.fgMuted,
-                          fontFamily: "Nunito_400Regular",
-                        }}
-                      >
-                        {t("collection.dustModal.description")}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-
               <View
                 style={{
                   alignItems: "center",

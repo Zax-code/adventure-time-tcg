@@ -169,12 +169,12 @@ function usePerfectTimingScreenView() {
   const trainingTargetMs = trainingTargetQuery.data?.targetMs ?? null;
   const scrollContentStyle = useMemo(
     () => ({
-      paddingTop: Math.max(insets.top, 12),
+      paddingTop: 8,
       paddingBottom: Math.max(insets.bottom, 28),
       paddingHorizontal: 16,
       gap: 16,
     }),
-    [insets.bottom, insets.top],
+    [insets.bottom],
   );
 
   useEffect(() => {
@@ -579,101 +579,104 @@ function usePerfectTimingScreenView() {
   const displayTargetMs = trainingMode ? trainingTargetMs : state.targetMs;
 
   return (
-    <ScrollView
-      className="flex-1 bg-bg"
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={scrollContentStyle}
-      keyboardShouldPersistTaps="handled"
-    >
-      <QuestScreenHeader
-        title={t("quests.perfectTiming.title")}
-        backLabel={t("quests.perfectTiming.backToQuests")}
-        backTestID="perfect-timing-back"
-      />
-      <QuestScreenDescription>
-        {t("quests.perfectTiming.subtitle")}
-      </QuestScreenDescription>
-
-      <ModeSelector
-        trainingMode={trainingMode}
-        onChange={(next) => void changeMode(next)}
-        t={t}
-      />
-
-      {displayTargetMs != null ? (
-        <TargetCard
-          label={t(
-            trainingMode
-              ? "quests.perfectTiming.trainingTarget"
-              : "quests.perfectTiming.todaysTarget",
-          )}
-          targetMs={displayTargetMs}
-          locale={locale}
+    <View className="flex-1 bg-bg">
+      <View style={{ paddingTop: insets.top }}>
+        <QuestScreenHeader
+          title={t("quests.perfectTiming.title")}
+          backLabel={t("quests.perfectTiming.backToQuests")}
+          backTestID="perfect-timing-back"
         />
-      ) : null}
+      </View>
+      <ScrollView
+        className="flex-1 bg-bg"
+        contentContainerStyle={scrollContentStyle}
+        keyboardShouldPersistTaps="handled"
+      >
+        <QuestScreenDescription>
+          {t("quests.perfectTiming.subtitle")}
+        </QuestScreenDescription>
 
-      {trainingMode ? (
-        <TrainingPanel
-          elapsedMs={trainingElapsedMs}
-          hasError={trainingTargetQuery.isError}
-          isLoading={trainingTargetQuery.isLoading}
-          isRefreshing={trainingTargetQuery.isFetching}
-          locale={locale}
-          onNewTarget={() => void newTrainingTarget()}
-          onRetry={startTraining}
-          onStart={startTraining}
-          onStop={() => void stopCurrent("manual")}
-          phase={trainingPhase}
-          result={trainingResult}
+        <ModeSelector
+          trainingMode={trainingMode}
+          onChange={(next) => void changeMode(next)}
           t={t}
-          tc={tc}
-          timerRunning={timerRunning}
-          timerText={timerText}
         />
-      ) : (
-        <OfficialPanel
-          continuePending={continueMutation.isPending}
-          decisionError={decisionError}
-          isSharing={isSharing}
-          keepPending={keepMutation.isPending}
-          locale={locale}
-          onContinue={confirmContinue}
-          onKeep={() => {
-            if (officialResult) keepMutation.mutate(officialResult.id);
-          }}
-          onRetrySave={() => void stateQuery.refetch()}
-          onShare={() => void handleShareResult()}
-          onStart={() => startOfficialMutation.mutate()}
-          onStop={() => void stopCurrent("manual")}
-          result={officialResult}
-          startError={startOfficialMutation.isError}
-          startPending={startOfficialMutation.isPending}
-          state={state}
-          stopError={stopError}
+
+        {displayTargetMs != null ? (
+          <TargetCard
+            label={t(
+              trainingMode
+                ? "quests.perfectTiming.trainingTarget"
+                : "quests.perfectTiming.todaysTarget",
+            )}
+            targetMs={displayTargetMs}
+            locale={locale}
+          />
+        ) : null}
+
+        {trainingMode ? (
+          <TrainingPanel
+            elapsedMs={trainingElapsedMs}
+            hasError={trainingTargetQuery.isError}
+            isLoading={trainingTargetQuery.isLoading}
+            isRefreshing={trainingTargetQuery.isFetching}
+            locale={locale}
+            onNewTarget={() => void newTrainingTarget()}
+            onRetry={startTraining}
+            onStart={startTraining}
+            onStop={() => void stopCurrent("manual")}
+            phase={trainingPhase}
+            result={trainingResult}
+            t={t}
+            tc={tc}
+            timerRunning={timerRunning}
+            timerText={timerText}
+          />
+        ) : (
+          <OfficialPanel
+            continuePending={continueMutation.isPending}
+            decisionError={decisionError}
+            isSharing={isSharing}
+            keepPending={keepMutation.isPending}
+            locale={locale}
+            onContinue={confirmContinue}
+            onKeep={() => {
+              if (officialResult) keepMutation.mutate(officialResult.id);
+            }}
+            onRetrySave={() => void stateQuery.refetch()}
+            onShare={() => void handleShareResult()}
+            onStart={() => startOfficialMutation.mutate()}
+            onStop={() => void stopCurrent("manual")}
+            result={officialResult}
+            startError={startOfficialMutation.isError}
+            startPending={startOfficialMutation.isPending}
+            state={state}
+            stopError={stopError}
+            t={t}
+            tc={tc}
+            timerRunning={timerRunning}
+            timerText={timerText}
+          />
+        )}
+
+        {shareResult && shareStrings ? (
+          <OffscreenShareCard
+            cardRef={shareCardRef}
+            colors={tc}
+            result={shareResult}
+            strings={shareStrings}
+          />
+        ) : null}
+
+        <ContinueConfirmationModal
+          visible={continueConfirmationVisible}
+          loading={continueMutation.isPending}
+          onDiscard={discardAndContinue}
+          onStay={() => setContinueConfirmationVisible(false)}
           t={t}
-          tc={tc}
-          timerRunning={timerRunning}
-          timerText={timerText}
         />
-      )}
-
-      {shareResult && shareStrings ? (
-        <OffscreenShareCard
-          cardRef={shareCardRef}
-          colors={tc}
-          result={shareResult}
-          strings={shareStrings}
-        />
-      ) : null}
-
-      <ContinueConfirmationModal
-        visible={continueConfirmationVisible}
-        loading={continueMutation.isPending}
-        onDiscard={discardAndContinue}
-        onStay={() => setContinueConfirmationVisible(false)}
-        t={t}
-      />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

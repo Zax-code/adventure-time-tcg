@@ -34,6 +34,7 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
+import { PageTitle } from "../../src/components/ui/page-title";
 
 type GiftFilter = "received" | "sent" | "all";
 type GiftItem = GiftsResponse["gifts"][number];
@@ -174,6 +175,7 @@ function useGiftsScreenView() {
       scrollIndicatorInsets={{ bottom: bottomTabPadding }}
     >
       <View className="gap-5" style={{ paddingTop: headerHeight }}>
+        <PageTitle title={t("gifts.title")} subtitle={t("gifts.subtitle")} />
         <View className="overflow-hidden rounded-[32px] border border-primaryBorder bg-surface">
           <LinearGradient
             colors={[tc.surfaceMuted, tc.surface, tc.primaryBg]}
@@ -182,23 +184,6 @@ function useGiftsScreenView() {
             style={{ padding: 20 }}
           >
             <View className="gap-5">
-              <View className="flex-row items-start gap-4">
-                <View
-                  className="size-16 items-center justify-center rounded-[24px]"
-                  style={{ backgroundColor: tc.primaryBg }}
-                >
-                  <GiftHeartIcon size={28} color={tc.primaryText} />
-                </View>
-                <View className="flex-1 gap-2">
-                  <Text className="font-nunito-extrabold text-[30px] leading-[34px] text-fg">
-                    {t("gifts.title")}
-                  </Text>
-                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                    {t("gifts.subtitle")}
-                  </Text>
-                </View>
-              </View>
-
               <View
                 className="self-start rounded-full border px-4 py-2"
                 style={{

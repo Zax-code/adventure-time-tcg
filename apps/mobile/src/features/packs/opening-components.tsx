@@ -26,6 +26,8 @@ import Svg, {
 } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { RADIUS } from "@adventure-time/theme";
+
 import { CardTile } from "../../components/card-tile";
 import { getCardBackcoverSource } from "../../components/card-back-cover-art";
 import { getCardOutlineSource } from "../../components/card-outline-frame";
@@ -40,6 +42,8 @@ import {
 import { getPackOpeningArtSource } from "../../components/pack-opening-art";
 import { getPackOpeningVisualProfile } from "../../components/pack-opening-visuals";
 import { RARITY_COLORS } from "../../components/theme";
+import { SheetHeader } from "../../components/ui/sheet-header";
+import { getBackdropColor } from "../../components/ui/tokens";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS, type ThemeName } from "../../theme/themes";
@@ -1853,8 +1857,8 @@ export function PackSummaryCardSheet({
         style={[
           StyleSheet.absoluteFill,
           {
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
+            borderTopLeftRadius: RADIUS.xl,
+            borderTopRightRadius: RADIUS.xl,
           },
         ]}
       />
@@ -1899,49 +1903,27 @@ export function PackSummaryCardSheet({
         }
       }}
       detents={[0, "content"]}
-      scrimColor="rgba(0,0,0,0.4)"
+      scrimColor={getBackdropColor(themeName)}
       surface={sheetSurface}
     >
       <View
         className="bg-bg"
         style={{
-          borderTopLeftRadius: 32,
-          borderTopRightRadius: 32,
+          borderTopLeftRadius: RADIUS.xl,
+          borderTopRightRadius: RADIUS.xl,
           maxHeight: maxSheetHeight,
           minHeight: Math.min(maxSheetHeight, height * 0.7),
           overflow: "hidden",
         }}
         testID="pack-summary-card-preview-sheet"
       >
-        <View className="items-center pb-2 pt-3">
-          <View
-            className="h-1.5 w-10 rounded-full"
-            style={{ backgroundColor: tc.muted }}
-          />
-        </View>
-        <View
-          className="border-b border-primaryTint px-6 py-4"
+        <SheetHeader
+          title={card.name}
+          subtitle={t("packs.summary.cardDetailsSubtitle", {
+            character: card.character,
+          })}
           testID="pack-summary-card-preview-header"
-        >
-          <View>
-            <View>
-              <Text
-                className="font-nunito-extrabold text-2xl text-fg"
-                numberOfLines={1}
-              >
-                {card.name}
-              </Text>
-              <Text
-                className="mt-1 font-nunito-semibold text-sm text-fgMuted"
-                numberOfLines={1}
-              >
-                {t("packs.summary.cardDetailsSubtitle", {
-                  character: card.character,
-                })}
-              </Text>
-            </View>
-          </View>
-        </View>
+        />
 
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"

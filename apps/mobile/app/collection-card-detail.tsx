@@ -465,7 +465,6 @@ function useCollectionCardDetailScreenView() {
           }
         }}
         sheetBackgroundColor={tc.bg}
-        handleColor={tc.muted}
         title={t("pvp.cardDetailsTitle")}
       >
         <KeyboardScreenView>
@@ -499,7 +498,6 @@ function useCollectionCardDetailScreenView() {
         }
       }}
       sheetBackgroundColor={tc.bg}
-      handleColor={tc.muted}
       title={t("pvp.cardDetailsTitle")}
       subtitle={t("collection.detail.manageCard")}
     >

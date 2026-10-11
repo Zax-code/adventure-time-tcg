@@ -7,6 +7,7 @@ import type { PvpAction } from "@adventure-time/api-client";
 import { PageLoadingState } from "../src/components/loading-state";
 import { PageErrorState } from "../src/components/error-state";
 import { Button } from "../src/components/ui/button";
+import { getBackdropColor } from "../src/components/ui/tokens";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_VARS } from "../src/theme/themes";
 import { BattleBoard } from "../src/features/pvp/battle-board";
@@ -459,6 +460,7 @@ function ConfirmDialog({
   danger?: boolean;
 }) {
   const { t } = useTranslation();
+  const themeName = useThemeStore((state) => state.themeName);
   if (!visible) {
     return null;
   }
@@ -466,7 +468,10 @@ function ConfirmDialog({
   return (
     <View
       className="items-center justify-center px-5 py-8"
-      style={[StyleSheet.absoluteFill, styles.confirmBackdrop]}
+      style={[
+        StyleSheet.absoluteFill,
+        { backgroundColor: getBackdropColor(themeName) },
+      ]}
       testID={`${testID}-backdrop-container`}
     >
       <Pressable
@@ -526,9 +531,6 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#9CA3AF",
     fontSize: 14,
-  },
-  confirmBackdrop: {
-    backgroundColor: "rgba(0,0,0,0.72)",
   },
   confirmDialog: {
     borderCurve: "continuous",
