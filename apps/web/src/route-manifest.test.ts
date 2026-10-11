@@ -4,8 +4,8 @@ import { titleForPath, websiteRoutes } from "./route-manifest";
 
 describe("website route inventory", () => {
   it("keeps every redesigned public, player, and admin surface unique", () => {
-    expect(websiteRoutes).toHaveLength(45);
-    expect(new Set(websiteRoutes.map((route) => route.path)).size).toBe(45);
+    expect(websiteRoutes).toHaveLength(46);
+    expect(new Set(websiteRoutes.map((route) => route.path)).size).toBe(46);
     expect(new Set(websiteRoutes.map((route) => route.group))).toEqual(
       new Set(["Public", "Player", "Admin"]),
     );

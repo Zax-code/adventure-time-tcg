@@ -23,13 +23,15 @@ import { useAuth } from "@/auth/auth-provider";
 import { getAccessToken } from "@/auth/session";
 import { ThemeSwitcher, useTheme } from "@/theme/theme-provider";
 
+// Same members and order as the mobile tab bar (Home, Packs, PvP, Quests,
+// Collection); Gifts is a header action on both. Rankings joins the dock once
+// the website has a rankings page.
 const playerNav = [
   { href: "/home", icon: HomeIcon, label: "Home", tone: "primary" },
+  { href: "/packs", icon: PackIcon, label: "Packs", tone: "primary" },
+  { href: "/pvp", icon: SwordsIcon, label: "PvP", tone: "primary" },
+  { href: "/quests", icon: QuestIcon, label: "Quests", tone: "primary" },
   { href: "/collection", icon: CardsIcon, label: "Collection", tone: "primary" },
-  { href: "/packs", icon: PackIcon, label: "Packs", tone: "secondary" },
-  { href: "/quests", icon: QuestIcon, label: "Quests", tone: "info" },
-  { href: "/pvp", icon: SwordsIcon, label: "PvP", tone: "accent" },
-  { href: "/gifts", icon: GiftHeartIcon, label: "Gifts", tone: "success" },
 ] as const;
 
 const adminNav = [
@@ -43,6 +45,7 @@ const adminNav = [
   { href: "/admin/users", icon: UserPlusIcon, label: "Users" },
   { href: "/admin/email-requests", icon: BarChartIcon, label: "Requests" },
   { href: "/admin/leaderboard-integrity", icon: BarChartIcon, label: "Integrity" },
+  { href: "/admin/balance", icon: BarChartIcon, label: "Balance" },
 ] as const;
 
 export function PublicLayout() {
@@ -113,6 +116,11 @@ export function AppLayout({ admin = false }: { admin?: boolean }) {
               <span className="coin-pill"><b>{user?.coins.toLocaleString()}</b> coins</span>
               <span className="dust-pill"><b>{user?.dust.toLocaleString()}</b> dust</span>
             </div>
+            {admin ? null : (
+              <NavLink aria-label="Gifts" className="icon-button" to="/gifts">
+                <GiftHeartIcon />
+              </NavLink>
+            )}
             <ThemeSwitcher compact />
             <button
               aria-expanded={accountOpen}
