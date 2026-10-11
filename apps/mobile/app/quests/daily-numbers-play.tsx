@@ -42,7 +42,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import Archive from "lucide-react-native/icons/archive";
 import Check from "lucide-react-native/icons/check";
+import Circle from "lucide-react-native/icons/circle";
+import CircleCheck from "lucide-react-native/icons/circle-check";
+import CircleDot from "lucide-react-native/icons/circle-dot";
 import RotateCcwClock from "lucide-react-native/icons/rotate-ccw-clock";
+import type { LucideIcon } from "lucide-react-native";
 
 import {
   ApiClientError,
@@ -75,6 +79,7 @@ import { Notice } from "../../src/components/ui/notice";
 import { SegmentedControl } from "../../src/components/ui/segmented-control";
 import { StackHeader } from "../../src/components/ui/stack-header";
 import { StatTile } from "../../src/components/ui/stat-tile";
+import { ICON_STROKE_WIDTH, useThemePalette } from "../../src/components/ui/tokens";
 import { DailyNumbersQuestShareCard } from "../../src/features/quests/daily-numbers/quest-share-card";
 import {
   applyDailyNumbersOperation,
@@ -885,6 +890,35 @@ function MessageBanner({ message }: { message: MessageState }) {
   );
 }
 
+type ModeGlyph = "claimed" | "submitted" | "fresh";
+
+// Claimed modes get a check, played-but-unclaimed modes (submitted, reward
+// unlocked, archive result saved) a dot, fresh boards no segment icon.
+const MODE_GLYPH_ICON: Record<ModeGlyph, LucideIcon> = {
+  claimed: CircleCheck,
+  submitted: CircleDot,
+  fresh: Circle,
+};
+
+function getModeGlyph(
+  state: DailyNumbersBoardState | undefined,
+  archiveMode: boolean,
+): ModeGlyph {
+  if (archiveMode && state?.submission) {
+    return "submitted";
+  }
+
+  if (state?.claimed) {
+    return "claimed";
+  }
+
+  if (state?.completed || state?.submission) {
+    return "submitted";
+  }
+
+  return "fresh";
+}
+
 function ModeTabs({
   activeMode,
   archiveMode,
@@ -898,33 +932,63 @@ function ModeTabs({
   onSelectMode: (mode: DailyNumbersMode) => void;
   t: TranslateFn;
 }) {
-  // The played/fresh status has no room in a Segmented Control; it stays in
-  // each segment's accessibility label.
+  const tc = useThemePalette();
   const options = modeCards.map(({ mode, state, isLoading }) => {
     const statusLabel =
       archiveMode && state?.submission
         ? t("quests.dailyNumbers.archiveSavedLabel")
         : getModeStatusLabel(state, isLoading, t);
+    const glyph = getModeGlyph(state, archiveMode);
     const modeLabel = t(getModeLabelKey(mode));
 
     return {
       value: mode,
       label: modeLabel,
+      icon: glyph === "fresh" ? undefined : MODE_GLYPH_ICON[glyph],
+      iconTone: glyph === "claimed" ? ("success" as const) : ("info" as const),
       accessibilityLabel: `${modeLabel}. ${statusLabel}`,
       testID: `daily-numbers-mode-${mode}`,
+      glyph,
+      statusLabel,
     };
   });
+  const activeOption =
+    options.find((option) => option.value === activeMode) ?? options[0];
+  const CaptionIcon = activeOption ? MODE_GLYPH_ICON[activeOption.glyph] : null;
 
   return (
-    <SegmentedControl
-      options={options}
-      value={activeMode}
-      onChange={(mode) => {
-        triggerSelectionHaptic();
-        onSelectMode(mode);
-      }}
-      testID="daily-numbers-mode-tabs"
-    />
+    <>
+      <SegmentedControl
+        options={options}
+        value={activeMode}
+        onChange={(mode) => {
+          triggerSelectionHaptic();
+          onSelectMode(mode);
+        }}
+        testID="daily-numbers-mode-tabs"
+      />
+      {activeOption && CaptionIcon ? (
+        <View
+          className="flex-row items-center justify-center gap-[6px]"
+          testID="daily-numbers-mode-status"
+        >
+          <CaptionIcon
+            size={14}
+            color={
+              activeOption.glyph === "claimed"
+                ? tc.successText
+                : activeOption.glyph === "submitted"
+                  ? tc.infoText
+                  : tc.fgMuted
+            }
+            strokeWidth={ICON_STROKE_WIDTH}
+          />
+          <Text className="font-nunito-semibold text-ds-sm text-fgMuted">
+            {`${activeOption.label} · ${activeOption.statusLabel}`}
+          </Text>
+        </View>
+      ) : null}
+    </>
   );
 }
 
