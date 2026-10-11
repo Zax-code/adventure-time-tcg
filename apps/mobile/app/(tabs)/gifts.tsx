@@ -1,27 +1,33 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
 import { ScrollView, Text, View } from "react-native";
+import type { LucideIcon } from "lucide-react-native";
+import Check from "lucide-react-native/icons/check";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
+import CircleCheck from "lucide-react-native/icons/circle-check";
+import CircleX from "lucide-react-native/icons/circle-x";
+import Clock from "lucide-react-native/icons/clock";
+import Gift from "lucide-react-native/icons/gift";
+import Package from "lucide-react-native/icons/package";
+import Sparkles from "lucide-react-native/icons/sparkles";
+import UserPlus from "lucide-react-native/icons/user-plus";
 
 import type { GiftsResponse } from "@adventure-time/api-client";
 
-import { PrimaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
 import type { CardTileCard } from "../../src/components/card-tile";
 import { PageErrorState } from "../../src/components/error-state";
-import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
 import { Button } from "../../src/components/ui/button";
-import {
-  BoxIcon,
-  CheckCircleIcon,
-  ChevronRightIcon,
-  ClockIcon,
-  GiftHeartIcon,
-  SparklesIcon,
-  UserPlusIcon,
-  XCircleIcon,
-} from "../../src/components/icons";
+import { Card } from "../../src/components/ui/card";
+import { Chip, type ChipTone } from "../../src/components/ui/chip";
+import { IconTile } from "../../src/components/ui/icon-tile";
+import { Notice } from "../../src/components/ui/notice";
+import { SectionHeader } from "../../src/components/ui/section-header";
+import { SegmentedControl } from "../../src/components/ui/segmented-control";
+import { StatePanel } from "../../src/components/ui/state-panel";
+import { StatTile } from "../../src/components/ui/stat-tile";
+import { ICON_STROKE_WIDTH } from "../../src/components/ui/tokens";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useFocusedRefetchInterval } from "../../src/hooks/use-focused-refetch-interval";
 import { useTranslation } from "../../src/i18n";
@@ -47,8 +53,6 @@ export default function GiftsScreen() {
 function useGiftsScreenView() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
   const currentUserId = useSessionStore((state) => state.user?.id ?? "");
@@ -176,130 +180,52 @@ function useGiftsScreenView() {
     >
       <View className="gap-5" style={{ paddingTop: headerHeight }}>
         <PageTitle title={t("gifts.title")} subtitle={t("gifts.subtitle")} />
-        <View className="overflow-hidden rounded-[32px] border border-primaryBorder bg-surface">
-          <LinearGradient
-            colors={[tc.surfaceMuted, tc.surface, tc.primaryBg]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ padding: 20 }}
-          >
-            <View className="gap-5">
-              <View
-                className="self-start rounded-full border px-4 py-2"
-                style={{
-                  backgroundColor:
-                    pendingIncoming.length > 0
-                      ? tc.secondaryTint
-                      : tc.successTint,
-                  borderColor:
-                    pendingIncoming.length > 0
-                      ? tc.secondaryBorder
-                      : tc.successBorder,
-                }}
-              >
-                <Text
-                  className="font-nunito-bold text-sm"
-                  style={{
-                    color:
-                      pendingIncoming.length > 0
-                        ? tc.secondaryText
-                        : tc.successText,
-                  }}
-                >
-                  {heroBadgeLabel}
-                </Text>
-              </View>
-
-              <View className="flex-row gap-3">
-                <SummaryCard
-                  title={t("gifts.summary.pending")}
-                  value={pendingIncoming.length}
-                  tint={tc.secondaryTint}
-                  border={tc.secondaryBorder}
-                  textColor={tc.secondaryText}
-                />
-                <SummaryCard
-                  title={t("gifts.summary.received")}
-                  value={receivedGifts.length}
-                  tint={tc.primaryTint}
-                  border={tc.primaryBorder}
-                  textColor={tc.primaryText}
-                />
-                <SummaryCard
-                  title={t("gifts.summary.sent")}
-                  value={sentGifts.length}
-                  tint={tc.accentTint}
-                  border={tc.accentBorder}
-                  textColor={tc.accentText}
-                />
-              </View>
-            </View>
-          </LinearGradient>
+        <Chip
+          tone={pendingIncoming.length > 0 ? "secondary" : "success"}
+          icon={pendingIncoming.length > 0 ? Clock : Check}
+          label={heroBadgeLabel}
+        />
+        <View className="flex-row gap-ds-3">
+          <StatTile
+            className="flex-1"
+            tone="secondary"
+            label={t("gifts.summary.pending")}
+            value={pendingIncoming.length}
+          />
+          <StatTile
+            className="flex-1"
+            tone="primary"
+            label={t("gifts.summary.received")}
+            value={receivedGifts.length}
+          />
+          <StatTile
+            className="flex-1"
+            tone="accent"
+            label={t("gifts.summary.sent")}
+            value={sentGifts.length}
+          />
         </View>
 
-        <View className="gap-3">
-          <View className="gap-1">
-            <Text className="font-nunito-bold text-lg text-fg">
-              {t("gifts.manageTitle")}
-            </Text>
-            <Text className="font-nunito text-sm text-fgMuted">
-              {t("gifts.manageSubtitle")}
-            </Text>
-          </View>
-
-          <View className="flex-row gap-2">
-            {filterOptions.map((option) => {
-              const selected = option.key === activeFilter;
-              return (
-                <ThemedExpoButton
-                  key={option.key}
-                  preferFallback
-                  fallbackLayout="stretch"
-                  testID={`gifts-filter-${option.key}`}
-                  variant="ghost"
-                  fallbackAppearance={{
-                    backgroundColor: selected ? tc.primaryTint : tc.surface,
-                    borderColor: selected ? tc.primaryBorder : tc.primaryTint,
-                    borderRadius: 16,
-                    foregroundColor: selected ? tc.primaryText : tc.fg,
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    textStyle: {
-                      fontFamily: "Nunito_700Bold",
-                      fontSize: 14,
-                    },
-                  }}
-                  style={{
-                    flex: 1,
-                  }}
-                  onPress={() => setActiveFilter(option.key)}
-                >
-                  <Text
-                    className="text-center font-nunito-bold text-sm"
-                    style={{ color: selected ? tc.primaryText : tc.fg }}
-                  >
-                    {option.label}
-                  </Text>
-                  <Text
-                    className="mt-1 text-center font-nunito text-xs"
-                    style={{ color: selected ? tc.primaryText : tc.fgMuted }}
-                  >
-                    {t("gifts.filterCount", { count: option.count })}
-                  </Text>
-                </ThemedExpoButton>
-              );
-            })}
-          </View>
+        <View className="gap-ds-3">
+          <SectionHeader
+            title={t("gifts.manageTitle")}
+            subtitle={t("gifts.manageSubtitle")}
+          />
+          <SegmentedControl<GiftFilter>
+            options={filterOptions.map((option) => ({
+              value: option.key,
+              label: option.label,
+              count: option.count,
+              accessibilityLabel: `${option.label}, ${t("gifts.filterCount", { count: option.count })}`,
+              testID: `gifts-filter-${option.key}`,
+            }))}
+            value={activeFilter}
+            onChange={setActiveFilter}
+          />
         </View>
 
         {processGiftMutation.isError ? (
-          <View className="rounded-2xl border border-dangerBorder bg-dangerTint px-4 py-3">
-            <Text className="font-nunito text-sm text-dangerText">
-              {processGiftMutation.error.message}
-            </Text>
-          </View>
+          <Notice tone="danger" title={processGiftMutation.error.message} />
         ) : null}
 
         {showPendingSection ? (
@@ -365,25 +291,20 @@ function useGiftsScreenView() {
           )}
         </View>
 
-        <View className="gap-4 rounded-[28px] border border-primaryBorder bg-surface p-5">
-          <View className="flex-row items-start gap-4">
-            <View
-              className="size-12 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: tc.primaryTint }}
-            >
-              <SparklesIcon size={20} color={tc.primaryText} />
-            </View>
-            <View className="flex-1 gap-1">
-              <Text className="font-nunito-bold text-lg text-fg">
+        <Card>
+          <View className="flex-row items-start gap-ds-3">
+            <IconTile icon={Sparkles} />
+            <View className="flex-1 gap-[2px]">
+              <Text className="font-nunito-extrabold text-ds-h3 text-fg">
                 {t("gifts.quickSendTitle")}
               </Text>
-              <Text className="font-nunito text-sm leading-5 text-fgMuted">
+              <Text className="font-nunito text-ds-sm text-fgMuted">
                 {t("gifts.quickSendBody")}
               </Text>
             </View>
           </View>
 
-          <View className="gap-2">
+          <View className="gap-ds-2">
             <InstructionStep
               index="1"
               text={t("gifts.quickSendSteps.openCollection")}
@@ -398,41 +319,12 @@ function useGiftsScreenView() {
             />
           </View>
 
-          <PrimaryButton onPress={() => router.push("/(tabs)/collection")}>
+          <Button size="lg" onPress={() => router.push("/(tabs)/collection")}>
             {t("gifts.openCollection")}
-          </PrimaryButton>
-        </View>
+          </Button>
+        </Card>
       </View>
     </ScrollView>
-  );
-}
-
-function SummaryCard({
-  title,
-  value,
-  tint,
-  border,
-  textColor,
-}: {
-  title: string;
-  value: number;
-  tint: string;
-  border: string;
-  textColor: string;
-}) {
-  return (
-    <View
-      className="flex-1 rounded-3xl border px-3 py-4"
-      style={{ backgroundColor: tint, borderColor: border }}
-    >
-      <Text className="font-nunito text-xs text-fgMuted">{title}</Text>
-      <Text
-        className="mt-1 font-nunito-extrabold text-2xl"
-        style={{ color: textColor }}
-      >
-        {value}
-      </Text>
-    </View>
   );
 }
 
@@ -442,46 +334,32 @@ function useInstructionStepView({ index, text }: { index: string; text: string }
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
   return (
-    <View className="flex-row items-center gap-3 rounded-2xl bg-primaryBg px-3 py-3">
-      <View
-        className="size-7 items-center justify-center rounded-full"
-        style={{ backgroundColor: tc.primaryBorder }}
-      >
-        <Text
-          className="font-nunito-bold text-xs"
-          style={{ color: tc.primaryStrong }}
-        >
+    <View className="flex-row items-center gap-ds-3 rounded-ds-md bg-primaryBg px-ds-3 py-ds-3">
+      <View className="h-[28px] w-[28px] items-center justify-center rounded-ds-pill bg-primaryTint">
+        <Text className="font-nunito-bold text-ds-caption text-primaryText">
           {index}
         </Text>
       </View>
-      <Text className="flex-1 font-nunito text-sm text-fg">{text}</Text>
-      <ChevronRightIcon size={16} color={tc.primaryText} />
+      <Text className="flex-1 font-nunito text-ds-sm text-fg">{text}</Text>
+      <ChevronRight size={16} color={tc.muted} strokeWidth={ICON_STROKE_WIDTH} />
     </View>
   );
 }
 
-const SectionHeading = sectionHeading;
-
-function sectionHeading({
+function SectionHeading({
   title,
   subtitle,
 }: {
   title: string;
   subtitle: string;
 }) {
-  return (
-    <View className="gap-1">
-      <Text className="font-nunito-bold text-lg text-fg">{title}</Text>
-      <Text className="font-nunito text-sm text-fgMuted">{subtitle}</Text>
-    </View>
-  );
+  return <SectionHeader title={title} subtitle={subtitle} />;
 }
 
 const GiftEmptyState = useGiftEmptyStateView;
 
 function useGiftEmptyStateView({ filter }: { filter: GiftFilter }) {
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const title =
     filter === "received"
       ? t("gifts.emptyReceivedTitle")
@@ -495,22 +373,7 @@ function useGiftEmptyStateView({ filter }: { filter: GiftFilter }) {
         ? t("gifts.emptySentBody")
         : t("gifts.emptyAllBody");
 
-  return (
-    <View className="items-center gap-3 rounded-[28px] border border-primaryBorder bg-surface px-6 py-8">
-      <View
-        className="size-14 items-center justify-center rounded-[20px]"
-        style={{ backgroundColor: tc.primaryTint }}
-      >
-        <GiftHeartIcon size={22} color={tc.primaryText} />
-      </View>
-      <Text className="text-center font-nunito-bold text-lg text-fg">
-        {title}
-      </Text>
-      <Text className="text-center font-nunito text-sm leading-5 text-fgMuted">
-        {body}
-      </Text>
-    </View>
-  );
+  return <StatePanel icon={Gift} title={title} body={body} />;
 }
 
 const GiftCard = useGiftCardView;
@@ -528,7 +391,6 @@ function useGiftCardView({
   activeDecision: { giftId: string; action: GiftDecision } | null;
   onDecision: (action: GiftDecision) => void;
 }) {
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const { t } = useTranslation();
   const isIncoming = gift.toUser.id === currentUserId;
   const isPending = gift.status === "pending";
@@ -538,70 +400,27 @@ function useGiftCardView({
   const isRejecting =
     activeDecision?.giftId === gift.id && activeDecision.action === "reject";
 
-  const statusPalette = getStatusPalette(gift.status, tc, t);
   const cardTile = toCardTileCard(gift);
   const createdDate = formatGiftDate(gift.createdAt, locale);
   const expiryText =
     gift.status === "pending" && gift.expiresAt
       ? formatGiftExpiry(gift.expiresAt, locale, t)
       : null;
-  const directionPalette = isIncoming
-    ? {
-        bg: tc.primaryTint,
-        border: tc.primaryBorder,
-        text: tc.primaryText,
-        icon: <GiftHeartIcon size={16} color={tc.primaryText} />,
-        label: t("gifts.receivedBadge"),
-      }
-    : {
-        bg: tc.accentTint,
-        border: tc.accentBorder,
-        text: tc.accentText,
-        icon: <UserPlusIcon size={16} color={tc.accentText} />,
-        label: t("gifts.sentBadge"),
-      };
+  const statusPalette = getStatusPalette(gift.status, t);
 
   return (
-    <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface">
-      <View className="gap-4 p-4">
-        <View className="flex-row items-center gap-3">
-          <View
-            className="rounded-full border px-3 py-1.5"
-            style={{
-              backgroundColor: directionPalette.bg,
-              borderColor: directionPalette.border,
-            }}
-          >
-            <View className="flex-row items-center gap-2">
-              {directionPalette.icon}
-              <Text
-                className="font-nunito-bold text-xs"
-                style={{ color: directionPalette.text }}
-              >
-                {directionPalette.label}
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex-1 items-end">
-            <View
-              className="rounded-full border px-3 py-1.5"
-              style={{
-                backgroundColor: statusPalette.bg,
-                borderColor: statusPalette.border,
-              }}
-            >
-              <View className="flex-row items-center gap-2">
-                {statusPalette.icon}
-                <Text
-                  className="font-nunito-bold text-xs"
-                  style={{ color: statusPalette.text }}
-                >
-                  {statusPalette.label}
-                </Text>
-              </View>
-            </View>
-          </View>
+    <Card>
+        <View className="flex-row items-center justify-between gap-ds-3">
+          <Chip
+            tone={isIncoming ? "primary" : "accent"}
+            icon={isIncoming ? Gift : UserPlus}
+            label={isIncoming ? t("gifts.receivedBadge") : t("gifts.sentBadge")}
+          />
+          <Chip
+            tone={statusPalette.tone}
+            icon={statusPalette.icon}
+            label={statusPalette.label}
+          />
         </View>
 
         <View className="flex-row gap-3">
@@ -616,56 +435,43 @@ function useGiftCardView({
           <View className="flex-1 justify-center gap-3">
             <View className="gap-1">
               <Text
-                className="font-nunito-extrabold text-2xl leading-7 text-fg"
+                className="font-nunito-extrabold text-ds-h2 text-fg"
                 numberOfLines={3}
                 adjustsFontSizeToFit
                 minimumFontScale={0.82}
               >
                 {gift.card.name}
               </Text>
-              <Text className="font-nunito-semibold text-sm text-fgMuted">
+              <Text className="font-nunito text-ds-sm text-fgMuted">
                 {gift.card.character}
               </Text>
-              <View className="flex-row flex-wrap gap-2 pt-1">
-                <InfoPill
-                  label={t("gifts.cardMeta.rarity")}
-                  value={gift.card.rarity.name}
-                  bg={tc.primaryTint}
-                  border={tc.primaryBorder}
-                  text={tc.primaryText}
+              <View className="flex-row flex-wrap gap-ds-2 pt-ds-1">
+                <Chip
+                  tone="primary"
+                  label={`${t("gifts.cardMeta.rarity")}: ${gift.card.rarity.name}`}
                 />
-                <InfoPill
-                  label={t("gifts.cardMeta.type")}
-                  value={gift.card.type}
-                  bg={tc.accentTint}
-                  border={tc.accentBorder}
-                  text={tc.accentText}
+                <Chip
+                  tone="accent"
+                  label={`${t("gifts.cardMeta.type")}: ${gift.card.type}`}
                 />
               </View>
             </View>
           </View>
         </View>
 
-        <View className="flex-row items-center gap-3 rounded-2xl bg-primaryBg px-3 py-3">
-          <View
-            className="size-10 items-center justify-center rounded-2xl"
-            style={{
-              backgroundColor: isIncoming ? tc.primaryTint : tc.accentTint,
-            }}
-          >
-            {isIncoming ? (
-              <BoxIcon size={18} color={tc.primaryText} />
-            ) : (
-              <UserPlusIcon size={18} color={tc.accentText} />
-            )}
-          </View>
-          <View className="flex-1 gap-0.5">
-            <Text className="font-nunito-bold text-sm text-fg">
+        <View className="flex-row items-center gap-ds-3 rounded-ds-md bg-primaryBg px-ds-3 py-ds-3">
+          <IconTile
+            size={32}
+            tone={isIncoming ? "primary" : "accent"}
+            icon={isIncoming ? Package : UserPlus}
+          />
+          <View className="flex-1 gap-[2px]">
+            <Text className="font-nunito-bold text-ds-sm text-fg">
               {isIncoming
                 ? t("gifts.receivedFrom", { name: gift.fromUser.displayName })
                 : t("gifts.sentTo", { name: gift.toUser.displayName })}
             </Text>
-            <Text className="font-nunito text-xs text-fgMuted">
+            <Text className="font-nunito text-ds-caption text-fgMuted">
               {expiryText
                 ? t("gifts.timelineWithExpiry", {
                     created: createdDate,
@@ -677,18 +483,18 @@ function useGiftCardView({
         </View>
 
         {gift.message ? (
-          <View className="rounded-2xl border border-primaryTint bg-primaryBg px-3 py-3">
-            <Text className="font-nunito-bold text-xs uppercase tracking-[0.6px] text-primaryText">
+          <View className="rounded-ds-md border border-primaryTint bg-primaryBg px-ds-3 py-ds-3">
+            <Text className="font-nunito-bold text-ds-overline uppercase tracking-[1px] text-primaryText">
               {t("gifts.messageLabel")}
             </Text>
-            <Text className="mt-1 font-nunito text-sm leading-5 text-fg">
+            <Text className="mt-ds-1 font-nunito text-ds-sm text-fg">
               {gift.message}
             </Text>
           </View>
         ) : null}
 
         {canAct ? (
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-ds-3">
             <Button
               tone="primary"
               style={{ flex: 1 }}
@@ -707,39 +513,7 @@ function useGiftCardView({
             </Button>
           </View>
         ) : null}
-      </View>
-    </View>
-  );
-}
-
-const InfoPill = infoPill;
-
-function infoPill({
-  label,
-  value,
-  bg,
-  border,
-  text,
-}: {
-  label: string;
-  value: string;
-  bg: string;
-  border: string;
-  text: string;
-}) {
-  return (
-    <View
-      className="rounded-full border px-2.5 py-1"
-      style={{ backgroundColor: bg, borderColor: border }}
-    >
-      <Text
-        className="font-nunito-bold text-[11px] leading-4"
-        numberOfLines={1}
-        style={{ color: text }}
-      >
-        {label}: {value}
-      </Text>
-    </View>
+    </Card>
   );
 }
 
@@ -761,44 +535,19 @@ function toCardTileCard(gift: GiftItem): CardTileCard {
 
 function getStatusPalette(
   status: string,
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
   t: (key: string, params?: Record<string, string | number>) => string,
-) {
+): { tone: ChipTone; icon: LucideIcon; label: string } {
   const label = localizeGiftStatus(status, t);
 
   switch (status) {
     case "accepted":
-      return {
-        bg: tc.successTint,
-        border: tc.successBorder,
-        text: tc.successText,
-        icon: <CheckCircleIcon size={15} color={tc.successText} />,
-        label,
-      };
+      return { tone: "success", icon: CircleCheck, label };
     case "rejected":
-      return {
-        bg: tc.dangerTint,
-        border: tc.dangerBorder,
-        text: tc.dangerText,
-        icon: <XCircleIcon size={15} color={tc.dangerText} />,
-        label,
-      };
+      return { tone: "danger", icon: CircleX, label };
     case "expired":
-      return {
-        bg: tc.surfaceMuted,
-        border: tc.primaryTint,
-        text: tc.fgMuted,
-        icon: <XCircleIcon size={15} color={tc.fgMuted} />,
-        label,
-      };
+      return { tone: "neutral", icon: CircleX, label };
     default:
-      return {
-        bg: tc.secondaryTint,
-        border: tc.secondaryBorder,
-        text: tc.secondaryText,
-        icon: <ClockIcon size={15} color={tc.secondaryText} />,
-        label,
-      };
+      return { tone: "secondary", icon: Clock, label };
   }
 }
 
