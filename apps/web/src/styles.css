@@ -970,7 +970,7 @@ h3 {
   .page-actions { width: 100%; flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; padding-bottom: 3px; scrollbar-width: none; }
   .page-actions::-webkit-scrollbar { display: none; }
   .page-actions .button { flex: 0 0 auto; }
-  .page-heading h1 { font-size: clamp(2.25rem, 11vw, 3.5rem); }
+  .page-heading h1 { font-size: var(--text-h1); }
   .page-heading p { font-size: 14px; }
   .section-header { align-items: flex-start; flex-direction: column; }
   .story-dock-wrap { right: 8px; left: 8px; width: auto; max-width: none; transform: none; }
@@ -1138,7 +1138,15 @@ h3 {
 
 .story-dock-wrap { padding: 6px; border-radius: var(--radius-pill); }
 .story-dock a { min-height: 56px; border: 0; border-radius: var(--radius-pill); color: var(--fgMuted); }
-.story-dock a span { display: block; font-size: var(--text-overline); font-weight: 700; }
+.story-dock a span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--text-overline);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .story-dock a.active { border: 0; background: var(--primaryTint); color: var(--primaryText); }
 
 @media (max-width: 760px) {
@@ -1174,3 +1182,5 @@ h3 {
 .chip-success { --chip-border: var(--successBorder); --chip-tint: var(--successTint); --chip-text: var(--successText); }
 .chip-info { --chip-border: var(--infoBorder); --chip-tint: var(--infoTint); --chip-text: var(--infoText); }
 .chip-danger { --chip-border: var(--dangerBorder); --chip-tint: var(--dangerTint); --chip-text: var(--dangerText); }
+.button > span { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.segmented button { padding: 0 var(--space-2); white-space: nowrap; }
