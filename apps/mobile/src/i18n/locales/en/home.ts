@@ -31,13 +31,12 @@ const home = {
   liveMatchesMany: "{count} live matches",
   featuredCards: "Featured cards",
   featuredHint: "A short preview from the catalog.",
-  dropRates: "Drop rates",
-  dropRatesHint: "Chance for each rarity when opening packs.",
   notificationsPromptTitle: "Turn on notifications",
   notificationsPromptBody:
     "Daily resets, gifts and PvP turns without extra checking.",
   notificationsPromptSettings: "Open settings",
   notificationsPromptIgnore: "Not now",
+  notificationsPromptHide: "Don't ask again",
   logout: "Logout",
   homeUnavailable: "Home is unavailable.",
 };

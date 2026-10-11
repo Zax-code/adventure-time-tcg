@@ -1,11 +1,17 @@
 import { Text, View } from "react-native";
 
 import { Button } from "./button";
+import type { IconSlot } from "./tokens";
 
 export interface SectionHeaderProps {
   title: string;
   subtitle?: string;
-  action?: { label: string; onPress: () => void; testID?: string };
+  action?: {
+    label: string;
+    onPress: () => void;
+    icon?: IconSlot;
+    testID?: string;
+  };
   className?: string;
   testID?: string;
 }
@@ -38,6 +44,7 @@ export function SectionHeader({
         <Button
           tone="ghost"
           size="sm"
+          icon={action.icon}
           onPress={action.onPress}
           testID={action.testID}
         >

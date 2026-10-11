@@ -19,6 +19,7 @@ import Lock from "lucide-react-native/icons/lock";
 import LockKeyhole from "lucide-react-native/icons/lock-keyhole";
 import PackageIcon from "lucide-react-native/icons/package";
 import PackageOpen from "lucide-react-native/icons/package-open";
+import Percent from "lucide-react-native/icons/percent";
 import Pointer from "lucide-react-native/icons/pointer";
 import RotateCcw from "lucide-react-native/icons/rotate-ccw";
 import Sparkles from "lucide-react-native/icons/sparkles";
@@ -78,6 +79,7 @@ import {
   ReadyRevealStackWrapper,
   RevealCardStage,
 } from "../../src/features/packs/opening-components";
+import { DropRatesSheet } from "../../src/features/packs/drop-rates-sheet";
 import {
   patchCollectionAfterPackOpen,
   patchHomeAfterPackOpen,
@@ -579,6 +581,12 @@ function usePacksScreenView() {
     queryKey: ["packs"],
     queryFn: () => apiClient.packs(),
   });
+  const { data: raritiesQueryData } = useQuery({
+    queryKey: ["rarities"],
+    queryFn: () => apiClient.rarities(),
+  });
+  const rarities = raritiesQueryData?.rarities ?? [];
+  const [dropRatesOpen, setDropRatesOpen] = useState(false);
 
   const cardBackVisualMap = useMemo(
     () => buildCardBackVisualMap(packsQueryData?.cardBackVisuals ?? []),
@@ -1299,6 +1307,16 @@ function usePacksScreenView() {
             <SectionHeader
               title={t("packs.allPacks")}
               subtitle={t("packs.coinBalance", { count: coins })}
+              action={
+                rarities.length > 0
+                  ? {
+                      label: t("packs.dropRates"),
+                      icon: Percent,
+                      onPress: () => setDropRatesOpen(true),
+                      testID: "packs-drop-rates-button",
+                    }
+                  : undefined
+              }
             />
             <Card flush>
               {otherPacks.map((pack, index) => {
@@ -1347,6 +1365,13 @@ function usePacksScreenView() {
 
         <View style={{ height: storefrontScrollBottomSpacerHeight }} />
       </ScrollView>
+
+      {dropRatesOpen && rarities.length > 0 ? (
+        <DropRatesSheet
+          rarities={rarities}
+          onClose={() => setDropRatesOpen(false)}
+        />
+      ) : null}
     </View>
   );
 }

@@ -31,13 +31,12 @@ const home = {
   liveMatchesMany: "{count} matchs en cours",
   featuredCards: "Cartes à la une",
   featuredHint: "Un aperçu rapide du catalogue.",
-  dropRates: "Taux d'obtention",
-  dropRatesHint: "Chance pour chaque rareté lors de l'ouverture des packs.",
   notificationsPromptTitle: "Active les notifications",
   notificationsPromptBody:
     "Réinitialisations, cadeaux et tours JcJ sans vérification manuelle.",
   notificationsPromptSettings: "Ouvrir les réglages",
   notificationsPromptIgnore: "Pas maintenant",
+  notificationsPromptHide: "Ne plus demander",
   logout: "Déconnexion",
   homeUnavailable: "L'accueil est indisponible.",
 };

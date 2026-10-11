@@ -12,6 +12,8 @@ const packs = {
   openPack: "Ouvrir le pack",
   allPacks: "Tous les packs",
   coinBalance: "Tes pièces : {count}",
+  dropRates: "Taux d'obtention",
+  dropRatesHint: "Chance pour chaque rareté lors de l'ouverture des packs.",
   recommended: "Conseillé",
   cardsCount: "{count} cartes",
   guaranteed: "{rarity} garanti",

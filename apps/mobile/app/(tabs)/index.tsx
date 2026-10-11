@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Bell from "lucide-react-native/icons/bell";
+import BellOff from "lucide-react-native/icons/bell-off";
 import Calendar from "lucide-react-native/icons/calendar";
 import Check from "lucide-react-native/icons/check";
 import Clock from "lucide-react-native/icons/clock";
@@ -11,6 +12,9 @@ import Swords from "lucide-react-native/icons/swords";
 import {
   AppState,
   FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,7 +24,8 @@ import { useRouter } from "expo-router";
 import { ApiClientError, apiClient } from "../../src/lib/api";
 import {
   getNotificationPermissionPromptHidden,
-  getNotificationPermissionStatus } from "../../src/lib/app-notifications";
+  getNotificationPermissionStatus,
+  setNotificationPermissionPromptHidden } from "../../src/lib/app-notifications";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useStepSyncStore } from "../../src/stores/step-sync-store";
 import {
@@ -36,13 +41,34 @@ import { PageTitle } from "../../src/components/ui/page-title";
 import { ProgressBar } from "../../src/components/ui/progress-bar";
 import { SectionHeader } from "../../src/components/ui/section-header";
 import { StatTile } from "../../src/components/ui/stat-tile";
+import { ICON_STROKE_WIDTH, useThemePalette } from "../../src/components/ui/tokens";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
 
+const FEATURED_CARD_WIDTH = 150;
+const FEATURED_CARD_GAP = 12;
+
 const styles = StyleSheet.create({
   featuredCardFrame: {
-    width: 144 } });
+    width: FEATURED_CARD_WIDTH } });
+
+function getFeaturedPageIndex(
+  event: NativeSyntheticEvent<NativeScrollEvent>,
+  count: number,
+) {
+  const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+  if (count <= 0) return 0;
+  // The last cards never reach the left edge, so the end of the scroll
+  // selects the last dot.
+  if (contentOffset.x + layoutMeasurement.width >= contentSize.width - 4) {
+    return count - 1;
+  }
+  const index = Math.round(
+    contentOffset.x / (FEATURED_CARD_WIDTH + FEATURED_CARD_GAP),
+  );
+  return Math.min(count - 1, Math.max(0, index));
+}
 
 // Owns the one-second ticker so only this line re-renders, not the whole Home tab.
 function DailyClaimCountdown({ timeUntilNextClaim }: { timeUntilNextClaim: number }) {
@@ -105,6 +131,7 @@ function useHomeScreenView() {
     (state) => state.notificationPermissionStatus,
   );
   const { t } = useTranslation();
+  const tc = useThemePalette();
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
 
@@ -121,6 +148,15 @@ function useHomeScreenView() {
     queryKey: ["collection"],
     queryFn: () => apiClient.collection() });
   const featuredCards = featuredQueryData?.cards ?? [];
+  const [featuredPage, setFeaturedPage] = useState(0);
+  const featuredCount = featuredCards.length;
+  const handleFeaturedScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const next = getFeaturedPageIndex(event, featuredCount);
+      setFeaturedPage((prev) => (prev === next ? prev : next));
+    },
+    [featuredCount],
+  );
   const ownedCardIds = useMemo(() => {
     const ids = new Set<string>();
     for (const entry of collectionQueryData?.cards ?? []) {
@@ -152,9 +188,6 @@ function useHomeScreenView() {
   const { data: pvpMatchesQueryData } = useQuery({
     queryKey: ["pvp-matches"],
     queryFn: () => apiClient.pvpMatches() });
-  const { data: raritiesQueryData } = useQuery({
-    queryKey: ["rarities"],
-    queryFn: () => apiClient.rarities() });
 
   const claimMutation = useMutation({
     mutationFn: () => apiClient.claimDailyReward(),
@@ -231,19 +264,6 @@ function useHomeScreenView() {
     (notificationPermissionStatus === "not_requested" ||
       notificationPermissionStatus === "denied");
 
-  function formatDropRatePercentage(dropRate: number) {
-    if (totalDropRate <= 0) {
-      return "0%";
-    }
-
-    const percentage = (dropRate / totalDropRate) * 100;
-    if (percentage > 0 && percentage < 1) {
-      return "<1%";
-    }
-
-    return `${Math.round(percentage)}%`;
-  }
-
   if (homeQueryIsLoading) {
     return (
       <PageLoadingState
@@ -297,10 +317,6 @@ function useHomeScreenView() {
   const displayName = (user?.displayName ?? home.user.displayName)?.trim();
   const greeting = t(`home.greeting.${getDayPeriod(new Date())}`);
   const dailyReward = dailyClaimQueryData?.dailyReward ?? 50;
-  const rarities = raritiesQueryData?.rarities ?? [];
-  const totalDropRate = rarities.reduce((sum, rarity) => {
-    return sum + rarity.dropRate;
-  }, 0);
 
   return (
     <ScrollView className="flex-1 bg-bg">
@@ -342,6 +358,32 @@ function useHomeScreenView() {
                 {t("home.notificationsPromptSettings")}
               </Button>
             </View>
+            <Pressable
+              testID="home-notifications-prompt-hide"
+              accessibilityRole="button"
+              hitSlop={8}
+              className="flex-row items-center gap-[6px] self-start px-ds-1"
+              onPress={() => {
+                if (!user?.id) {
+                  return;
+                }
+
+                void setNotificationPermissionPromptHidden(user.id, true).then(
+                  () => {
+                    setNotificationPromptHidden(true);
+                  },
+                );
+              }}
+            >
+              <BellOff
+                size={14}
+                color={tc.fgMuted}
+                strokeWidth={ICON_STROKE_WIDTH}
+              />
+              <Text className="font-nunito-bold text-ds-sm text-fgMuted underline">
+                {t("home.notificationsPromptHide")}
+              </Text>
+            </Pressable>
           </>
         ) : null}
 
@@ -453,42 +495,6 @@ function useHomeScreenView() {
           />
         </Card>
 
-        {rarities.length > 0 ? (
-          <Card>
-            <View className="gap-[2px]">
-              <Text className="font-nunito-extrabold text-ds-h3 text-fg">
-                {t("home.dropRates")}
-              </Text>
-              <Text className="font-nunito text-ds-sm text-fgMuted">
-                {t("home.dropRatesHint")}
-              </Text>
-            </View>
-
-            <View className="flex-row flex-wrap gap-2">
-              {rarities.map((rarity) => (
-                <View
-                  key={rarity.id}
-                  className="min-h-[56px] w-[48%] justify-center rounded-ds-md border bg-surfaceMuted px-ds-3 py-ds-2"
-                  style={{ borderColor: rarity.color }}
-                >
-                  <View className="flex-row items-center justify-between gap-2">
-                    <Text
-                      className="flex-1 font-nunito-extrabold text-ds-sm"
-                      style={{ color: rarity.color }}
-                      numberOfLines={1}
-                    >
-                      {rarity.name}
-                    </Text>
-                    <Text className="font-nunito-bold text-ds-caption text-fgMuted">
-                      {formatDropRatePercentage(rarity.dropRate)}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </Card>
-        ) : null}
-
         {featuredCards.length > 0 ? (
           <View className="-mx-ds-4 mt-ds-3 gap-ds-3">
             <SectionHeader
@@ -502,13 +508,35 @@ function useHomeScreenView() {
               data={featuredCards}
               keyExtractor={(item) => item.card.id}
               renderItem={renderFeaturedCard}
+              onScroll={handleFeaturedScroll}
+              scrollEventThrottle={32}
               contentContainerStyle={{
-                gap: 12,
+                gap: FEATURED_CARD_GAP,
                 paddingBottom: 4,
                 paddingLeft: 16,
                 paddingRight: 16 }}
               showsHorizontalScrollIndicator={false}
             />
+
+            {featuredCount > 1 ? (
+              <View
+                className="flex-row items-center justify-center gap-[6px]"
+                testID="home-featured-dots"
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                {featuredCards.map((item, index) => (
+                  <View
+                    key={item.card.id}
+                    className={
+                      index === featuredPage
+                        ? "h-[6px] w-[18px] rounded-ds-pill bg-primary"
+                        : "h-[6px] w-[6px] rounded-ds-pill bg-primaryBorder"
+                    }
+                  />
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
 

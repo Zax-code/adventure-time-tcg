@@ -6,6 +6,7 @@ import type {
   CollectionResponse,
   OpenPackResponse,
   PacksResponse,
+  RaritiesResponse,
 } from "@adventure-time/api-client";
 import { CARD_ART_RATIO } from "../../components/card-back-cover-art";
 import {
@@ -595,4 +596,37 @@ export function getPackTone(pack: Pick<Pack, "guaranteedRarity">): Tone {
   return pack.guaranteedRarity
     ? PACK_TONE[toRarityName(pack.guaranteedRarity)]
     : "primary";
+}
+
+export type DropRateRarity = RaritiesResponse["rarities"][number];
+
+export interface DropRateShare {
+  rarity: DropRateRarity;
+  // 0..1 share of all rarity weights, used for the bar fill.
+  share: number;
+  label: string;
+}
+
+export function formatDropRatePercentage(share: number) {
+  if (share <= 0) {
+    return "0%";
+  }
+
+  const percentage = share * 100;
+  if (percentage < 1) {
+    return "<1%";
+  }
+
+  return `${Math.round(percentage)}%`;
+}
+
+export function getDropRateShares(
+  rarities: readonly DropRateRarity[],
+): DropRateShare[] {
+  const total = rarities.reduce((sum, rarity) => sum + rarity.dropRate, 0);
+
+  return rarities.map((rarity) => {
+    const share = total > 0 ? Math.max(0, rarity.dropRate) / total : 0;
+    return { rarity, share, label: formatDropRatePercentage(share) };
+  });
 }
