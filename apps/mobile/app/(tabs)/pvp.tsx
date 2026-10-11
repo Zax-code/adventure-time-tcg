@@ -1082,6 +1082,7 @@ function usePvpScreenView() {
               tone="ghost"
               onPress={closeInviteSheet}
               style={{ flex: 1 }}
+              testID="pvp-invite-sheet-cancel-button"
             >
               {t("common.cancel")}
             </Button>

@@ -4,6 +4,10 @@ tags:
   - pvp
   - screenshots
   - modals
+onFlowStart:
+  - setOrientation: PORTRAIT
+onFlowComplete:
+  - setOrientation: PORTRAIT
 ---
 - launchApp:
     clearState: true
@@ -19,6 +23,7 @@ tags:
     visible:
       id: pvp-battle-board
     timeout: 30000
+- runFlow: subflows/rotate-to-pvp-board.yaml
 - extendedWaitUntil:
     visible:
       id: pvp-action-modal
@@ -64,23 +69,30 @@ tags:
 - assertVisible:
     id: pvp-concede-confirm-modal
 - takeScreenshot: tmp-pvp-modal-shots/06-concede-confirm
+- setOrientation: PORTRAIT
 - launchApp:
     clearState: true
     clearKeychain: true
 - openLink:
     link: adventure-time:///e2e-auth?redirect=%2Fpvp%3Ffixture%3D${TEST_MATCH_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
 - runFlow: subflows/confirm-open-link-if-needed.yaml
-- assertVisible:
-    id: pvp-lobby-hero
+- extendedWaitUntil:
+    visible:
+      id: pvp-lobby-hero
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: pvp-primary-action-card
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
-    point: "50%,66%"
-    retryTapIfNoChange: true
+    id: pvp-primary-action-card
 - assertVisible:
     id: pvp-invite-sheet
 - takeScreenshot: tmp-pvp-modal-shots/07-invite-sheet
 - tapOn:
-    id: pvp-invite-sheet-close-button
-    retryTapIfNoChange: true
+    id: pvp-invite-sheet-cancel-button
 - waitForAnimationToEnd
 - assertNotVisible:
     id: pvp-invite-sheet

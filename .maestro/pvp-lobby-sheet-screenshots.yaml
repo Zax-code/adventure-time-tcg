@@ -3,6 +3,10 @@ name: PvP lobby and sheet focused screenshots
 tags:
   - pvp
   - screenshots
+onFlowStart:
+  - setOrientation: PORTRAIT
+onFlowComplete:
+  - setOrientation: PORTRAIT
 ---
 - launchApp:
     clearState: true
@@ -10,13 +14,23 @@ tags:
 - openLink:
     link: adventure-time:///e2e-auth?redirect=%2Fpvp%3Ffixture%3D${TEST_MATCH_ID}&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
 - runFlow: subflows/confirm-open-link-if-needed.yaml
-- assertVisible:
-    id: pvp-lobby-hero
+- extendedWaitUntil:
+    visible:
+      id: pvp-lobby-hero
+    timeout: 30000
 - takeScreenshot: tmp-pvp-shots/01-lobby
+- scrollUntilVisible:
+    element:
+      id: pvp-open-mechanics-button
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
     id: pvp-open-mechanics-button
-- assertVisible:
-    id: pvp-mechanics-overview-card
+- extendedWaitUntil:
+    visible:
+      id: pvp-mechanics-overview-card
+    timeout: 10000
 - takeScreenshot: tmp-pvp-shots/02-mechanics-overview
 - scrollUntilVisible:
     element:

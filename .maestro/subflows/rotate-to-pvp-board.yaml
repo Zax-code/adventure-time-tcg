@@ -1,0 +1,7 @@
+appId: love.leaetzak.adventuretime
+---
+# PvP match, replay and spectate screens lock the interface to landscape, but
+# the iOS simulator stays portrait, so Maestro taps land in the wrong place
+# until the device is rotated to match.
+- setOrientation: LANDSCAPE_LEFT
+- waitForAnimationToEnd
