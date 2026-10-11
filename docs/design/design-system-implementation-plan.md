@@ -5,9 +5,10 @@ Turns `docs/design/design-system-proposal.pen` (summary in
 Each lot leaves the app shippable. No gameplay, contract, backend or data
 change is part of this plan.
 
-Status: lots 0 to 4 in review as a stack (`codex/ds-0-tokens` on #325,
-`codex/ds-1-primitives`, `codex/ds-2-headers`, `codex/ds-3-tab-screens`,
-`codex/ds-4-games`); lots 5 to 7 in progress. Prerequisite: pull requests #324 (view inventory) and #325
+Status: all eight lots are built and in review as a stack of pull requests
+(`codex/ds-0-tokens` on #325, then `codex/ds-1-primitives`,
+`codex/ds-2-headers`, `codex/ds-3-tab-screens`, `codex/ds-4-games`,
+`codex/ds-5-admin`, `codex/ds-6-web`, `codex/ds-7-icons`). Prerequisite: pull requests #324 (view inventory) and #325
 (proposal) merged, or the branch based on #325.
 
 ## Ground rules
@@ -403,6 +404,18 @@ Lot 6 as built:
 
 Acceptance: no hex literal in either `icons.tsx`.
 
+Lot 7 as built: mobile and web `icons.tsx` keep every exported name and prop
+(41 mobile, 43 web) and render the Lucide icons from board 01 at a 1.75
+stroke (`lucide-react-native` and `lucide-react`, both pinned to 1.48.0).
+Mobile icons without a `color` take their tone text token (primaryText,
+secondaryText for coins, dust and crowns, successText/dangerText for the
+check and cross circles); web icons use `currentColor`. Neither file has a
+hex literal. The Google and Apple sign-in marks keep their brand colors in
+`apps/web/src/components/brand-logos.tsx`; on mobile they already use
+Ionicons logos. Coins are the Lucide `coins` glyph everywhere, replacing the
+illustrated gold coin. The PvP results overlay also moved to the Dialog
+anatomy and the backdrop token.
+
 ## Verification per lot
 
 - `npm run typecheck`, `npm run doctor`, `cd apps/mobile && npx expo-doctor`.
@@ -424,13 +437,13 @@ Acceptance: no hex literal in either `icons.tsx`.
 | `font-weight: 900` in web CSS | 0 (lot 0; was 44) | 0 |
 | Distinct corner radii in `apps/mobile/app` | ~20; lot 3 tab screens: 142 raw radius literals (23 distinct) down to 72 (17), the rest in lists and game screens | 5 |
 | Distinct text sizes in `apps/mobile/app` | 30+; lot 3 tab screens: 259 raw size literals (22 distinct) down to 142 (18) | 8 |
-| Button implementations | 9 before; after lot 1: `ui/Button` (93 call sites incl. wrappers), `AdminButton` (41, lot 5), `ThemedExpoButton` (26 after lot 1, 20 after lot 3) | 1 |
-| Segmented-control implementations | 7 | 1 |
-| Stat-tile implementations | 7 | 1 |
+| Button implementations | 9 before; after lot 5: 1 (`ui/Button`; PrimaryButton, SecondaryButton, GhostButton, QuestActionButton and AdminButton are thin wrappers, `ThemedExpoButton` deleted) | 1 |
+| Segmented-control implementations | 7; after lot 5: 1 (`ui/SegmentedControl`; Daily Numbers mode tabs stay bespoke for their status line) | 1 |
+| Stat-tile implementations | 7; after lot 5: 1 (`ui/StatTile`, AdminStat wraps it) | 1 |
 | Header implementations | 4 + 9 ad hoc; after lot 2: AppHeader, StackHeader, SheetHeader (+ 4 PvP takeover chromes) | 3 |
-| Backdrop colors | 4; after lot 2: 1 token for every sheet and dialog | 1 |
+| Backdrop colors | 4; after lot 7: 1 token for every sheet, dialog and overlay | 1 |
 | Hex literals in web `theme.css` | 122 generated (lot 0; was 116 hand-copied) | generated |
-| Hex literals in `icons.tsx` (mobile + web) | 97 + 54 | 0 |
+| Hex literals in `icons.tsx` (mobile + web) | 97 + 54; after lot 7: 0 + 0 | 0 |
 | Tab label size | 9; after lot 2: 11 | 11 |
 
 ## Risks
