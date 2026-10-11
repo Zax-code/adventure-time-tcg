@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { StyleSheet, View } from "react-native";
+import { useIsFocused } from "expo-router";
 
 type OverlaySnapshot = Array<[string, ReactNode]>;
 
@@ -38,8 +39,9 @@ export function AppOverlayProvider({ children }: { children: ReactNode }) {
         notify();
       },
       removeOverlay: (key) => {
-        overlays.delete(key);
-        notify();
+        if (overlays.delete(key)) {
+          notify();
+        }
       },
       subscribe: (callback) => {
         subscribers.add(callback);
@@ -61,13 +63,20 @@ export function AppOverlayProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Overlays draw above every route, so only the focused screen may own one;
+// a blurred screen under a pushed route would otherwise keep dimming it.
 export function AppOverlayPortal({ children }: { children: ReactNode }) {
   const context = use(AppOverlayContext);
+  const isFocused = useIsFocused();
   const id = useId();
 
   useLayoutEffect(() => {
-    context?.addOverlay(id, children);
-  }, [children, context, id]);
+    if (isFocused) {
+      context?.addOverlay(id, children);
+    } else {
+      context?.removeOverlay(id);
+    }
+  }, [children, context, id, isFocused]);
 
   useLayoutEffect(() => {
     return () => {
@@ -76,7 +85,7 @@ export function AppOverlayPortal({ children }: { children: ReactNode }) {
   }, [context, id]);
 
   if (context === null) {
-    return <>{children}</>;
+    return isFocused ? <>{children}</> : null;
   }
 
   return null;

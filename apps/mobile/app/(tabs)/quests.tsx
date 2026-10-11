@@ -2,7 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useShallow } from "zustand/react/shallow";
 import { File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  useFocusEffect,
+  useIsFocused,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import * as Sharing from "expo-sharing";
 import {
   useCallback,
@@ -531,6 +536,9 @@ function useQuestsScreenView() {
   const [activeLauncher, setActiveLauncher] = useState<LauncherKind | null>(
     null,
   );
+  // Hub sheets portal to the app root, so a closed sheet left mounted under a
+  // pushed screen can redraw its scrim over it after an orientation change.
+  const screenFocused = useIsFocused();
   const [launcherSheetIndex, setLauncherSheetIndex] = useState(0);
   const [orderSheetIndex, setOrderSheetIndex] = useState(0);
   const [recapOpenSignature, setRecapOpenSignature] = useState<string | null>(
@@ -2069,7 +2077,7 @@ function useQuestsScreenView() {
         </View>
       </ScrollView>
 
-      {activeLauncher === "wordle" ? (
+      {screenFocused && activeLauncher === "wordle" ? (
         <QuestLaunchSheet
           index={launcherSheetIndex}
           onDismiss={dismissLauncher}
@@ -2081,31 +2089,33 @@ function useQuestsScreenView() {
         />
       ) : null}
 
-      <QuestOrderSheet
-        index={orderSheetIndex}
-        moveDownLabel={t("quests.hub.moveDown")}
-        moveUpLabel={t("quests.hub.moveUp")}
-        onDismiss={() => setOrderSheetIndex(0)}
-        onIndexChange={setOrderSheetIndex}
-        onMove={(id, direction) => {
-          if (!user?.id) return;
-          void setQuestHubOrder(
-            user.id,
-            moveQuestHubPreference(questHubOrder, id, direction),
-          );
-        }}
-        onReset={() => {
-          if (!user?.id) return;
-          void setQuestHubOrder(user.id, DEFAULT_QUEST_HUB_ORDER);
-        }}
-        options={questOrderOptions}
-        resetLabel={t("quests.hub.resetOrder")}
-        subtitle={t("quests.hub.orderSubtitle")}
-        tc={tc}
-        title={t("quests.hub.orderTitle")}
-      />
+      {screenFocused ? (
+        <QuestOrderSheet
+          index={orderSheetIndex}
+          moveDownLabel={t("quests.hub.moveDown")}
+          moveUpLabel={t("quests.hub.moveUp")}
+          onDismiss={() => setOrderSheetIndex(0)}
+          onIndexChange={setOrderSheetIndex}
+          onMove={(id, direction) => {
+            if (!user?.id) return;
+            void setQuestHubOrder(
+              user.id,
+              moveQuestHubPreference(questHubOrder, id, direction),
+            );
+          }}
+          onReset={() => {
+            if (!user?.id) return;
+            void setQuestHubOrder(user.id, DEFAULT_QUEST_HUB_ORDER);
+          }}
+          options={questOrderOptions}
+          resetLabel={t("quests.hub.resetOrder")}
+          subtitle={t("quests.hub.orderSubtitle")}
+          tc={tc}
+          title={t("quests.hub.orderTitle")}
+        />
+      ) : null}
 
-      {activeLauncher === "dailyNumbers" ? (
+      {screenFocused && activeLauncher === "dailyNumbers" ? (
         <QuestLaunchSheet
           historyAction={{
             label: t("quests.dailyNumbers.historyAction"),
@@ -2124,7 +2134,7 @@ function useQuestsScreenView() {
         />
       ) : null}
 
-      {recapActions.length > 0 ? (
+      {screenFocused && recapActions.length > 0 ? (
         <QuestRecapSheet
           actions={recapActions}
           index={recapSheetIndex}
