@@ -34926,8 +34926,13 @@
                                       "enabled": false
                                     },
                                     "W2g2qJ": {
-                                      "content": "Answer",
-                                      "fontSize": 17
+                                      "content": "4",
+                                      "fontSize": 28,
+                                      "fontWeight": "800",
+                                      "fill": "$fg",
+                                      "textAlign": "center",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container"
                                     }
                                   }
                                 },
