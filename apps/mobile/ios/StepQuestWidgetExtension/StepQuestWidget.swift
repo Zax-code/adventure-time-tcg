@@ -29,222 +29,178 @@ private struct StepQuestEntry: TimelineEntry {
   let themeName: String
 }
 
-private struct StepQuestPalette {
-  let backgroundTop: Color
-  let backgroundBottom: Color
-  let glowPrimary: Color
-  let glowSecondary: Color
-  let ringFill: Color
-  let title: Color
-  let body: Color
-  let muted: Color
-  let progress: Color
-  let progressTrack: Color
-  let statusText: Color
-  let statusBackground: Color
+// Theme tokens mirrored from packages/theme/src/index.ts (THEME_COLORS).
+// Keep these values aligned with that file when the app tokens change.
+private struct StepQuestTokens {
+  let fg: Color
+  let fgMuted: Color
+  let surface: Color
+  let surfaceMuted: Color
+  let primary: Color
+  let primaryText: Color
+  let primaryBorder: Color
+  let primaryTint: Color
+  let secondaryText: Color
+  let secondaryTint: Color
+  let secondaryBorder: Color
+  let success: Color
+  let successText: Color
+  let successTint: Color
+  let successBorder: Color
 
-  static func forTheme(_ themeName: String, status: String) -> StepQuestPalette {
+  static func forTheme(_ themeName: String) -> StepQuestTokens {
     switch themeName {
     case "ice":
-      return StepQuestPalette.ice(status: status)
+      return .ice
     case "nightosphere":
-      return StepQuestPalette.nightosphere(status: status)
+      return .nightosphere
     default:
-      return StepQuestPalette.candy(status: status)
+      return .candy
     }
   }
 
-  private static func candy(status: String) -> StepQuestPalette {
-    switch status {
-    case "completed":
-      return StepQuestPalette(
-        backgroundTop: Color(red: 0.91, green: 0.99, blue: 0.95),
-        backgroundBottom: Color(red: 1.0, green: 0.98, blue: 0.82),
-        glowPrimary: Color(red: 0.18, green: 0.83, blue: 0.75),
-        glowSecondary: Color(red: 0.98, green: 0.86, blue: 0.35),
-        ringFill: Color.white.opacity(0.55),
-        title: Color(red: 0.21, green: 0.24, blue: 0.20),
-        body: Color(red: 0.28, green: 0.39, blue: 0.34),
-        muted: Color(red: 0.42, green: 0.50, blue: 0.47),
-        progress: Color(red: 0.08, green: 0.72, blue: 0.57),
-        progressTrack: Color(red: 0.78, green: 0.96, blue: 0.89),
-        statusText: Color(red: 0.02, green: 0.37, blue: 0.28),
-        statusBackground: Color(red: 0.80, green: 0.98, blue: 0.91)
-      )
-    case "claimed":
-      return StepQuestPalette(
-        backgroundTop: Color(red: 0.98, green: 0.95, blue: 1.0),
-        backgroundBottom: Color(red: 1.0, green: 0.94, blue: 0.98),
-        glowPrimary: Color(red: 0.75, green: 0.52, blue: 0.99),
-        glowSecondary: Color(red: 0.96, green: 0.45, blue: 0.71),
-        ringFill: Color.white.opacity(0.55),
-        title: Color(red: 0.28, green: 0.20, blue: 0.31),
-        body: Color(red: 0.43, green: 0.36, blue: 0.48),
-        muted: Color(red: 0.55, green: 0.48, blue: 0.60),
-        progress: Color(red: 0.60, green: 0.52, blue: 0.75),
-        progressTrack: Color(red: 0.91, green: 0.87, blue: 0.97),
-        statusText: Color(red: 0.42, green: 0.22, blue: 0.62),
-        statusBackground: Color(red: 0.94, green: 0.88, blue: 1.0)
-      )
-    case "failed":
-      return StepQuestPalette(
-        backgroundTop: Color(red: 1.0, green: 0.94, blue: 0.95),
-        backgroundBottom: Color(red: 1.0, green: 0.96, blue: 0.90),
-        glowPrimary: Color(red: 0.98, green: 0.44, blue: 0.52),
-        glowSecondary: Color(red: 0.98, green: 0.60, blue: 0.20),
-        ringFill: Color.white.opacity(0.55),
-        title: Color(red: 0.35, green: 0.17, blue: 0.18),
-        body: Color(red: 0.46, green: 0.28, blue: 0.25),
-        muted: Color(red: 0.62, green: 0.42, blue: 0.37),
-        progress: Color(red: 0.92, green: 0.35, blue: 0.28),
-        progressTrack: Color(red: 1.0, green: 0.87, blue: 0.88),
-        statusText: Color(red: 0.68, green: 0.11, blue: 0.18),
-        statusBackground: Color(red: 1.0, green: 0.88, blue: 0.90)
-      )
-    default:
-      return StepQuestPalette(
-        backgroundTop: Color(red: 1.0, green: 0.94, blue: 0.97),
-        backgroundBottom: Color(red: 1.0, green: 0.98, blue: 0.86),
-        glowPrimary: Color(red: 0.96, green: 0.45, blue: 0.71),
-        glowSecondary: Color(red: 0.99, green: 0.82, blue: 0.16),
-        ringFill: Color.white.opacity(0.55),
-        title: Color(red: 0.29, green: 0.22, blue: 0.16),
-        body: Color(red: 0.38, green: 0.31, blue: 0.24),
-        muted: Color(red: 0.47, green: 0.39, blue: 0.33),
-        progress: Color(red: 0.93, green: 0.29, blue: 0.60),
-        progressTrack: Color(red: 0.98, green: 0.84, blue: 0.91),
-        statusText: Color(red: 0.75, green: 0.09, blue: 0.42),
-        statusBackground: Color(red: 0.99, green: 0.87, blue: 0.93)
+  static let candy = StepQuestTokens(
+    fg: Color(hex: 0x4A3728),
+    fgMuted: Color(hex: 0x6B7280),
+    surface: Color(hex: 0xFFFFFF, alpha: 0.96),
+    surfaceMuted: Color(hex: 0xFFFFFF, alpha: 0.9),
+    primary: Color(hex: 0xF472B6),
+    primaryText: Color(hex: 0xDB2777),
+    primaryBorder: Color(hex: 0xF9A8D4),
+    primaryTint: Color(hex: 0xFCE7F3),
+    secondaryText: Color(hex: 0x894B00),
+    secondaryTint: Color(hex: 0xFEF9C3),
+    secondaryBorder: Color(hex: 0xFEF08A),
+    success: Color(hex: 0x2DD4BF),
+    successText: Color(hex: 0x005F5A),
+    successTint: Color(hex: 0xCCFBF1),
+    successBorder: Color(hex: 0x96F7E4)
+  )
+
+  static let ice = StepQuestTokens(
+    fg: Color(hex: 0x1F2937),
+    fgMuted: Color(hex: 0x6B7280),
+    surface: Color(hex: 0xFFFFFF, alpha: 0.98),
+    surfaceMuted: Color(red: 240 / 255, green: 247 / 255, blue: 1, opacity: 0.95),
+    primary: Color(hex: 0x60A5FA),
+    primaryText: Color(hex: 0x1D4ED8),
+    primaryBorder: Color(hex: 0xBFDBFE),
+    primaryTint: Color(hex: 0xDBEAFE),
+    secondaryText: Color(hex: 0x0E7490),
+    secondaryTint: Color(hex: 0xCFFAFE),
+    secondaryBorder: Color(hex: 0xA5F3FC),
+    success: Color(hex: 0x34D399),
+    successText: Color(hex: 0x065F46),
+    successTint: Color(hex: 0xD1FAE5),
+    successBorder: Color(hex: 0x6EE7B7)
+  )
+
+  static let nightosphere = StepQuestTokens(
+    fg: Color(hex: 0xF0C0C0),
+    fgMuted: Color(hex: 0x9CA3AF),
+    surface: Color(hex: 0x1A0B15),
+    surfaceMuted: Color(hex: 0x120813),
+    primary: Color(hex: 0xEF4444),
+    primaryText: Color(hex: 0xFCA5A5),
+    primaryBorder: Color(hex: 0x7F1D1D),
+    primaryTint: Color(hex: 0x2D0F0F),
+    secondaryText: Color(hex: 0xFDBA74),
+    secondaryTint: Color(hex: 0x1C0D05),
+    secondaryBorder: Color(hex: 0x7C2D12),
+    success: Color(hex: 0x34D399),
+    successText: Color(hex: 0x6EE7B7),
+    successTint: Color(hex: 0x022C22),
+    successBorder: Color(hex: 0x064E3B)
+  )
+}
+
+private extension Color {
+  init(hex: UInt32, alpha: Double = 1) {
+    self.init(
+      red: Double((hex >> 16) & 0xFF) / 255,
+      green: Double((hex >> 8) & 0xFF) / 255,
+      blue: Double(hex & 0xFF) / 255,
+      opacity: alpha
+    )
+  }
+}
+
+private struct ChipStyle {
+  let background: Color
+  let border: Color
+  let foreground: Color
+}
+
+/// Visual state of the widget, derived from the snapshot status
+/// (`active`, `completed`, `claimed`, `failed`) plus the not-synced fallback.
+private struct StepQuestStyle {
+  let background: Color
+  let tile: ChipStyle
+  let status: ChipStyle
+  let reward: ChipStyle
+  let barTrack: Color
+  let barBorder: Color
+  let barFill: Color
+  let statusIcon: LucideIcon
+  let tokens: StepQuestTokens
+
+  static func make(themeName: String, status: String?) -> StepQuestStyle {
+    let t = StepQuestTokens.forTheme(themeName)
+    let primaryChip = ChipStyle(background: t.primaryTint, border: t.primaryBorder, foreground: t.primaryText)
+    let reward = ChipStyle(background: t.secondaryTint, border: t.secondaryBorder, foreground: t.secondaryText)
+
+    func style(
+      background: Color,
+      tile: ChipStyle,
+      status: ChipStyle,
+      fill: Color,
+      icon: LucideIcon
+    ) -> StepQuestStyle {
+      StepQuestStyle(
+        background: background,
+        tile: tile,
+        status: status,
+        reward: reward,
+        barTrack: t.surfaceMuted,
+        barBorder: t.primaryBorder,
+        barFill: fill,
+        statusIcon: icon,
+        tokens: t
       )
     }
-  }
 
-  private static func ice(status: String) -> StepQuestPalette {
     switch status {
     case "completed":
-      return StepQuestPalette(
-        backgroundTop: Color(red: 0.90, green: 0.98, blue: 0.98),
-        backgroundBottom: Color(red: 0.93, green: 0.99, blue: 1.0),
-        glowPrimary: Color(red: 0.11, green: 0.77, blue: 0.74),
-        glowSecondary: Color(red: 0.49, green: 0.83, blue: 1.0),
-        ringFill: Color.white.opacity(0.55),
-        title: Color(red: 0.09, green: 0.31, blue: 0.39),
-        body: Color(red: 0.08, green: 0.37, blue: 0.46),
-        muted: Color(red: 0.29, green: 0.42, blue: 0.49),
-        progress: Color(red: 0.08, green: 0.72, blue: 0.65),
-        progressTrack: Color(red: 0.80, green: 0.98, blue: 0.95),
-        statusText: Color(red: 0.06, green: 0.46, blue: 0.43),
-        statusBackground: Color(red: 0.82, green: 0.98, blue: 0.94)
+      return style(
+        background: t.successTint,
+        tile: ChipStyle(background: t.surface, border: t.successBorder, foreground: t.successText),
+        status: ChipStyle(background: t.successTint, border: t.successBorder, foreground: t.successText),
+        fill: t.success,
+        icon: .gift
       )
     case "claimed":
-      return StepQuestPalette(
-        backgroundTop: Color(red: 0.93, green: 0.96, blue: 1.0),
-        backgroundBottom: Color(red: 0.95, green: 0.98, blue: 1.0),
-        glowPrimary: Color(red: 0.51, green: 0.55, blue: 0.97),
-        glowSecondary: Color(red: 0.40, green: 0.91, blue: 0.98),
-        ringFill: Color.white.opacity(0.55),
-        title: Color(red: 0.12, green: 0.23, blue: 0.54),
-        body: Color(red: 0.20, green: 0.29, blue: 0.33),
-        muted: Color(red: 0.39, green: 0.45, blue: 0.55),
-        progress: Color(red: 0.51, green: 0.55, blue: 0.97),
-        progressTrack: Color(red: 0.88, green: 0.91, blue: 1.0),
-        statusText: Color(red: 0.26, green: 0.22, blue: 0.79),
-        statusBackground: Color(red: 0.89, green: 0.92, blue: 1.0)
+      return style(
+        background: t.surface,
+        tile: ChipStyle(background: t.surfaceMuted, border: t.primaryBorder, foreground: t.fgMuted),
+        status: ChipStyle(background: t.surface, border: t.primaryBorder, foreground: t.fgMuted),
+        fill: t.success,
+        icon: .check
       )
     case "failed":
-      return StepQuestPalette(
-        backgroundTop: Color(red: 1.0, green: 0.96, blue: 0.93),
-        backgroundBottom: Color(red: 0.99, green: 0.98, blue: 0.95),
-        glowPrimary: Color(red: 0.98, green: 0.45, blue: 0.16),
-        glowSecondary: Color(red: 0.97, green: 0.44, blue: 0.44),
-        ringFill: Color.white.opacity(0.55),
-        title: Color(red: 0.49, green: 0.18, blue: 0.07),
-        body: Color(red: 0.60, green: 0.20, blue: 0.07),
-        muted: Color(red: 0.63, green: 0.38, blue: 0.03),
-        progress: Color(red: 0.98, green: 0.45, blue: 0.16),
-        progressTrack: Color(red: 1.0, green: 0.93, blue: 0.84),
-        statusText: Color(red: 0.73, green: 0.11, blue: 0.11),
-        statusBackground: Color(red: 1.0, green: 0.89, blue: 0.89)
+      return style(
+        background: t.surfaceMuted,
+        tile: ChipStyle(background: t.surfaceMuted, border: t.primaryBorder, foreground: t.fgMuted),
+        status: ChipStyle(background: t.surface, border: t.primaryBorder, foreground: t.fgMuted),
+        fill: t.fgMuted,
+        icon: .moon
       )
     default:
-      return StepQuestPalette(
-        backgroundTop: Color(red: 0.92, green: 0.97, blue: 1.0),
-        backgroundBottom: Color(red: 0.95, green: 0.99, blue: 1.0),
-        glowPrimary: Color(red: 0.22, green: 0.74, blue: 0.97),
-        glowSecondary: Color(red: 0.40, green: 0.91, blue: 0.98),
-        ringFill: Color.white.opacity(0.55),
-        title: Color(red: 0.12, green: 0.23, blue: 0.54),
-        body: Color(red: 0.11, green: 0.31, blue: 0.85),
-        muted: Color(red: 0.39, green: 0.45, blue: 0.55),
-        progress: Color(red: 0.22, green: 0.74, blue: 0.97),
-        progressTrack: Color(red: 0.86, green: 0.92, blue: 0.98),
-        statusText: Color(red: 0.11, green: 0.31, blue: 0.85),
-        statusBackground: Color(red: 0.86, green: 0.92, blue: 0.99)
-      )
-    }
-  }
-
-  private static func nightosphere(status: String) -> StepQuestPalette {
-    switch status {
-    case "completed":
-      return StepQuestPalette(
-        backgroundTop: Color(red: 0.14, green: 0.05, blue: 0.08),
-        backgroundBottom: Color(red: 0.08, green: 0.02, blue: 0.05),
-        glowPrimary: Color(red: 0.98, green: 0.45, blue: 0.09),
-        glowSecondary: Color(red: 0.75, green: 0.52, blue: 0.99),
-        ringFill: Color(red: 0.16, green: 0.07, blue: 0.15).opacity(0.92),
-        title: Color(red: 1.0, green: 0.81, blue: 0.80),
-        body: Color(red: 0.99, green: 0.65, blue: 0.65),
-        muted: Color(red: 0.99, green: 0.73, blue: 0.45),
-        progress: Color(red: 0.98, green: 0.45, blue: 0.09),
-        progressTrack: Color(red: 0.29, green: 0.11, blue: 0.07),
-        statusText: Color(red: 0.99, green: 0.89, blue: 0.54),
-        statusBackground: Color(red: 0.34, green: 0.16, blue: 0.04)
-      )
-    case "claimed":
-      return StepQuestPalette(
-        backgroundTop: Color(red: 0.11, green: 0.03, blue: 0.16),
-        backgroundBottom: Color(red: 0.05, green: 0.00, blue: 0.09),
-        glowPrimary: Color(red: 0.75, green: 0.52, blue: 0.99),
-        glowSecondary: Color(red: 0.98, green: 0.44, blue: 0.52),
-        ringFill: Color(red: 0.16, green: 0.07, blue: 0.18).opacity(0.92),
-        title: Color(red: 0.96, green: 0.82, blue: 0.99),
-        body: Color(red: 0.91, green: 0.84, blue: 1.0),
-        muted: Color(red: 0.77, green: 0.71, blue: 0.99),
-        progress: Color(red: 0.75, green: 0.52, blue: 0.99),
-        progressTrack: Color(red: 0.23, green: 0.07, blue: 0.31),
-        statusText: Color(red: 0.91, green: 0.84, blue: 1.0),
-        statusBackground: Color(red: 0.28, green: 0.11, blue: 0.39)
-      )
-    case "failed":
-      return StepQuestPalette(
-        backgroundTop: Color(red: 0.15, green: 0.03, blue: 0.07),
-        backgroundBottom: Color(red: 0.08, green: 0.01, blue: 0.03),
-        glowPrimary: Color(red: 0.94, green: 0.27, blue: 0.27),
-        glowSecondary: Color(red: 0.98, green: 0.45, blue: 0.09),
-        ringFill: Color(red: 0.18, green: 0.06, blue: 0.12).opacity(0.92),
-        title: Color(red: 1.0, green: 0.81, blue: 0.80),
-        body: Color(red: 0.99, green: 0.65, blue: 0.65),
-        muted: Color(red: 0.99, green: 0.73, blue: 0.45),
-        progress: Color(red: 0.94, green: 0.27, blue: 0.27),
-        progressTrack: Color(red: 0.25, green: 0.04, blue: 0.07),
-        statusText: Color(red: 0.99, green: 0.65, blue: 0.65),
-        statusBackground: Color(red: 0.34, green: 0.07, blue: 0.10)
-      )
-    default:
-      return StepQuestPalette(
-        backgroundTop: Color(red: 0.10, green: 0.02, blue: 0.08),
-        backgroundBottom: Color(red: 0.05, green: 0.00, blue: 0.06),
-        glowPrimary: Color(red: 0.98, green: 0.44, blue: 0.52),
-        glowSecondary: Color(red: 0.75, green: 0.52, blue: 0.99),
-        ringFill: Color(red: 0.16, green: 0.07, blue: 0.15).opacity(0.92),
-        title: Color(red: 0.96, green: 0.82, blue: 0.99),
-        body: Color(red: 0.98, green: 0.81, blue: 0.91),
-        muted: Color(red: 0.77, green: 0.71, blue: 0.99),
-        progress: Color(red: 0.98, green: 0.44, blue: 0.52),
-        progressTrack: Color(red: 0.20, green: 0.07, blue: 0.14),
-        statusText: Color(red: 0.98, green: 0.66, blue: 0.83),
-        statusBackground: Color(red: 0.28, green: 0.07, blue: 0.17)
+      return style(
+        background: t.surface,
+        tile: primaryChip,
+        status: primaryChip,
+        fill: t.primary,
+        icon: .footprints
       )
     }
   }
@@ -356,11 +312,22 @@ private func loadStoredLocaleCode() -> String? {
 }
 
 private func normalizeThemeName(_ themeName: String?) -> String? {
-  switch themeName {
-  case "candy", "ice", "nightosphere":
-    return themeName
-  default:
+  guard let raw = themeName?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), !raw.isEmpty else {
     return nil
+  }
+
+  switch raw {
+  case "candy", "ice", "nightosphere":
+    return raw
+  default:
+    // Map legacy or unknown theme names to the closest current theme.
+    if raw.contains("night") || raw.contains("dark") || raw.contains("marceline") {
+      return "nightosphere"
+    }
+    if raw.contains("ice") || raw.contains("frost") || raw.contains("snow") || raw.contains("blue") {
+      return "ice"
+    }
+    return "candy"
   }
 }
 
@@ -425,548 +392,587 @@ private struct StepQuestWidgetView: View {
 
   let entry: StepQuestEntry
 
-  private var palette: StepQuestPalette {
+  private var style: StepQuestStyle {
     let themeName = entry.snapshot.flatMap { normalizeThemeName($0.themeName) } ?? entry.themeName
-    return StepQuestPalette.forTheme(themeName, status: entry.snapshot?.status ?? "active")
+    return StepQuestStyle.make(themeName: themeName, status: entry.snapshot?.status)
   }
 
   var body: some View {
+    let style = self.style
+
     Group {
       if #available(iOSApplicationExtension 17.0, *) {
-        widgetContent
+        widgetContent(style: style)
           .containerBackground(for: .widget) {
-            StepQuestBackground(palette: palette)
+            style.background
           }
       } else {
         ZStack {
-          StepQuestBackground(palette: palette)
-          widgetContent
+          style.background
+          widgetContent(style: style)
         }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .clipShape(ContainerRelativeShape())
     .widgetURL(URL(string: entry.snapshot?.deepLink ?? defaultDeepLink))
   }
 
   @ViewBuilder
-  private var widgetContent: some View {
+  private func widgetContent(style: StepQuestStyle) -> some View {
     if let snapshot = entry.snapshot {
       if family == .systemSmall {
-        StepQuestSmallLayout(snapshot: snapshot, palette: palette)
+        StepQuestSmallLayout(snapshot: snapshot, style: style)
       } else {
-        StepQuestMediumLayout(snapshot: snapshot, palette: palette)
+        StepQuestMediumLayout(snapshot: snapshot, style: style)
       }
     } else {
-      StepQuestFallbackLayout(palette: palette, family: family)
+      StepQuestFallbackLayout(style: style, family: family)
     }
   }
 }
 
 private struct StepQuestSmallLayout: View {
   let snapshot: StepQuestSnapshot
-  let palette: StepQuestPalette
-
-  private var progressRatio: Double {
-    let total = Double(max(snapshot.target, 1))
-    return min(max(Double(snapshot.progress) / total, 0), 1)
-  }
+  let style: StepQuestStyle
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
+    VStack(alignment: .leading, spacing: 0) {
       HStack(alignment: .center, spacing: 8) {
-        WidgetBadge(text: localized(en: "STEP QUEST", fr: "QUÊTE"), palette: palette)
-        Spacer(minLength: 8)
-        RewardChip(reward: snapshot.reward, compact: true)
-      }
-      HStack(alignment: .center, spacing:0)
-      {
+        IconTile(style: style.tile)
         Spacer(minLength: 0)
-      
-        VStack(alignment: .center, spacing:5){
-          Text(localized(en: "10 000 Steps", fr: "10 000 pas"))
-            .font(.system(size: 16, weight: .heavy, design: .rounded))
-            .foregroundStyle(palette.title)
-            .lineLimit(1)
-            .minimumScaleFactor(0.9)
-          VStack(alignment: .center, spacing: 6) {
-            StatusPill(text: statusHeadline(for: snapshot.status), palette: palette, compact: true)
-            
-            ProgressRing(
-              progress: progressRatio,
-              palette: palette,
-              primaryLabel: percentText(for: snapshot),
-              secondaryLabel: compactRingProgressLabel(for: snapshot)
-            )
-            .frame(width: 70, height: 70)
-            
-          }
-        }
-        Spacer(minLength: 0)
-
+        RewardChip(reward: snapshot.reward, style: style.reward)
       }
+      Spacer(minLength: 6)
+      StepCount(snapshot: snapshot, tokens: style.tokens)
+      Spacer(minLength: 6)
+      ProgressBar(progress: progressRatio(for: snapshot), style: style)
+      Spacer(minLength: 6)
+      StatusChip(text: statusLabel(for: snapshot), icon: style.statusIcon, style: style.status)
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 10)
+    .padding(14)
   }
 }
 
 private struct StepQuestMediumLayout: View {
   let snapshot: StepQuestSnapshot
-  let palette: StepQuestPalette
-
-  private var progressRatio: Double {
-    let total = Double(max(snapshot.target, 1))
-    return min(max(Double(snapshot.progress) / total, 0), 1)
-  }
+  let style: StepQuestStyle
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      VStack(alignment: .leading, spacing: 4){
-        HStack(alignment: .center, spacing: 10) {
-          WidgetBadge(text: localized(en: "STEP QUEST", fr: "QUÊTE DE PAS"), palette: palette)
-          Spacer(minLength: 6)
-          StatusPill(text: statusHeadline(for: snapshot.status), palette: palette, compact: true)
-          RewardChip(reward: snapshot.reward, compact: true)
-        }
-        
-        Text(localized(en: "Walk 10,000 steps today", fr: "Marche 10 000 pas aujourd'hui"))
-          .font(.system(size: 16, weight: .heavy, design: .rounded))
-          .foregroundStyle(palette.title)
+    VStack(alignment: .leading, spacing: 0) {
+      HStack(alignment: .center, spacing: 10) {
+        IconTile(style: style.tile)
+        Text(questTitle(for: snapshot))
+          .font(.system(size: 15, weight: .heavy, design: .rounded))
+          .foregroundStyle(style.tokens.fg)
           .lineLimit(1)
           .minimumScaleFactor(0.8)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        RewardChip(reward: snapshot.reward, style: style.reward)
       }
-      HStack(alignment: .bottom, spacing: 20) {
-        ProgressRing(
-          progress: progressRatio,
-          palette: palette,
-          primaryLabel: percentText(for: snapshot),
-          secondaryLabel: nil
-        )
-        .frame(width: 68, height: 68)
-
-        VStack(alignment: .leading, spacing: 4) {
-          Text(snapshot.progressLabel)
-            .font(.system(size: 12, weight: .bold, design: .rounded))
-            .foregroundStyle(palette.title)
-            .lineLimit(1)
-
-          Text(progressFootnote(for: snapshot))
-            .font(.system(size: 11, weight: .semibold, design: .rounded))
-            .foregroundStyle(palette.muted)
-            .lineLimit(2)
-            .minimumScaleFactor(0.85)
-        }.padding(.bottom, 6)
-
+      Spacer(minLength: 8)
+      HStack(alignment: .bottom, spacing: 10) {
+        StepCount(snapshot: snapshot, tokens: style.tokens)
+        Spacer(minLength: 0)
+        StatusChip(text: statusLabel(for: snapshot), icon: style.statusIcon, style: style.status)
       }
-
+      Spacer(minLength: 8)
+      ProgressBar(progress: progressRatio(for: snapshot), style: style)
+      Spacer(minLength: 8)
+      Text(footnote(for: snapshot))
+        .font(.system(size: 12, weight: .semibold, design: .rounded))
+        .foregroundStyle(style.tokens.fgMuted)
+        .lineLimit(1)
+        .minimumScaleFactor(0.85)
     }
-    .padding(.vertical, 15)
-    .padding(.horizontal, 20)
+    .padding(16)
   }
 }
 
 private struct StepQuestFallbackLayout: View {
-  let palette: StepQuestPalette
+  let style: StepQuestStyle
   let family: WidgetFamily
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack(alignment: .top, spacing: 8) {
-        WidgetBadge(text: localized(en: "DAILY STEPS", fr: "PAS DU JOUR"), palette: palette)
-        Spacer(minLength: 8)
-        CoinToken(size: family == .systemSmall ? 26 : 30)
+    VStack(alignment: .leading, spacing: 0) {
+      IconTile(style: style.tile)
+      Spacer(minLength: 8)
+      VStack(alignment: .leading, spacing: 2) {
+        Text(localized(en: "Step quest", fr: "Quête de pas"))
+          .font(.system(size: 17, weight: .heavy, design: .rounded))
+          .foregroundStyle(style.tokens.fg)
+          .lineLimit(1)
+        Text(localized(
+          en: "Open the app to sync today's steps.",
+          fr: "Ouvre l'app pour synchroniser tes pas du jour."
+        ))
+        .font(.system(size: 12, weight: .semibold, design: .rounded))
+        .foregroundStyle(style.tokens.fgMuted)
+        .lineLimit(family == .systemSmall ? 3 : 2)
+        .fixedSize(horizontal: false, vertical: true)
       }
-
-      Text(localized(en: "Step quest", fr: "Quête de pas"))
-        .font(.system(size: family == .systemSmall ? 16 : 18, weight: .heavy, design: .rounded))
-        .foregroundStyle(palette.title)
-        .lineLimit(2)
-
-      Text(localized(
-        en: "Open the app to load today's progress.",
-        fr: "Ouvre l'application pour charger la progression du jour."
-      ))
-      .font(.system(size: 12, weight: .semibold, design: .rounded))
-      .foregroundStyle(palette.body)
-      .lineLimit(family == .systemSmall ? 4 : 2)
-
-      Spacer(minLength: 0)
-
-      ProgressBar(progress: 0.24, palette: palette)
-        .frame(height: family == .systemSmall ? 10 : 12)
-
-      Text(localized(en: "Tap to sync your daily quest.", fr: "Ouvre l'app pour synchroniser ta quête."))
-        .font(.system(size: 11, weight: .semibold, design: .rounded))
-        .foregroundStyle(palette.muted)
-        .lineLimit(1)
+      Spacer(minLength: 8)
+      ProgressBar(progress: 0, style: style)
     }
     .padding(family == .systemSmall ? 14 : 16)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 }
 
-private struct StepQuestBackground: View {
-  let palette: StepQuestPalette
+private struct StepCount: View {
+  let snapshot: StepQuestSnapshot
+  let tokens: StepQuestTokens
 
   var body: some View {
-    GeometryReader { geometry in
-      ZStack {
-        LinearGradient(
-          colors: [palette.backgroundTop, palette.backgroundBottom],
-          startPoint: .topLeading,
-          endPoint: .bottomTrailing
-        )
-
-        Circle()
-          .fill(palette.glowPrimary.opacity(0.28))
-          .frame(width: geometry.size.width * 0.60)
-          .offset(x: geometry.size.width * 0.26, y: -geometry.size.height * 0.20)
-          .blur(radius: 18)
-
-        Circle()
-          .fill(palette.glowSecondary.opacity(0.24))
-          .frame(width: geometry.size.width * 0.50)
-          .offset(x: -geometry.size.width * 0.22, y: geometry.size.height * 0.26)
-          .blur(radius: 18)
-
-        WidgetSparkle()
-          .fill(.white.opacity(0.55))
-          .frame(width: 14, height: 14)
-          .offset(x: geometry.size.width * 0.28, y: -geometry.size.height * 0.20)
-
-        WidgetSparkle()
-          .fill(palette.glowSecondary.opacity(0.90))
-          .frame(width: 10, height: 10)
-          .offset(x: -geometry.size.width * 0.24, y: -geometry.size.height * 0.04)
-      }
-      .clipShape(ContainerRelativeShape())
+    VStack(alignment: .leading, spacing: 0) {
+      Text(formatNumber(max(snapshot.progress, 0)))
+        .font(.system(size: 28, weight: .heavy, design: .rounded))
+        .foregroundStyle(tokens.fg)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+      Text(localized(
+        en: "of \(formatNumber(max(snapshot.target, 1))) steps",
+        fr: "sur \(formatNumber(max(snapshot.target, 1))) pas"
+      ))
+      .font(.system(size: 12, weight: .semibold, design: .rounded))
+      .foregroundStyle(tokens.fgMuted)
+      .lineLimit(1)
     }
   }
 }
 
-private struct WidgetBadge: View {
-  let text: String
-  let palette: StepQuestPalette
+private struct IconTile: View {
+  let style: ChipStyle
 
   var body: some View {
-    Text(text)
-      .font(.system(size: 9, weight: .black, design: .rounded))
-      .foregroundStyle(palette.title.opacity(0.88))
-      .padding(.horizontal, 9)
-      .padding(.vertical, 5)
-      .background(
-        Capsule(style: .continuous)
-          .fill(Color.white.opacity(0.42))
-      )
+    LucideIconView(icon: .footprints, size: 18, color: style.foreground)
+      .frame(width: 32, height: 32)
+      .background(Circle().fill(style.background))
+      .overlay(Circle().strokeBorder(style.border, lineWidth: 1))
   }
 }
 
-private struct StatusPill: View {
+private struct ChipView: View {
   let text: String
-  let palette: StepQuestPalette
-  var compact: Bool = false
+  let icon: LucideIcon
+  let style: ChipStyle
 
   var body: some View {
-    Text(text)
-      .font(.system(size: compact ? 10 : 11, weight: .bold, design: .rounded))
-      .foregroundStyle(palette.statusText)
-      .lineLimit(1)
-      .minimumScaleFactor(0.85)
-      .padding(.horizontal, compact ? 8 : 10)
-      .padding(.vertical, compact ? 5 : 6)
-      .background(
-        Capsule(style: .continuous)
-          .fill(palette.statusBackground.opacity(compact ? 0.86 : 1.0))
-      )
+    HStack(spacing: 6) {
+      LucideIconView(icon: icon, size: 14, color: style.foreground)
+      Text(text)
+        .font(.system(size: 12, weight: .bold, design: .rounded))
+        .foregroundStyle(style.foreground)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+    }
+    .padding(.horizontal, 12)
+    .frame(height: 28)
+    .background(Capsule(style: .continuous).fill(style.background))
+    .overlay(Capsule(style: .continuous).strokeBorder(style.border, lineWidth: 1))
   }
 }
 
 private struct RewardChip: View {
   let reward: Int
-  var compact: Bool = false
+  let style: ChipStyle
 
   var body: some View {
-    HStack(spacing: compact ? 4 : 6) {
-      CoinToken(size: compact ? 18 : 22)
-      Text(localizedNumber(reward))
-        .font(.system(size: compact ? 11 : 12, weight: .black, design: .rounded))
-        .foregroundStyle(Color(red: 0.54, green: 0.29, blue: 0.00))
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
-    }
-    .padding(.horizontal, compact ? 0 : 4)
+    ChipView(text: formatNumber(reward), icon: .coins, style: style)
+      .fixedSize()
   }
 }
 
-private struct ProgressRing: View {
-  let progress: Double
-  let palette: StepQuestPalette
-  let primaryLabel: String
-  let secondaryLabel: String?
+private struct StatusChip: View {
+  let text: String
+  let icon: LucideIcon
+  let style: ChipStyle
 
   var body: some View {
-    ZStack {
-      Circle()
-        .fill(palette.ringFill)
-
-      Circle()
-        .stroke(palette.progressTrack, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-
-      Circle()
-        .trim(from: 0, to: progress)
-        .stroke(
-          AngularGradient(
-            colors: [palette.progress, palette.glowSecondary, palette.progress],
-            center: .center
-          ),
-          style: StrokeStyle(lineWidth: 8, lineCap: .round)
-        )
-        .rotationEffect(.degrees(-90))
-
-      VStack(spacing: 1) {
-        Text(primaryLabel)
-          .font(.system(size: 16, weight: .black, design: .rounded))
-          .foregroundStyle(palette.title)
-
-        if let secondaryLabel, !secondaryLabel.isEmpty {
-          Text(secondaryLabel.uppercased(with: widgetLocale()))
-            .font(.system(size: 7, weight: .bold, design: .rounded))
-            .foregroundStyle(palette.muted)
-        }
-      }
-    }
+    ChipView(text: text, icon: icon, style: style)
   }
 }
 
 private struct ProgressBar: View {
   let progress: Double
-  let palette: StepQuestPalette
+  let style: StepQuestStyle
 
   var body: some View {
     GeometryReader { geometry in
       ZStack(alignment: .leading) {
         Capsule(style: .continuous)
-          .fill(Color.white.opacity(0.34))
-          .overlay(
-            Capsule(style: .continuous)
-              .fill(palette.progressTrack)
-              .opacity(0.95)
-          )
+          .fill(style.barTrack)
+          .overlay(Capsule(style: .continuous).strokeBorder(style.barBorder, lineWidth: 1))
 
-        Capsule(style: .continuous)
-          .fill(
-            LinearGradient(
-              colors: [palette.progress, palette.glowSecondary],
-              startPoint: .leading,
-              endPoint: .trailing
-            )
-          )
-          .frame(width: max(geometry.size.width * progress, 10))
+        if progress > 0 {
+          Capsule(style: .continuous)
+            .fill(style.barFill)
+            .frame(width: max(geometry.size.width * min(progress, 1), geometry.size.height))
+        }
       }
+    }
+    .frame(height: 8)
+  }
+}
+
+// MARK: - Lucide icons (stroke paths copied from lucide-react-native, 24x24 viewBox)
+
+private enum LucideIcon {
+  case footprints
+  case coins
+  case gift
+  case check
+  case moon
+
+  var paths: [String] {
+    switch self {
+    case .footprints:
+      return [
+        "M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z",
+        "M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z",
+        "M16 17h4",
+        "M4 13h4",
+      ]
+    case .coins:
+      return [
+        "M13.744 17.736a6 6 0 1 1-7.48-7.48",
+        "M15 6h1v4",
+        "m6.134 14.768.866-.5 2 3.464",
+        "M10 8a6 6 0 1 0 12 0a6 6 0 1 0-12 0Z",
+      ]
+    case .gift:
+      return [
+        "M12 7v14",
+        "M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8",
+        "M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5",
+        "M4 7h16a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z",
+      ]
+    case .check:
+      return ["M20 6 9 17l-5-5"]
+    case .moon:
+      return [
+        "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401",
+      ]
     }
   }
 }
 
-private struct CoinToken: View {
+private struct LucideShape: Shape {
+  let icon: LucideIcon
+
+  func path(in rect: CGRect) -> Path {
+    var combined = Path()
+    for data in icon.paths {
+      combined.addPath(SVGPathParser.parse(data))
+    }
+    let scale = min(rect.width, rect.height) / 24
+    return combined.applying(
+      CGAffineTransform(translationX: rect.minX, y: rect.minY).scaledBy(x: scale, y: scale)
+    )
+  }
+}
+
+private struct LucideIconView: View {
+  let icon: LucideIcon
   let size: CGFloat
+  let color: Color
 
   var body: some View {
-    ZStack {
-      Circle()
-        .fill(
-          LinearGradient(
-            colors: [
-              Color(red: 1.0, green: 0.89, blue: 0.49),
-              Color(red: 0.96, green: 0.66, blue: 0.17),
-              Color(red: 0.77, green: 0.42, blue: 0.04),
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-          )
-        )
-        .overlay(
-          Circle()
-            .stroke(Color(red: 0.23, green: 0.13, blue: 0.03), lineWidth: size * 0.08)
-        )
-
-      Circle()
-        .inset(by: size * 0.16)
-        .fill(
-          RadialGradient(
-            colors: [
-              Color(red: 1.0, green: 0.97, blue: 0.66),
-              Color(red: 0.99, green: 0.84, blue: 0.35),
-              Color(red: 0.93, green: 0.67, blue: 0.19),
-            ],
-            center: .topLeading,
-            startRadius: 2,
-            endRadius: size * 0.52
-          )
-        )
-        .overlay(
-          Circle()
-            .inset(by: size * 0.16)
-            .stroke(Color(red: 0.23, green: 0.13, blue: 0.03), lineWidth: size * 0.06)
-        )
-
-      HStack(spacing: size * 0.18) {
-        Circle().fill(Color(red: 0.10, green: 0.07, blue: 0.03))
-          .frame(width: size * 0.10, height: size * 0.10)
-        Circle().fill(Color(red: 0.10, green: 0.07, blue: 0.03))
-          .frame(width: size * 0.10, height: size * 0.10)
-      }
-      .offset(y: -size * 0.06)
-
-      SmileShape()
-        .stroke(Color(red: 0.10, green: 0.07, blue: 0.03), style: StrokeStyle(lineWidth: size * 0.08, lineCap: .round))
-        .frame(width: size * 0.34, height: size * 0.18)
-        .offset(y: size * 0.16)
-
-      HStack(spacing: size * 0.40) {
-        Circle().fill(Color(red: 1.0, green: 0.49, blue: 0.71).opacity(0.28))
-          .frame(width: size * 0.16, height: size * 0.12)
-        Circle().fill(Color(red: 1.0, green: 0.49, blue: 0.71).opacity(0.28))
-          .frame(width: size * 0.16, height: size * 0.12)
-      }
-      .offset(y: size * 0.08)
-
-      Ellipse()
-        .fill(Color.white.opacity(0.52))
-        .frame(width: size * 0.28, height: size * 0.42)
-        .rotationEffect(.degrees(-28))
-        .offset(x: -size * 0.18, y: -size * 0.18)
-    }
-    .frame(width: size, height: size)
-    .shadow(color: Color.black.opacity(0.12), radius: size * 0.06, x: 0, y: size * 0.04)
+    LucideShape(icon: icon)
+      .stroke(color, style: StrokeStyle(lineWidth: 2 * size / 24, lineCap: .round, lineJoin: .round))
+      .frame(width: size, height: size)
   }
 }
 
-private struct SmileShape: Shape {
-  func path(in rect: CGRect) -> Path {
+/// Minimal SVG path-data parser (M, L, H, V, C, S, A, Z and their relative forms),
+/// enough for the Lucide icons above.
+private enum SVGPathParser {
+  static func parse(_ data: String) -> Path {
     var path = Path()
-    path.move(to: CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.30))
-    path.addCurve(
-      to: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.30),
-      control1: CGPoint(x: rect.minX + rect.width * 0.28, y: rect.maxY),
-      control2: CGPoint(x: rect.minX + rect.width * 0.72, y: rect.maxY)
-    )
-    return path
-  }
-}
+    var scanner = Tokenizer(data)
+    var command: Character = "M"
+    var current = CGPoint.zero
+    var start = CGPoint.zero
+    var lastControl: CGPoint?
 
-private struct WidgetSparkle: Shape {
-  func path(in rect: CGRect) -> Path {
-    var path = Path()
-    let center = CGPoint(x: rect.midX, y: rect.midY)
-    let outer = min(rect.width, rect.height) / 2
-    let inner = outer * 0.42
-    var angle = -Double.pi / 2
-    let step = Double.pi / 4
+    while let next = scanner.nextCommandOrNumber() {
+      if case .command(let c) = next {
+        command = c
+        if c == "Z" || c == "z" {
+          path.closeSubpath()
+          current = start
+          lastControl = nil
+          continue
+        }
+      } else {
+        scanner.pushBack()
+      }
 
-    path.move(to: CGPoint(
-      x: center.x + CGFloat(cos(angle)) * outer,
-      y: center.y + CGFloat(sin(angle)) * outer
-    ))
+      let relative = command.isLowercase
+      let base = relative ? current : .zero
 
-    for index in 0..<8 {
-      let radius = index.isMultiple(of: 2) ? inner : outer
-      path.addLine(to: CGPoint(
-        x: center.x + CGFloat(cos(angle + step / 2)) * radius,
-        y: center.y + CGFloat(sin(angle + step / 2)) * radius
-      ))
-      angle += step
-      path.addLine(to: CGPoint(
-        x: center.x + CGFloat(cos(angle)) * outer,
-        y: center.y + CGFloat(sin(angle)) * outer
-      ))
+      switch command.uppercased().first! {
+      case "M":
+        let point = scanner.point(offset: base)
+        path.move(to: point)
+        current = point
+        start = point
+        lastControl = nil
+        command = relative ? "l" : "L"
+      case "L":
+        let point = scanner.point(offset: base)
+        path.addLine(to: point)
+        current = point
+        lastControl = nil
+      case "H":
+        let x = scanner.number() + (relative ? current.x : 0)
+        current = CGPoint(x: x, y: current.y)
+        path.addLine(to: current)
+        lastControl = nil
+      case "V":
+        let y = scanner.number() + (relative ? current.y : 0)
+        current = CGPoint(x: current.x, y: y)
+        path.addLine(to: current)
+        lastControl = nil
+      case "C":
+        let c1 = scanner.point(offset: base)
+        let c2 = scanner.point(offset: base)
+        let end = scanner.point(offset: base)
+        path.addCurve(to: end, control1: c1, control2: c2)
+        lastControl = c2
+        current = end
+      case "S":
+        let c1 = lastControl.map { CGPoint(x: 2 * current.x - $0.x, y: 2 * current.y - $0.y) } ?? current
+        let c2 = scanner.point(offset: base)
+        let end = scanner.point(offset: base)
+        path.addCurve(to: end, control1: c1, control2: c2)
+        lastControl = c2
+        current = end
+      case "A":
+        let rx = scanner.number()
+        let ry = scanner.number()
+        let rotation = scanner.number()
+        let largeArc = scanner.flag()
+        let sweep = scanner.flag()
+        let end = scanner.point(offset: base)
+        addArc(to: &path, from: current, to: end, rx: rx, ry: ry, rotation: rotation, largeArc: largeArc, sweep: sweep)
+        current = end
+        lastControl = nil
+      default:
+        return path
+      }
     }
 
-    path.closeSubpath()
     return path
+  }
+
+  // SVG endpoint arc -> center parameterization (SVG 1.1 F.6.5), approximated with cubic curves.
+  private static func addArc(
+    to path: inout Path,
+    from p0: CGPoint,
+    to p1: CGPoint,
+    rx rxIn: CGFloat,
+    ry ryIn: CGFloat,
+    rotation: CGFloat,
+    largeArc: Bool,
+    sweep: Bool
+  ) {
+    var rx = abs(rxIn)
+    var ry = abs(ryIn)
+    if rx == 0 || ry == 0 || p0 == p1 {
+      path.addLine(to: p1)
+      return
+    }
+
+    let phi = rotation * .pi / 180
+    let cosPhi = cos(phi)
+    let sinPhi = sin(phi)
+    let dx = (p0.x - p1.x) / 2
+    let dy = (p0.y - p1.y) / 2
+    let x1p = cosPhi * dx + sinPhi * dy
+    let y1p = -sinPhi * dx + cosPhi * dy
+
+    let lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry)
+    if lambda > 1 {
+      rx *= sqrt(lambda)
+      ry *= sqrt(lambda)
+    }
+
+    let numerator = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p
+    let denominator = rx * rx * y1p * y1p + ry * ry * x1p * x1p
+    var coefficient = sqrt(max(numerator / denominator, 0))
+    if largeArc == sweep {
+      coefficient = -coefficient
+    }
+    let cxp = coefficient * rx * y1p / ry
+    let cyp = -coefficient * ry * x1p / rx
+    let cx = cosPhi * cxp - sinPhi * cyp + (p0.x + p1.x) / 2
+    let cy = sinPhi * cxp + cosPhi * cyp + (p0.y + p1.y) / 2
+
+    func angle(_ ux: CGFloat, _ uy: CGFloat, _ vx: CGFloat, _ vy: CGFloat) -> CGFloat {
+      let sign: CGFloat = ux * vy - uy * vx < 0 ? -1 : 1
+      let dot = ux * vx + uy * vy
+      let length = sqrt(ux * ux + uy * uy) * sqrt(vx * vx + vy * vy)
+      return sign * acos(min(max(dot / length, -1), 1))
+    }
+
+    let theta1 = angle(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry)
+    var deltaTheta = angle((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry)
+    if !sweep && deltaTheta > 0 {
+      deltaTheta -= 2 * .pi
+    } else if sweep && deltaTheta < 0 {
+      deltaTheta += 2 * .pi
+    }
+
+    let segments = max(Int(ceil(abs(deltaTheta) / (.pi / 2))), 1)
+    let step = deltaTheta / CGFloat(segments)
+    let t = 4 / 3 * tan(step / 4)
+
+    func point(_ theta: CGFloat) -> CGPoint {
+      let x = rx * cos(theta)
+      let y = ry * sin(theta)
+      return CGPoint(x: cx + cosPhi * x - sinPhi * y, y: cy + sinPhi * x + cosPhi * y)
+    }
+
+    func derivative(_ theta: CGFloat) -> CGPoint {
+      let x = -rx * sin(theta)
+      let y = ry * cos(theta)
+      return CGPoint(x: cosPhi * x - sinPhi * y, y: sinPhi * x + cosPhi * y)
+    }
+
+    var theta = theta1
+    for index in 0..<segments {
+      let next = theta + step
+      let start = point(theta)
+      let end = index == segments - 1 ? p1 : point(next)
+      let d1 = derivative(theta)
+      let d2 = derivative(next)
+      path.addCurve(
+        to: end,
+        control1: CGPoint(x: start.x + t * d1.x, y: start.y + t * d1.y),
+        control2: CGPoint(x: end.x - t * d2.x, y: end.y - t * d2.y)
+      )
+      theta = next
+    }
+  }
+
+  private enum Token {
+    case command(Character)
+    case number(CGFloat)
+  }
+
+  private struct Tokenizer {
+    private let chars: [Character]
+    private var index = 0
+    private var previousIndex = 0
+
+    init(_ data: String) {
+      chars = Array(data)
+    }
+
+    mutating func pushBack() {
+      index = previousIndex
+    }
+
+    private mutating func skipSeparators() {
+      while index < chars.count, chars[index] == " " || chars[index] == "," || chars[index] == "\n" {
+        index += 1
+      }
+    }
+
+    mutating func nextCommandOrNumber() -> Token? {
+      skipSeparators()
+      previousIndex = index
+      guard index < chars.count else { return nil }
+      let c = chars[index]
+      if c.isLetter && c != "e" && c != "E" {
+        index += 1
+        return .command(c)
+      }
+      return .number(number())
+    }
+
+    mutating func flag() -> Bool {
+      skipSeparators()
+      guard index < chars.count else { return false }
+      let value = chars[index] == "1"
+      index += 1
+      return value
+    }
+
+    mutating func point(offset: CGPoint) -> CGPoint {
+      let x = number()
+      let y = number()
+      return CGPoint(x: x + offset.x, y: y + offset.y)
+    }
+
+    mutating func number() -> CGFloat {
+      skipSeparators()
+      var text = ""
+      var seenDot = false
+      var seenExponent = false
+      while index < chars.count {
+        let c = chars[index]
+        if c == "-" || c == "+" {
+          if !text.isEmpty && !(text.last == "e" || text.last == "E") { break }
+        } else if c == "." {
+          if seenDot || seenExponent { break }
+          seenDot = true
+        } else if c == "e" || c == "E" {
+          if seenExponent { break }
+          seenExponent = true
+        } else if !c.isNumber {
+          break
+        }
+        text.append(c)
+        index += 1
+      }
+      return CGFloat(Double(text) ?? 0)
+    }
   }
 }
 
-private func percentText(for snapshot: StepQuestSnapshot) -> String {
-  let target = max(snapshot.target, 1)
-  let percent = Int(round((Double(snapshot.progress) / Double(target)) * 100))
-  return "\(min(max(percent, 0), 100))%"
+// MARK: - Copy
+
+private func progressRatio(for snapshot: StepQuestSnapshot) -> Double {
+  let total = Double(max(snapshot.target, 1))
+  return min(max(Double(snapshot.progress) / total, 0), 1)
 }
 
-private func compactSubtitle(for snapshot: StepQuestSnapshot) -> String {
+private func percentValue(for snapshot: StepQuestSnapshot) -> Int {
+  Int((progressRatio(for: snapshot) * 100).rounded())
+}
+
+private func questTitle(for snapshot: StepQuestSnapshot) -> String {
+  let title = snapshot.title.trimmingCharacters(in: .whitespacesAndNewlines)
+  return title.isEmpty ? localized(en: "Walk 10,000 steps", fr: "Marcher 10 000 pas") : title
+}
+
+private func statusLabel(for snapshot: StepQuestSnapshot) -> String {
   switch snapshot.status {
   case "completed":
     return localized(en: "Reward ready", fr: "Récompense prête")
   case "claimed":
-    return localized(en: "Claimed today", fr: "Récupérée")
+    return localized(en: "Claimed today", fr: "Récupérée aujourd'hui")
   case "failed":
     return localized(en: "Back tomorrow", fr: "Retour demain")
   default:
-    return snapshot.subtitle
+    let percent = percentValue(for: snapshot)
+    return localized(en: "On track · \(percent)%", fr: "En bonne voie · \(percent) %")
   }
 }
 
-private func fullProgressLabel(for snapshot: StepQuestSnapshot) -> String {
-  "\(localizedNumber(snapshot.progress)) / \(localizedNumber(snapshot.target))"
-}
-
-private func compactRingProgressLabel(for snapshot: StepQuestSnapshot) -> String {
-  "\(abbreviatedStepCount(snapshot.progress)) / \(abbreviatedStepCount(snapshot.target))"
-}
-
-private func abbreviatedStepCount(_ value: Int) -> String {
-  if value >= 10_000 {
-    let rounded = Double(value) / 1_000
-    if value % 1_000 == 0 {
-      return "\(Int(rounded))K"
-    }
-
-    return "\(trimmedSingleDecimal(rounded))K"
-  }
-
-  if value >= 1_000 {
-    let rounded = Double(value) / 1_000
-    return "\(trimmedSingleDecimal(rounded))K"
-  }
-
-  return localizedNumber(value)
-}
-
-private func trimmedSingleDecimal(_ value: Double) -> String {
-  let rounded = (value * 10).rounded() / 10
-
-  if rounded == floor(rounded) {
-    return String(Int(rounded))
-  }
-
-  return String(format: "%.1f", rounded)
-}
-
-private func progressFootnote(for snapshot: StepQuestSnapshot) -> String {
+private func footnote(for snapshot: StepQuestSnapshot) -> String {
   switch snapshot.status {
   case "completed":
-    return localized(en: "Reward is ready to claim.", fr: "La récompense est prête.")
+    let reward = formatNumber(snapshot.reward)
+    return localized(en: "Tap to claim your \(reward) coins", fr: "Touche pour récupérer tes \(reward) pièces")
   case "claimed":
-    return localized(en: "You already grabbed today's reward.", fr: "Récompense déjà récupérée.")
+    return localized(en: "Nice walk. See you tomorrow.", fr: "Belle marche. À demain !")
   case "failed":
-    return localized(en: "A fresh quest will appear tomorrow.", fr: "Nouvelle quête demain.")
+    return localized(en: "A fresh quest starts at midnight", fr: "Une nouvelle quête commence à minuit")
   default:
-    return localized(
-      en: "Keep walking to finish today's quest.",
-      fr: "Continue à marcher pour terminer la quête du jour."
-    )
-  }
-}
-
-private func statusHeadline(for status: String) -> String {
-  switch status {
-  case "completed":
-    return localized(en: "Claim now", fr: "À réclamer")
-  case "claimed":
-    return localized(en: "Claimed", fr: "Récupérée")
-  case "failed":
-    return localized(en: "Tomorrow", fr: "Demain")
-  default:
-    return localized(en: "On track", fr: "En cours")
+    let remaining = formatNumber(max(snapshot.target - snapshot.progress, 0))
+    return localized(en: "\(remaining) steps to go", fr: "Encore \(remaining) pas")
   }
 }
 
@@ -985,3 +991,51 @@ private func widgetLocaleCode() -> String {
 private func widgetLocale() -> Locale {
   Locale(identifier: widgetLocaleCode())
 }
+
+#if DEBUG
+private func previewEntry(themeName: String, status: String?, progress: Int) -> StepQuestEntry {
+  let snapshot = status.map { status in
+    StepQuestSnapshot(
+      themeName: themeName,
+      title: "Walk 10,000 steps",
+      progress: progress,
+      target: 10_000,
+      reward: 75,
+      status: status,
+      recordedFor: currentLocalDateString(),
+      deepLink: defaultDeepLink,
+      updatedAt: nil,
+      progressLabel: "",
+      statusLabel: "",
+      subtitle: ""
+    )
+  }
+  return StepQuestEntry(date: Date(), snapshot: snapshot, themeName: themeName)
+}
+
+private let previewStates: [(String?, Int)] = [
+  ("active", 6_240),
+  ("completed", 10_412),
+  ("claimed", 10_412),
+  ("failed", 4_980),
+  (nil, 0),
+]
+
+struct StepQuestWidget_Previews: PreviewProvider {
+  static var previews: some View {
+    Group {
+      ForEach(["candy", "nightosphere", "ice"], id: \.self) { theme in
+        ForEach(previewStates.indices, id: \.self) { index in
+          let state = previewStates[index]
+          StepQuestWidgetView(entry: previewEntry(themeName: theme, status: state.0, progress: state.1))
+            .previewContext(WidgetPreviewContext(family: .systemSmall))
+            .previewDisplayName("\(theme) small \(state.0 ?? "not synced")")
+          StepQuestWidgetView(entry: previewEntry(themeName: theme, status: state.0, progress: state.1))
+            .previewContext(WidgetPreviewContext(family: .systemMedium))
+            .previewDisplayName("\(theme) medium \(state.0 ?? "not synced")")
+        }
+      }
+    }
+  }
+}
+#endif
