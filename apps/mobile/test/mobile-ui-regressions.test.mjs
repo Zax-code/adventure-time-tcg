@@ -116,8 +116,8 @@ describe("mobile UI regression contracts", () => {
     );
     assert.match(
       questHubSource,
-      /text-\[28px\] leading-10[\s\S]*?\{finishedCount\}/,
-      "the large counter value needs a line box with vertical breathing room",
+      /text-ds-display[\s\S]*?\{finishedCount\}/,
+      "the large counter value needs the display role, whose 1.2 line height gives it vertical breathing room",
     );
   });
 

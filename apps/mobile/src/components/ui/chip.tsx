@@ -77,7 +77,12 @@ export function Chip({
 
   if (!onPress) {
     return (
-      <View className={containerClass} testID={testID}>
+      <View
+        className={containerClass}
+        testID={testID}
+        accessible={accessibilityLabel ? true : undefined}
+        accessibilityLabel={accessibilityLabel}
+      >
         {content}
       </View>
     );
