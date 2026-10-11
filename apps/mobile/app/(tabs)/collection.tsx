@@ -463,6 +463,21 @@ function useCollectionScreenView() {
     [accessToken, animationsAllowed, openCard],
   );
 
+  const clearSearchControl = useMemo(
+    () =>
+      searchQuery ? (
+        <Pressable
+          onPress={() => setSearchQuery("")}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.cancel")}
+        >
+          <X size={18} color={tc.muted} strokeWidth={ICON_STROKE_WIDTH} />
+        </Pressable>
+      ) : null,
+    [searchQuery, t, tc.muted],
+  );
+
   if (collectionQueryIsLoading) {
     return (
       <PageLoadingState
@@ -537,18 +552,7 @@ function useCollectionScreenView() {
         value={searchQuery}
         onChangeText={setSearchQuery}
         returnKeyType="search"
-        trailing={
-          searchQuery ? (
-            <Pressable
-              onPress={() => setSearchQuery("")}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={t("common.cancel")}
-            >
-              <X size={18} color={tc.muted} strokeWidth={ICON_STROKE_WIDTH} />
-            </Pressable>
-          ) : null
-        }
+        trailing={clearSearchControl}
       />
 
       <SegmentedControl<OwnershipFilter>
@@ -588,6 +592,8 @@ function useCollectionScreenView() {
           label={`${t("collection.all")} (${allCards.length})`}
           onPress={() => setFilterRarity("all")}
         />
+        {/* Five rarities at most; virtualization would add overhead. */}
+        {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
         {rarityGroups.map(({ name, count }) => (
           <Chip
             key={name}
