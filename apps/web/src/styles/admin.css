@@ -8,7 +8,8 @@
 
 .admin-page-header .page-heading h1 {
   max-width: 780px;
-  font-size: clamp(2.45rem, 5vw, 4.6rem);
+  font-size: clamp(var(--text-h1), 3vw, var(--text-display));
+  line-height: 1.2;
 }
 
 .admin-page-header .page-heading p {
@@ -1793,7 +1794,7 @@
 
 @media (max-width: 560px) {
   .admin-page-header .page-heading h1 {
-    font-size: clamp(2.25rem, 12vw, 3.25rem);
+    font-size: var(--text-h1);
   }
 
   .admin-metrics {

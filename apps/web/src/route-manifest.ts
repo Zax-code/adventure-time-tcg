@@ -43,6 +43,7 @@ export const websiteRoutes = [
   { group: "Admin", path: "/admin/users", title: "Users" },
   { group: "Admin", path: "/admin/users/:id", title: "User detail" },
   { group: "Admin", path: "/admin/email-requests", title: "Access requests" },
+  { group: "Admin", path: "/admin/leaderboard-integrity", title: "Leaderboard integrity" },
   { group: "Admin", path: "/admin/balance", title: "Balance lab" },
 ] as const;
 

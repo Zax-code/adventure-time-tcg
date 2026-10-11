@@ -11,11 +11,17 @@ import { Link } from "react-router-dom";
 import { CheckCircleIcon, XIcon } from "@/components/icons";
 import { readErrorMessage } from "@/lib/form-utils";
 
+// Names and metrics mirror apps/mobile/src/components/ui (design system
+// lot 6): Button lg 52 / md 44 / sm 36, Chip 28, StatTile, StatePanel,
+// Dialog radius 28.
 type ButtonTone = "primary" | "secondary" | "ghost" | "danger";
+type ButtonSize = "lg" | "md" | "sm";
+type Tone = "primary" | "secondary" | "accent" | "success" | "info" | "danger";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   busy?: boolean;
   tone?: ButtonTone;
+  size?: ButtonSize;
 }
 
 export function Button({
@@ -24,12 +30,13 @@ export function Button({
   className = "",
   disabled,
   tone = "primary",
+  size = "md",
   type = "button",
   ...props
 }: ButtonProps) {
   return (
     <button
-      className={`button button-${tone} ${className}`.trim()}
+      className={`button button-${tone} button-${size} ${className}`.trim()}
       disabled={disabled || busy}
       type={type}
       {...props}
@@ -101,6 +108,43 @@ export function PageHeader({
   );
 }
 
+export function PageTitle({
+  action,
+  subtitle,
+  title,
+}: {
+  action?: ReactNode;
+  subtitle?: ReactNode;
+  title: ReactNode;
+}) {
+  return (
+    <header className="page-title">
+      <div>
+        <h1>{title}</h1>
+        {subtitle ? <p>{subtitle}</p> : null}
+      </div>
+      {action ? <div className="page-title-action">{action}</div> : null}
+    </header>
+  );
+}
+
+export function Chip({
+  icon,
+  label,
+  tone = "primary",
+}: {
+  icon?: ReactNode;
+  label: string;
+  tone?: Tone | "neutral" | "selected";
+}) {
+  return (
+    <span className={`chip chip-${tone}`}>
+      {icon}
+      {label}
+    </span>
+  );
+}
+
 export function SectionHeader({
   action,
   eyebrow,
@@ -124,7 +168,7 @@ export function SectionHeader({
   );
 }
 
-export function StatCard({
+export function StatTile({
   label,
   note,
   tone = "primary",
@@ -132,7 +176,7 @@ export function StatCard({
 }: {
   label: string;
   note?: string;
-  tone?: "primary" | "secondary" | "accent" | "success" | "info" | "danger";
+  tone?: Tone;
   value: ReactNode;
 }) {
   return (
@@ -143,6 +187,8 @@ export function StatCard({
     </article>
   );
 }
+
+export const StatCard = StatTile;
 
 export function ProgressBar({
   label,
@@ -178,16 +224,36 @@ export function Notice({
   );
 }
 
-export function LoadingState({ label = "Loading this chapter…" }: { label?: string }) {
+export function StatePanel({
+  action,
+  body,
+  icon,
+  title,
+  variant = "empty",
+}: {
+  action?: ReactNode;
+  body?: ReactNode;
+  icon?: ReactNode;
+  title: string;
+  variant?: "empty" | "error" | "loading";
+}) {
   return (
-    <div className="state-panel state-loading" role="status">
+    <div
+      className={`state-panel state-${variant}`}
+      role={variant === "error" ? "alert" : variant === "loading" ? "status" : undefined}
+    >
       <div className="state-icon" aria-hidden="true">
-        <span className="loading-ring" />
+        {variant === "loading" ? <span className="loading-ring" /> : (icon ?? (variant === "error" ? "!" : "○"))}
       </div>
-      <h2>{label}</h2>
-      <p>Fresh details are on the way.</p>
+      <h2>{title}</h2>
+      {body ? <p>{body}</p> : null}
+      {action}
     </div>
   );
+}
+
+export function LoadingState({ label = "Loading this chapter…" }: { label?: string }) {
+  return <StatePanel variant="loading" title={label} body="Fresh details are on the way." />;
 }
 
 export function ErrorState({
@@ -200,14 +266,12 @@ export function ErrorState({
   title?: string;
 }) {
   return (
-    <div className="state-panel state-error" role="alert">
-      <div className="state-icon" aria-hidden="true">
-        !
-      </div>
-      <h2>{title}</h2>
-      <p>{readErrorMessage(error)}</p>
-      {onRetry ? <Button onClick={onRetry}>Try again</Button> : null}
-    </div>
+    <StatePanel
+      variant="error"
+      title={title}
+      body={readErrorMessage(error)}
+      action={onRetry ? <Button size="sm" onClick={onRetry}>Try again</Button> : undefined}
+    />
   );
 }
 
@@ -220,16 +284,7 @@ export function EmptyState({
   copy: string;
   title: string;
 }) {
-  return (
-    <div className="state-panel state-empty">
-      <div className="state-icon" aria-hidden="true">
-        ○
-      </div>
-      <h2>{title}</h2>
-      <p>{copy}</p>
-      {action}
-    </div>
-  );
+  return <StatePanel title={title} body={copy} action={action} />;
 }
 
 export function QueryState<T>({
