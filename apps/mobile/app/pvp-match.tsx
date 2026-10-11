@@ -6,9 +6,9 @@ import type { PvpAction } from "@adventure-time/api-client";
 
 import { PageLoadingState } from "../src/components/loading-state";
 import { PageErrorState } from "../src/components/error-state";
-import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
+import { Button } from "../src/components/ui/button";
 import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
+import { THEME_VARS } from "../src/theme/themes";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import { ActionModal } from "../src/features/pvp/action-modal";
 import { CardInfoModal } from "../src/features/pvp/card-info-modal";
@@ -459,9 +459,6 @@ function ConfirmDialog({
   danger?: boolean;
 }) {
   const { t } = useTranslation();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
-
   if (!visible) {
     return null;
   }
@@ -492,48 +489,22 @@ function ConfirmDialog({
         </Text>
 
         <View className="mt-6 flex-row gap-3">
-          <ThemedExpoButton
+          <Button
+            tone="ghost"
             onPress={onCancel}
             testID={`${testID}-cancel-button`}
-            fallbackAppearance={{
-              backgroundColor: tc.surfaceMuted,
-              borderColor: "transparent",
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              gradientColors: null,
-              foregroundColor: tc.fgMuted,
-              textStyle: {
-                fontFamily: "Nunito_700Bold",
-                fontSize: 14,
-              },
-            }}
             style={{ flex: 1 }}
-            variant="ghost"
           >
             {t("common.cancel")}
-          </ThemedExpoButton>
-          <ThemedExpoButton
+          </Button>
+          <Button
+            tone={danger ? "danger" : "primary"}
             onPress={onConfirm}
             testID={confirmButtonTestID}
-            fallbackAppearance={{
-              backgroundColor: danger ? tc.dangerDark : tc.primaryDark,
-              borderColor: "transparent",
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              gradientColors: null,
-              foregroundColor: "#FFFFFF",
-              textStyle: {
-                fontFamily: "Nunito_700Bold",
-                fontSize: 14,
-              },
-            }}
             style={{ flex: 1 }}
-            variant={danger ? "danger" : "primary"}
           >
             {confirmLabel}
-          </ThemedExpoButton>
+          </Button>
         </View>
       </View>
     </View>

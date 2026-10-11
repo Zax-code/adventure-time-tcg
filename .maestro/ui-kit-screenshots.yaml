@@ -1,0 +1,79 @@
+appId: love.leaetzak.adventuretime
+name: Design system UI kit screenshots
+tags:
+  - screenshots
+  - design-system
+---
+# Captures every primitive on the dev/E2E-only app/e2e-ui-kit.tsx route in the
+# candy and nightosphere themes. The route needs no session, so this flow can
+# run with raw `maestro test` (the wrapper requires MOBILE_TEST_PASSWORD).
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink: adventure-time:///e2e-ui-kit
+- extendedWaitUntil:
+    visible:
+      id: e2e-ui-kit
+    timeout: 40000
+- takeScreenshot: ui-kit-candy-01
+- scrollUntilVisible:
+    element:
+      id: e2e-ui-kit-segmented
+    direction: DOWN
+    visibilityPercentage: 30
+- takeScreenshot: ui-kit-candy-02
+- scrollUntilVisible:
+    element:
+      id: e2e-ui-kit-section-header
+    direction: DOWN
+    visibilityPercentage: 30
+- takeScreenshot: ui-kit-candy-03
+- scrollUntilVisible:
+    element:
+      id: e2e-ui-kit-list-rows
+    direction: DOWN
+    visibilityPercentage: 30
+- takeScreenshot: ui-kit-candy-04
+- scrollUntilVisible:
+    element:
+      id: e2e-ui-kit-state-panels
+    direction: DOWN
+    visibilityPercentage: 30
+- takeScreenshot: ui-kit-candy-05
+- scrollUntilVisible:
+    element:
+      id: e2e-ui-kit-open-dialog
+    direction: DOWN
+    visibilityPercentage: 30
+- takeScreenshot: ui-kit-candy-06
+- tapOn:
+    id: e2e-ui-kit-open-dialog
+- extendedWaitUntil:
+    visible:
+      id: e2e-ui-kit-dialog-panel
+    timeout: 5000
+- takeScreenshot: ui-kit-candy-dialog
+- tapOn:
+    id: e2e-ui-kit-dialog-confirm
+- stopApp
+- launchApp
+- openLink: adventure-time:///e2e-ui-kit
+- extendedWaitUntil:
+    visible:
+      id: e2e-ui-kit-theme-nightosphere
+    timeout: 10000
+- tapOn:
+    id: e2e-ui-kit-theme-nightosphere
+- takeScreenshot: ui-kit-nightosphere-01
+- scrollUntilVisible:
+    element:
+      id: e2e-ui-kit-section-header
+    direction: DOWN
+    visibilityPercentage: 30
+- takeScreenshot: ui-kit-nightosphere-02
+- scrollUntilVisible:
+    element:
+      id: e2e-ui-kit-state-panels
+    direction: DOWN
+    visibilityPercentage: 30
+- takeScreenshot: ui-kit-nightosphere-03

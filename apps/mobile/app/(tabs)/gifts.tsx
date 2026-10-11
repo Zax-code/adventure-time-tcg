@@ -11,6 +11,7 @@ import { CardTile } from "../../src/components/card-tile";
 import type { CardTileCard } from "../../src/components/card-tile";
 import { PageErrorState } from "../../src/components/error-state";
 import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
+import { Button } from "../../src/components/ui/button";
 import {
   BoxIcon,
   CheckCircleIcon,
@@ -703,58 +704,22 @@ function useGiftCardView({
 
         {canAct ? (
           <View className="flex-row gap-3">
-            <ThemedExpoButton
-              preferFallback
-              variant="primary"
-              fallbackAppearance={{
-                backgroundColor: tc.successDark,
-                borderColor: tc.successDark,
-                borderRadius: 16,
-                foregroundColor: "#FFFFFF",
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 14,
-                },
-              }}
-              style={{
-                flex: 1,
-                opacity: activeDecision ? 0.65 : 1,
-              }}
+            <Button
+              tone="primary"
+              style={{ flex: 1 }}
               disabled={Boolean(activeDecision)}
               onPress={() => onDecision("accept")}
             >
               {isAccepting ? t("gifts.accepting") : t("gifts.accept")}
-            </ThemedExpoButton>
-            <ThemedExpoButton
-              preferFallback
-              variant="danger"
-              fallbackAppearance={{
-                backgroundColor: tc.dangerDark,
-                borderColor: tc.dangerDark,
-                borderRadius: 16,
-                foregroundColor: "#FFFFFF",
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 14,
-                },
-              }}
-              style={{
-                flex: 1,
-                opacity: activeDecision ? 0.65 : 1,
-              }}
+            </Button>
+            <Button
+              tone="danger"
+              style={{ flex: 1 }}
               disabled={Boolean(activeDecision)}
               onPress={() => onDecision("reject")}
             >
               {isRejecting ? t("gifts.rejecting") : t("gifts.reject")}
-            </ThemedExpoButton>
+            </Button>
           </View>
         ) : null}
       </View>

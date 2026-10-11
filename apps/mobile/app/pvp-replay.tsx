@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { PageLoadingState } from "../src/components/loading-state";
-import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
+import { Button } from "../src/components/ui/button";
 import { PageErrorState } from "../src/components/error-state";
 import {
   PauseIcon,
@@ -116,27 +116,13 @@ export default function PvpReplayScreen() {
     return (
       <View style={[styles.loading, THEME_VARS[themeName] as never]}>
         <Text style={styles.loadingText}>{t("pvp.replayNotAvailable")}</Text>
-        <ThemedExpoButton
+        <Button
+          tone="ghost"
+          size="sm"
           onPress={() => router.push("/pvp-history" as never)}
-          preferFallback
-          variant="ghost"
-          fallbackAppearance={{
-            backgroundColor: "rgba(255,255,255,0.1)",
-            borderColor: "rgba(255,255,255,0.1)",
-            borderRadius: 12,
-            foregroundColor: "#FFFFFF",
-            gradientColors: null,
-            minHeight: 0,
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            textStyle: {
-              fontFamily: "Nunito_700Bold",
-              fontSize: 16,
-            },
-          }}
         >
           {t("pvp.backToPvp")}
-        </ThemedExpoButton>
+        </Button>
       </View>
     );
   }

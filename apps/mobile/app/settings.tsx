@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
+import { Button } from "../src/components/ui/button";
 import { ThemedExpoSwitch } from "../src/components/expo-ui/themed-switch";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
@@ -691,13 +692,11 @@ function useSettingsScreenView() {
                         <View className="flex-row gap-3">
                           <View className="flex-1">
                         <SettingsActionButton
-                          compact
                           testID="settings-profile-cancel-edit"
                           onPress={() => {
                             setEditing(false);
                             setDisplayNameInput(user?.displayName ?? "");
                               }}
-                              tc={tc}
                               variant="secondary"
                             >
                               {t("settings.cancelEdit")}
@@ -705,7 +704,6 @@ function useSettingsScreenView() {
                           </View>
                           <View className="flex-1">
                             <SettingsActionButton
-                              compact
                               testID="settings-profile-save-display-name"
                               onPress={() =>
                                 updateDisplayNameMutation.mutate(
@@ -714,7 +712,6 @@ function useSettingsScreenView() {
                               }
                               disabled={!canSaveDisplayName}
                               loading={updateDisplayNameMutation.isPending}
-                              tc={tc}
                               variant="primary"
                             >
                               {t("settings.saveDisplayName")}
@@ -725,13 +722,11 @@ function useSettingsScreenView() {
                     ) : (
                       <View className="w-full pt-1">
                         <SettingsActionButton
-                          compact
                           testID="settings-profile-edit"
                           onPress={() => {
                             setDisplayNameInput(user?.displayName ?? "");
                             setEditing(true);
                           }}
-                          tc={tc}
                           variant="secondary"
                         >
                           {t("settings.edit")}
@@ -1081,13 +1076,11 @@ function useSettingsScreenView() {
                     style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
                   >
                     <SettingsActionButton
-                      compact
                       testID="settings-step-sync-action"
                       onPress={() => {
                         void handleStepAction();
                       }}
                       loading={stepSync.isSyncing || isConnectingFitbit}
-                      tc={tc}
                       variant="surface"
                     >
                       {stepActionLabel}
@@ -1149,11 +1142,9 @@ function useSettingsScreenView() {
                       {stepSync.notificationPermissionStatus !== "granted" ? (
                         <View className="self-start">
                           <SettingsActionButton
-                            compact
                             fullWidth={false}
                             testID="settings-notification-permission-action"
                             onPress={() => void handleNotificationPermissionAction()}
-                            tc={tc}
                             variant="secondary"
                           >
                             {notificationPermissionCta}
@@ -1393,12 +1384,10 @@ function useSettingsScreenView() {
                     ) : null}
 
                     <SettingsActionButton
-                      compact
                       testID="settings-password-submit"
                       onPress={handlePasswordSubmit}
                       disabled={passwordSubmitDisabled}
                       loading={changePasswordMutation.isPending}
-                      tc={tc}
                       variant="primary"
                     >
                       {hasPasswordAuth
@@ -1407,12 +1396,10 @@ function useSettingsScreenView() {
                     </SettingsActionButton>
                   </View>
                   <SettingsActionButton
-                    compact
                     testID="settings-logout-action"
                     onPress={() =>
                       void clearAppSession().then(() => router.replace("/login"))
                     }
-                    tc={tc}
                     variant="danger"
                   >
                     <View
@@ -1457,19 +1444,15 @@ function useSettingsScreenView() {
                   </Text>
                   <View className="gap-3">
                     <SettingsActionButton
-                      compact
                       testID="settings-privacy-policy-action"
                       onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
-                      tc={tc}
                       variant="secondary"
                     >
                       {t("settings.openPrivacyPolicy")}
                     </SettingsActionButton>
                     <SettingsActionButton
-                      compact
                       testID="settings-account-deletion-info-action"
                       onPress={() => void Linking.openURL(ACCOUNT_DELETION_URL)}
-                      tc={tc}
                       variant="secondary"
                     >
                       {t("settings.openAccountDeletionInfo")}
@@ -1496,11 +1479,9 @@ function useSettingsScreenView() {
                     </ToneBanner>
                   ) : null}
                   <SettingsActionButton
-                    compact
                     testID="settings-delete-account-action"
                     onPress={confirmDeleteAccount}
                     loading={deleteAccountMutation.isPending}
-                    tc={tc}
                     variant="danger"
                   >
                     {t("settings.deleteAccountAction")}
@@ -1795,74 +1776,42 @@ const SettingsActionButton = settingsActionButton;
 
 function settingsActionButton({
   children,
-  compact,
   disabled,
   fullWidth = true,
   leadingAccessory,
   loading,
   onPress,
   testID,
-  tc,
   variant,
 }: {
   children: ReactNode;
-  compact?: boolean;
   disabled?: boolean;
   fullWidth?: boolean;
   leadingAccessory?: ReactNode;
   loading?: boolean;
   onPress: () => void;
   testID?: string;
-  tc: (typeof THEME_COLORS)[ThemeName];
   variant: "primary" | "secondary" | "surface" | "danger";
 }) {
-  const isPrimary = variant === "primary";
-  const isSurface = variant === "surface";
-  const isDanger = variant === "danger";
-
   return (
-    <ThemedExpoButton
+    <Button
+      tone={
+        variant === "danger"
+          ? "danger"
+          : variant === "primary"
+            ? "primary"
+            : "ghost"
+      }
+      size="sm"
+      icon={leadingAccessory ? () => leadingAccessory : undefined}
       onPress={onPress}
       disabled={disabled}
       loading={loading}
-      leadingAccessory={leadingAccessory}
-      preferFallback
       testID={testID}
-      variant={isDanger ? "danger" : isPrimary ? "primary" : "ghost"}
-      fallbackAppearance={{
-        backgroundColor: isDanger
-          ? tc.dangerDark
-          : isPrimary
-          ? tc.primary
-          : isSurface
-            ? tc.surfaceMuted
-            : tc.primaryBg,
-        borderColor: isDanger
-          ? tc.dangerDark
-          : isPrimary
-            ? tc.primaryDark
-            : tc.primaryBorder,
-        borderRadius: compact ? 14 : 14,
-        height: compact ? 33 : 30,
-        paddingHorizontal: compact ? 16 : 14,
-        paddingVertical: 0,
-        minHeight: compact ? 33 : 30,
-        gradientColors: isDanger
-          ? ([tc.dangerDark, tc.danger] as const)
-          : isPrimary
-          ? ([tc.primary, tc.primaryDark] as const)
-          : null,
-        foregroundColor: isPrimary || isDanger ? "#FFFFFF" : tc.primaryStrong,
-        textStyle: {
-          fontFamily: "Nunito_700Bold",
-          fontSize: compact ? 13 : 12,
-          lineHeight: compact ? 15 : 14,
-        },
-      }}
       style={fullWidth ? { width: "100%" } : undefined}
     >
       {children}
-    </ThemedExpoButton>
+    </Button>
   );
 }
 

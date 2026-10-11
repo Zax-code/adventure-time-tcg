@@ -1288,6 +1288,7 @@ function useWordleScreenView() {
 
           {claimableQuest ? (
             <QuestActionButton
+              tone="secondary"
               label={t("quests.wordle.claimReward", {
                 reward: claimableQuest.reward,
               })}
@@ -1299,10 +1300,6 @@ function useWordleScreenView() {
                 claimQuestMutation.variables === claimableQuest.id
               }
               loadingMode="inline"
-              backgroundColor={tc.successTint}
-              foregroundColor={tc.successText}
-              borderColor={tc.successBorder}
-              minHeight={48}
               accessibilityLabel={t("quests.wordle.claimReward", {
                 reward: claimableQuest.reward,
               })}
@@ -1312,6 +1309,7 @@ function useWordleScreenView() {
 
           {gameOver ? (
             <QuestActionButton
+              tone="ghost"
               label={
                 isSharing
                   ? t("quests.wordle.sharePreparing")
@@ -1322,11 +1320,7 @@ function useWordleScreenView() {
               }}
               loading={isSharing}
               loadingMode="inline"
-              backgroundColor={tc.surface}
-              foregroundColor={tc.primaryDark}
-              borderColor={tc.primaryBorder}
               leadingIcon={ShareIcon}
-              minHeight={48}
               testID="wordle-share-result"
             />
           ) : null}

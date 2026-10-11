@@ -172,6 +172,7 @@ export function SummaryCard({
 
       {!activeRun && (state?.history.length ?? 0) > 0 ? (
         <QuestActionButton
+          tone="ghost"
           label={
             sharing
               ? t("quests.speedCalculusSharePreparing")
@@ -181,11 +182,7 @@ export function SummaryCard({
           disabled={sharing}
           loading={sharing}
           loadingMode="inline"
-          backgroundColor={tc.surface}
-          foregroundColor={tc.primaryText}
-          borderColor={tc.primaryBorder}
           leadingIcon={ShareIcon}
-          minHeight={48}
           testID="speed-calculus-share"
         />
       ) : null}
@@ -206,16 +203,13 @@ export function SummaryCard({
               </Text>
               {state.questVersion ? (
                 <QuestActionButton
+                  tone="secondary"
                   label={t("quests.speedCalculusClaimReward", {
                     reward: state.rewardPreview,
                   })}
                   onPress={onClaim}
                   loading={claiming}
                   loadingMode="inline"
-                  backgroundColor={tc.successTint}
-                  foregroundColor={tc.successText}
-                  borderColor={tc.successBorder}
-                  minHeight={48}
                   style={{ marginTop: 12 }}
                   accessibilityLabel={t("quests.speedCalculusClaimReward", {
                     reward: state.rewardPreview,

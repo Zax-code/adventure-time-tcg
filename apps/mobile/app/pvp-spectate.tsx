@@ -2,16 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ChevronLeft from "lucide-react-native/icons/chevron-left";
 
 import { apiClient } from "../src/lib/api";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
+import { IconButton } from "../src/components/ui/icon-button";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
 import { useFocusedRefetchInterval } from "../src/hooks/use-focused-refetch-interval";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
-import { ChevronRightIcon, ClockIcon, SwordsIcon } from "../src/components/icons";
+import { ClockIcon, SwordsIcon } from "../src/components/icons";
 import {
   formatTurnTimeout,
   useMinuteNow,
@@ -54,25 +56,11 @@ export default function PvpSpectateScreen() {
         style={{ paddingTop: insets.top + 8 }}
       >
         <View className="flex-row items-center gap-3">
-          <ThemedExpoButton
+          <IconButton
+            icon={ChevronLeft}
             onPress={() => router.push("/(tabs)/pvp")}
-            variant="ghost"
-            fallbackAppearance={{
-              backgroundColor: "transparent",
-              borderColor: "transparent",
-              borderRadius: 12,
-              foregroundColor: tc.fgMuted,
-              gradientColors: null,
-              minHeight: 36,
-              paddingHorizontal: 8,
-              paddingVertical: 8,
-            }}
-            style={{ minHeight: 36, minWidth: 36 }}
-          >
-            <View style={{ transform: [{ rotate: "180deg" }] }}>
-              <ChevronRightIcon size={20} color={tc.fgMuted} />
-            </View>
-          </ThemedExpoButton>
+            accessibilityLabel={t("common.errorStates.backAction")}
+          />
           <View>
             <Text className="font-nunito-extrabold text-2xl text-infoDark">
               {t("pvp.spectateTitle")}

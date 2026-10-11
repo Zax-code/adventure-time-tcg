@@ -20,6 +20,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ChevronLeft from "lucide-react-native/icons/chevron-left";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
 
@@ -28,7 +29,9 @@ import { localizeTypeName } from "../src/lib/combat-i18n";
 import { getCardImageCacheKey, getCardImageUrl } from "../src/lib/card-images";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
 import { KeyboardScreenView } from "../src/components/keyboard-screen-view";
-import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
+import { Button } from "../src/components/ui/button";
+import { IconButton } from "../src/components/ui/icon-button";
+import { Chip } from "../src/components/ui/chip";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
@@ -37,7 +40,6 @@ import { CARD_TYPE_COLORS, RARITY_COLORS } from "../src/components/theme";
 import {
   CardsIcon,
   CheckIcon,
-  ChevronRightIcon,
   SwordsIcon,
   XIcon,
 } from "../src/components/icons";
@@ -724,25 +726,11 @@ function usePvpLoadoutsScreenView() {
           style={{ paddingTop: insets.top + 8 }}
         >
           <View className="flex-row items-center gap-2">
-            <ThemedExpoButton
+            <IconButton
+              icon={ChevronLeft}
               onPress={() => router.back()}
-              variant="ghost"
-              fallbackAppearance={{
-                backgroundColor: "transparent",
-                borderColor: "transparent",
-                borderRadius: 12,
-                foregroundColor: tc.fgMuted,
-                gradientColors: null,
-                minHeight: 36,
-                paddingHorizontal: 8,
-                paddingVertical: 8,
-              }}
-              style={{ minHeight: 36, minWidth: 36 }}
-            >
-              <View style={{ transform: [{ rotate: "180deg" }] }}>
-                <ChevronRightIcon size={20} color={tc.fgMuted} />
-              </View>
-            </ThemedExpoButton>
+              accessibilityLabel={t("common.errorStates.backAction")}
+            />
             <View className="flex-1 flex-row items-center gap-2">
               <SwordsIcon size={22} color={tc.primaryText} />
               <Text className="font-nunito-bold text-xl text-primaryText">
@@ -784,29 +772,14 @@ function usePvpLoadoutsScreenView() {
                 />
 
                 {editingLoadout ? (
-                  <ThemedExpoButton
+                  <Button
+                    tone="ghost"
                     testID="pvp-loadout-new-button"
                     onPress={createNewLoadout}
-                    preferFallback
-                    variant="secondary"
-                    fallbackAppearance={{
-                      backgroundColor: tc.secondaryTint,
-                      borderColor: tc.secondaryBorder,
-                      borderRadius: 16,
-                      foregroundColor: tc.secondaryText,
-                      gradientColors: null,
-                      minHeight: 0,
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                      textStyle: {
-                        fontFamily: "Nunito_700Bold",
-                        fontSize: 14,
-                      },
-                    }}
                     style={{ marginTop: 12 }}
                   >
                     {t("pvp.newLoadout")}
-                  </ThemedExpoButton>
+                  </Button>
                 ) : null}
               </View>
             ) : null}
@@ -1003,29 +976,13 @@ function usePvpLoadoutsScreenView() {
                 {LOADOUT_TYPES.map((type) => {
                   const active = filter === type;
                   return (
-                    <ThemedExpoButton
+                    <Chip
                       key={type}
+                      tone={active ? "selected" : "neutral"}
                       testID={`pvp-loadout-filter-${type}`}
                       onPress={() => setFilter(type)}
-                      preferFallback
-                      variant={active ? "primary" : "ghost"}
-                      fallbackAppearance={{
-                        backgroundColor: active ? tc.primaryDark : "#FFFFFF",
-                        borderColor: active ? tc.primaryDark : tc.primaryBorder,
-                        borderRadius: 999,
-                        foregroundColor: active ? "#FFFFFF" : tc.fgMuted,
-                        gradientColors: null,
-                        minHeight: 0,
-                        paddingHorizontal: 12,
-                        paddingVertical: 7,
-                        textStyle: {
-                          fontFamily: "Nunito_600SemiBold",
-                          fontSize: 14,
-                        },
-                      }}
-                    >
-                      {type === "all" ? t("pvp.all") : localizeTypeName(type, t)}
-                    </ThemedExpoButton>
+                      label={type === "all" ? t("pvp.all") : localizeTypeName(type, t)}
+                    />
                   );
                 })}
               </View>
@@ -1247,53 +1204,26 @@ function usePvpLoadoutsScreenView() {
 
           <View className="flex-row gap-3">
             {editingLoadout ? (
-              <ThemedExpoButton
+              <Button
+                tone="danger"
                 testID="pvp-loadout-delete-button"
                 onPress={() => deleteMutation.mutate(editingLoadout.id)}
-                variant="danger"
-                fallbackAppearance={{
-                  backgroundColor: tc.dangerTint,
-                  borderColor: tc.dangerTint,
-                  borderRadius: 18,
-                  foregroundColor: tc.dangerDark,
-                  gradientColors: null,
-                  minHeight: 0,
-                  paddingHorizontal: 16,
-                  paddingVertical: 14,
-                  textStyle: {
-                    fontFamily: "Nunito_700Bold",
-                    fontSize: 14,
-                  },
-                }}
               >
                 {t("common.delete")}
-              </ThemedExpoButton>
+              </Button>
             ) : null}
 
-            <ThemedExpoButton
+            <Button
+              tone="ghost"
               testID="pvp-loadout-clear-button"
               onPress={() => setSelectedCardIds([])}
               style={{ flexGrow: 0, flexShrink: 0 }}
-              variant="ghost"
-              fallbackAppearance={{
-                backgroundColor: tc.surfaceMuted,
-                borderColor: tc.primaryBorder,
-                borderRadius: 18,
-                foregroundColor: tc.fgMuted,
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 14,
-                paddingVertical: 14,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 14,
-                },
-              }}
             >
               {t("pvp.clearSelection")}
-            </ThemedExpoButton>
+            </Button>
 
-            <ThemedExpoButton
+            <Button
+              tone="primary"
               testID="pvp-loadout-save-button"
               disabled={
                 selectedCardIds.length !== 6 ||
@@ -1303,28 +1233,13 @@ function usePvpLoadoutsScreenView() {
               onPress={saveLoadout}
               loading={saveMutation.isPending}
               style={{ flex: 1, minWidth: 0 }}
-              variant="primary"
-              fallbackAppearance={{
-                backgroundColor: tc.primary,
-                borderColor: tc.primary,
-                borderRadius: 18,
-                foregroundColor: "#FFFFFF",
-                gradientColors: [tc.primary, tc.primaryDark],
-                minHeight: 0,
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 14,
-                },
-              }}
             >
               {saveMutation.isPending
                 ? t("admin.saving")
                 : editingLoadout
                   ? t("pvp.update")
                   : t("pvp.create")}
-            </ThemedExpoButton>
+            </Button>
           </View>
         </View>
       </KeyboardScreenView>

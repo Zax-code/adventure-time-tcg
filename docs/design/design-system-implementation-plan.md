@@ -5,8 +5,9 @@ Turns `docs/design/design-system-proposal.pen` (summary in
 Each lot leaves the app shippable. No gameplay, contract, backend or data
 change is part of this plan.
 
-Status: lot 0 in review (branch `codex/ds-0-tokens`, stacked on #325); lots
-1 to 7 not started. Prerequisite: pull requests #324 (view inventory) and #325
+Status: lot 0 in review (branch `codex/ds-0-tokens`, stacked on #325); lot 1
+in review (branch `codex/ds-1-primitives`, stacked on lot 0); lots 2 to 7 not
+started. Prerequisite: pull requests #324 (view inventory) and #325
 (proposal) merged, or the branch based on #325.
 
 ## Ground rules
@@ -142,6 +143,42 @@ the kit:
 Acceptance: the kit route renders every variant; `npm run doctor` clean;
 no new hex literals in `src/components/ui/`.
 
+Lot 1 as built:
+
+- The 14 primitives live one per file in `apps/mobile/src/components/ui/`
+  (no barrel file; React Doctor flags barrel imports). Shared tone classes,
+  the `IconSlot` type (Ionicons name, element or render function) and the
+  backdrop and elevation helpers are in `ui/tokens.tsx`. Icons follow the
+  spec's Lucide names through `lucide-react-native` 1.48.0, imported one file
+  per icon (`lucide-react-native/icons/coins`) at a 1.75 stroke; a mobile
+  test checks every such import has a runtime file, because renamed icons
+  (`trash-2` is now `trash`) keep a type alias but no module. The app-wide
+  `icons.tsx` swap stays in lot 7; the Apple and Google marks stay Ionicons
+  logos because Lucide has no brand icons. `ON_PRIMARY` was
+  added to `packages/theme` for `$onPrimary`, so `ui/` has no hex literal.
+- `app/e2e-ui-kit.tsx` renders every variant in dev and E2E builds, with a
+  theme switch; `.maestro/ui-kit-screenshots.yaml` captures it in candy and
+  nightosphere.
+- `PrimaryButton`, `SecondaryButton` and `GhostButton` are tone wrappers in
+  `components/button.tsx`; `primary-button.tsx`, `secondary-button.tsx`,
+  `ghost-button.tsx` and `button-types.ts` are gone. `QuestActionButton`
+  takes `tone` and `size` instead of colors. The auth provider buttons are
+  ghost lg Buttons with the provider logo.
+- Only command buttons moved in this lot. `ThemedExpoButton` still renders
+  26 rows, cards, tab-like filters, steppers and section toggles (PvP hub,
+  collection detail, gifts filters, settings option cards, history and
+  spectate rows) plus the battle board and admin buttons. Those become Card,
+  ListRow, SegmentedControl or Chip in lots 3 to 5, and `ThemedExpoButton`
+  is deleted after lot 5.
+- Spec question: the secondary Button uses `$secondaryText` on the
+  secondary gradient in every theme; in nightosphere that is #FDBA74 on
+  #F97316 to #EA580C, which reads poorly. Built as specified; needs a design
+  decision.
+- The Chip, StatTile, Card, Notice, Input, StatePanel and Dialog
+  replacements listed above (QuestVariantChip, AdminStat, AdminPanel,
+  ToastBanner, PageErrorState, ThemedModal and the rest) are left for the
+  screen lots 3 to 5, which own those call sites.
+
 ### Lot 2: headers, sheets and navigation
 
 - `AppHeader` (`app-header.tsx`): 56 high, coin `Chip` left, up to three
@@ -276,7 +313,7 @@ Acceptance: no hex literal in either `icons.tsx`.
 | `font-weight: 900` in web CSS | 0 (lot 0; was 44) | 0 |
 | Distinct corner radii in `apps/mobile/app` | ~20 | 5 |
 | Distinct text sizes in `apps/mobile/app` | 30+ | 8 |
-| Button implementations | 9 | 1 |
+| Button implementations | 9 before; after lot 1: `ui/Button` (93 call sites incl. wrappers), `AdminButton` (41, lot 5), `ThemedExpoButton` (26 non-command or board/admin uses) | 1 |
 | Segmented-control implementations | 7 | 1 |
 | Stat-tile implementations | 7 | 1 |
 | Header implementations | 4 + 9 ad hoc | 3 |

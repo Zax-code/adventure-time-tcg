@@ -34,6 +34,7 @@ import {
   LoadingPanel,
   PageLoadingState } from "../src/components/loading-state";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
+import { Button } from "../src/components/ui/button";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { RARITY_COLORS } from "../src/components/theme";
 import { THEME_COLORS } from "../src/theme/themes";
@@ -812,31 +813,16 @@ function useCollectionCardDetailScreenView() {
                   </View>
                 </View>
 
-                <ThemedExpoButton
+                <Button
+                  tone="secondary"
+                  size="lg"
                   onPress={() => void handleCraft()}
                   disabled={isBusy || !canCraft}
-                  preferFallback
-                  fallbackLayout="stretch"
-                  fallbackAppearance={{
-                    backgroundColor: tc.secondary,
-                    borderColor: tc.secondaryDark,
-                    borderRadius: 16,
-                    foregroundColor: tc.secondaryText,
-                    gradientColors: [tc.secondary, tc.secondaryDark],
-                    minHeight: 0,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    textStyle: {
-                      fontFamily: "Nunito_800ExtraBold",
-                      fontSize: 15 } }}
-                  style={{
-                    width: "100%",
-                    opacity: isBusy || !canCraft ? 0.55 : 1 }}
+                  style={{ width: "100%" }}
                   testID="collection-card-detail-craft-button"
-                  variant="secondary"
                 >
                   {t("collection.detail.craft")}
-                </ThemedExpoButton>
+                </Button>
               </View>
 
               {isOwned ? (
@@ -1123,28 +1109,13 @@ function useCollectionCardDetailScreenView() {
                           )}
                         </View>
 
-                        <ThemedExpoButton
+                        <Button
+                          tone="primary"
+                          size="lg"
                           onPress={() => void handleRecycle()}
                           disabled={isBusy}
-                          preferFallback
-                          fallbackLayout="stretch"
-                          fallbackAppearance={{
-                            backgroundColor: tc.successDark,
-                            borderColor: tc.successDark,
-                            borderRadius: 16,
-                            foregroundColor: "#FFFFFF",
-                            gradientColors: [tc.success, tc.successDark],
-                            minHeight: 0,
-                            paddingHorizontal: 16,
-                            paddingVertical: 12,
-                            textStyle: {
-                              fontFamily: "Nunito_800ExtraBold",
-                              fontSize: 15 } }}
-                          style={{
-                            width: "100%",
-                            opacity: isBusy ? 0.6 : 1 }}
+                          style={{ width: "100%" }}
                           testID="collection-card-detail-recycle-button"
-                          variant="primary"
                         >
                           {isBusy ? (
                             t("collection.detail.recycling")
@@ -1152,7 +1123,7 @@ function useCollectionCardDetailScreenView() {
                             t("collection.detail.confirmRecycle", {
                               amount: recycleValue * recycleQuantity })
                           )}
-                        </ThemedExpoButton>
+                        </Button>
                       </View>
                     ) : null}
                   </View>
@@ -1397,33 +1368,18 @@ function useCollectionCardDetailScreenView() {
                             fontSize: 14 }}
                         />
 
-                        <ThemedExpoButton
+                        <Button
+                          tone="primary"
+                          size="lg"
                           onPress={() => void handleSendGift()}
                           disabled={isBusy || !selectedUserId}
-                          preferFallback
-                          fallbackLayout="stretch"
-                          fallbackAppearance={{
-                            backgroundColor: tc.infoDark,
-                            borderColor: tc.infoDark,
-                            borderRadius: 16,
-                            foregroundColor: "#FFFFFF",
-                            gradientColors: [tc.info, tc.infoDark],
-                            minHeight: 0,
-                            paddingHorizontal: 16,
-                            paddingVertical: 12,
-                            textStyle: {
-                              fontFamily: "Nunito_800ExtraBold",
-                              fontSize: 15 } }}
-                          style={{
-                            width: "100%",
-                            opacity: isBusy || !selectedUserId ? 0.55 : 1 }}
+                          style={{ width: "100%" }}
                           testID="collection-card-detail-gift-send"
-                          variant="secondary"
                         >
                           {isBusy
                             ? t("collection.gift.sending")
                             : t("gifts.sendGiftButton")}
-                        </ThemedExpoButton>
+                        </Button>
                       </View>
                     ) : null}
                   </View>

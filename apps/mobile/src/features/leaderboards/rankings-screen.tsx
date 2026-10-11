@@ -770,7 +770,7 @@ function RankingsContent({
       <View className="items-center py-1">
         <GhostButton
           onPress={() => router.push("/leaderboard-help")}
-          leadingAccessory={<HelpCircleIcon size={20} color={tc.primaryText} />}
+          icon={<HelpCircleIcon size={20} color={tc.primaryText} />}
           testID="rankings-open-help-button"
         >
           {t("rankings.scoringHelp")}

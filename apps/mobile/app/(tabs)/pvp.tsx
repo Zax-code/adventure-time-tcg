@@ -19,9 +19,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
+import Check from "lucide-react-native/icons/check";
+import X from "lucide-react-native/icons/x";
+
 import { ApiClientError } from "@adventure-time/api-client";
 
 import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
+import { Button } from "../../src/components/ui/button";
+import { IconButton } from "../../src/components/ui/icon-button";
 import { ThemedExpoTextInput } from "../../src/components/expo-ui/themed-text-input";
 import { BattleFullScreenSheet } from "../../src/features/pvp/battle-full-screen-sheet";
 import { ToastBanner } from "../../src/components/toast-banner";
@@ -37,7 +42,6 @@ import {
   SwordsIcon,
   TrophyIcon,
   UserPlusIcon,
-  XIcon,
   ZapIcon,
 } from "../../src/components/icons";
 import { useFocusedRefetchInterval } from "../../src/hooks/use-focused-refetch-interval";
@@ -1196,7 +1200,9 @@ function usePvpScreenView() {
                           ))}
                         </View>
                         <View className="flex-row gap-2">
-                          <ThemedExpoButton
+                          <Button
+                            tone="primary"
+                            icon={Check}
                             disabled={
                               !selectedLoadoutId || acceptMutation.isPending
                             }
@@ -1214,62 +1220,21 @@ function usePvpScreenView() {
                                 cardIds: selectedLoadout.cardIds,
                               });
                             }}
-                            preferFallback
                             style={{ flex: 1 }}
-                            variant="primary"
                             loading={acceptMutation.isPending}
-                            fallbackLayout="stretch"
-                            fallbackAppearance={{
-                              backgroundColor: tc.success,
-                              borderColor: tc.success,
-                              borderRadius: 12,
-                              foregroundColor: "#FFFFFF",
-                              gradientColors: [tc.success, tc.successDark],
-                              minHeight: 0,
-                              paddingHorizontal: 16,
-                              paddingVertical: 12,
-                            }}
                           >
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 6,
-                              }}
-                            >
-                              <CheckIcon size={16} color="white" />
-                              <Text className="font-nunito-bold text-white">
-                                {t("pvp.acceptBattle")}
-                              </Text>
-                            </View>
-                          </ThemedExpoButton>
-                          <ThemedExpoButton
+                            {t("pvp.acceptBattle")}
+                          </Button>
+                          <Button
+                            tone="ghost"
+                            icon={X}
                             onPress={() =>
                               declineMutation.mutate(invite.id)
                             }
-                            preferFallback
                             style={{ flex: 1 }}
-                            variant="ghost"
-                            fallbackLayout="stretch"
-                            fallbackAppearance={{
-                              backgroundColor: tc.surfaceMuted,
-                              borderColor: tc.surfaceMuted,
-                              borderRadius: 12,
-                              foregroundColor: tc.dangerDark,
-                              gradientColors: null,
-                              minHeight: 0,
-                              paddingHorizontal: 16,
-                              paddingVertical: 12,
-                            }}
                           >
-                            <View className="flex-row items-center justify-center gap-2">
-                              <XIcon size={16} color={tc.dangerDark} />
-                              <Text className="font-nunito-bold text-dangerDark">
-                                {t("pvp.lobby.decline")}
-                              </Text>
-                            </View>
-                          </ThemedExpoButton>
+                            {t("pvp.lobby.decline")}
+                          </Button>
                         </View>
                       </>
                     ) : (loadoutsQueryData?.loadouts.length ?? 0) > 0 ? (
@@ -1277,56 +1242,28 @@ function usePvpScreenView() {
                         <Text className="font-nunito text-sm text-secondaryText">
                           {t("pvp.allLoadoutsInvalid")}
                         </Text>
-                        <ThemedExpoButton
+                        <Button
+                          tone="ghost"
+                          size="sm"
                           onPress={() => router.push("/pvp-loadouts")}
-                          preferFallback
-                          variant="ghost"
-                          fallbackAppearance={{
-                            backgroundColor: "transparent",
-                            borderColor: "transparent",
-                            borderRadius: 8,
-                            foregroundColor: tc.secondaryText,
-                            gradientColors: null,
-                            minHeight: 0,
-                            paddingHorizontal: 0,
-                            paddingVertical: 0,
-                            textStyle: {
-                              fontFamily: "Nunito_600SemiBold",
-                              fontSize: 14,
-                            },
-                          }}
                           style={{ alignSelf: "flex-start", marginTop: 8 }}
                         >
                           {t("pvp.editLoadouts")}
-                        </ThemedExpoButton>
+                        </Button>
                       </View>
                     ) : (
                       <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
                         <Text className="font-nunito text-sm text-secondaryText">
                           {t("pvp.createLoadoutToAccept")}
                         </Text>
-                        <ThemedExpoButton
+                        <Button
+                          tone="ghost"
+                          size="sm"
                           onPress={() => router.push("/pvp-loadouts")}
-                          preferFallback
-                          variant="ghost"
-                          fallbackAppearance={{
-                            backgroundColor: "transparent",
-                            borderColor: "transparent",
-                            borderRadius: 8,
-                            foregroundColor: tc.secondaryText,
-                            gradientColors: null,
-                            minHeight: 0,
-                            paddingHorizontal: 0,
-                            paddingVertical: 0,
-                            textStyle: {
-                              fontFamily: "Nunito_600SemiBold",
-                              fontSize: 14,
-                            },
-                          }}
                           style={{ alignSelf: "flex-start", marginTop: 8 }}
                         >
                           {t("pvp.createLoadout")}
-                        </ThemedExpoButton>
+                        </Button>
                       </View>
                     )}
                   </View>
@@ -1497,27 +1434,16 @@ function usePvpScreenView() {
                     {t("pvp.waitingResponse")}
                   </Text>
                 </View>
-                <ThemedExpoButton
+                <IconButton
+                  tone="danger"
+                  icon={X}
                   disabled={cancelInviteMutation.isPending}
                   onPress={() =>
                     cancelInviteMutation.mutate(invite.id)
                   }
                   testID={`pvp-cancel-invite-${invite.id}`}
-                  variant="ghost"
-                  fallbackAppearance={{
-                    backgroundColor: "transparent",
-                    borderColor: "transparent",
-                    borderRadius: 12,
-                    foregroundColor: tc.dangerDark,
-                    gradientColors: null,
-                    minHeight: 36,
-                    paddingHorizontal: 8,
-                    paddingVertical: 8,
-                  }}
-                  style={{ minHeight: 36, minWidth: 36 }}
-                >
-                  <XIcon size={20} color={tc.dangerDark} />
-                </ThemedExpoButton>
+                  accessibilityLabel={t("common.cancel")}
+                />
               </View>
             ))}
           </View>
@@ -1530,28 +1456,14 @@ function usePvpScreenView() {
               toneColor={tc.accentText}
               icon={<TrophyIcon size={20} color={tc.accentText} />}
               action={
-                <ThemedExpoButton
+                <Button
+                  tone="ghost"
+                  size="sm"
                   onPress={() => router.push("/pvp-history" as never)}
                   testID="pvp-history-button"
-                  preferFallback
-                  variant="ghost"
-                  fallbackAppearance={{
-                    backgroundColor: "transparent",
-                    borderColor: "transparent",
-                    borderRadius: 8,
-                    foregroundColor: tc.accentText,
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 0,
-                    paddingVertical: 0,
-                    textStyle: {
-                      fontFamily: "Nunito_700Bold",
-                      fontSize: 14,
-                    },
-                  }}
                 >
                   {t("pvp.viewAllArrow")}
-                </ThemedExpoButton>
+                </Button>
               }
             />
             {completedMatches.map((match) => {
@@ -1770,29 +1682,15 @@ function usePvpScreenView() {
         showCloseButton={false}
         footer={
           <View className="flex-row gap-3">
-            <ThemedExpoButton
+            <Button
+              tone="ghost"
               onPress={closeInviteSheet}
-              preferFallback
               style={{ flex: 1 }}
-              variant="ghost"
-              fallbackAppearance={{
-                backgroundColor: tc.surface,
-                borderColor: tc.primaryBorder,
-                borderRadius: 12,
-                foregroundColor: tc.fg,
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 14,
-                },
-              }}
             >
               {t("common.cancel")}
-            </ThemedExpoButton>
-            <ThemedExpoButton
+            </Button>
+            <Button
+              tone="primary"
               disabled={
                 !selectedInviteLoadoutId ||
                 !selectedOpponentId ||
@@ -1801,29 +1699,14 @@ function usePvpScreenView() {
               }
               onPress={() => createMutation.mutate()}
               loading={createMutation.isPending}
-              label={
+              style={{ flex: 1 }}
+            >
+              {
                 createMutation.isPending
                   ? t("pvp.sending")
                   : t("pvp.sendChallenge")
               }
-              preferFallback
-              style={{ flex: 1 }}
-              variant="primary"
-              fallbackAppearance={{
-                backgroundColor: tc.primary,
-                borderColor: tc.primary,
-                borderRadius: 12,
-                foregroundColor: "#FFFFFF",
-                gradientColors: [tc.primary, tc.primaryDark],
-                minHeight: 0,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 14,
-                },
-              }}
-            />
+            </Button>
           </View>
         }
       >
