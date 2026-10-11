@@ -4,6 +4,10 @@ tags:
   - smoke
   - pvp
   - board
+onFlowStart:
+  - setOrientation: PORTRAIT
+onFlowComplete:
+  - setOrientation: PORTRAIT
 ---
 - launchApp:
     clearState: true
@@ -15,6 +19,7 @@ tags:
     visible:
       id: pvp-battle-board
     timeout: 30000
+- runFlow: subflows/rotate-to-pvp-board.yaml
 - waitForAnimationToEnd
 - longPressOn:
     id: pvp-my-unit-0

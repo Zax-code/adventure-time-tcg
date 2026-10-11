@@ -44,6 +44,7 @@ Implementation note:
 - this keeps the PvP validation focused on post-auth UI behavior instead of the Expo dev-client or text-input automation path
 - the head-to-head PvP command injects a primary token session, verifies the live match board, advances the turn through Phoenix, injects an opponent token session, verifies the same match, records an opponent concede through Phoenix, and then opens the winner replay with a fresh primary token session
 - `scripts/maestro-pvp-head-to-head.sh` runs those Maestro stages while `apps/phoenix/scripts/monitor-mobile-test-pvp-match.sh` prints backend match state, snapshots, and newly persisted events to `.maestro/test-output/pvp-head-to-head/<timestamp>/`
+- PvP match, replay and spectate screens lock the interface to landscape while the iOS simulator stays portrait, so Maestro taps miss until the device rotates too; PvP flows run `subflows/rotate-to-pvp-board.yaml` once `pvp-battle-board` is up and reset to portrait in `onFlowStart`/`onFlowComplete` so a failed run never leaves the simulator rotated for the next flow
 
 Build profile notes:
 - `e2e-ios` builds a simulator app with `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:4200`
@@ -61,7 +62,7 @@ Run any flow through the wrapper (never raw `maestro test`): `MOBILE_TEST_PASSWO
 | `smoke.yaml` | Adventure Time mobile smoke | `npm run test:mobile:e2e:ios` | 2026-06-04 |
 | `login-invalid-email.yaml` | Login invalid email shows friendly error | wrapper | 2026-06-06 |
 | `auth-provider-buttons-screenshot.yaml` | Auth provider buttons screenshot | wrapper | 2026-06-28 |
-| `orientation-tab-lock.yaml` | Orientation lock across PvP and tabs | wrapper | 2026-06-27 |
+| `orientation-tab-lock.yaml` | Orientation lock across PvP and tabs | wrapper | 2026-10-11 |
 | `settings-sheet-screenshots.yaml` | Settings sheet focused screenshots | wrapper | 2026-06-03 |
 
 ### Quests
@@ -92,18 +93,18 @@ Run any flow through the wrapper (never raw `maestro test`): `MOBILE_TEST_PASSWO
 
 | Flow | Purpose | Command | Last change |
 |------|---------|---------|-------------|
-| `pvp-smoke.yaml` | Adventure Time PvP battle smoke | `npm run test:mobile:e2e:pvp:ios` | 2026-06-27 |
-| `pvp-head-to-head-primary.yaml` | Adventure Time PvP head-to-head primary board | `npm run test:mobile:e2e:pvp:head-to-head:ios` | 2026-06-21 |
-| `pvp-head-to-head-opponent.yaml` | Adventure Time PvP head-to-head opponent board | (driven by the head-to-head script) | 2026-06-21 |
-| `pvp-head-to-head-replay.yaml` | Adventure Time PvP head-to-head replay | (driven by the head-to-head script) | 2026-06-21 |
-| `pvp-board-core.yaml` | Adventure Time PvP board core smoke | wrapper | 2026-06-27 |
-| `pvp-board-points.yaml` | Adventure Time PvP board point smoke | wrapper | 2026-06-27 |
-| `pvp-modal-regression.yaml` | Adventure Time PvP modal regression | wrapper | 2026-06-29 |
-| `pvp-modal-screenshots.yaml` | PvP modal focused screenshots | wrapper | 2026-06-27 |
-| `pvp-lobby-sheet-screenshots.yaml` | PvP lobby and sheet focused screenshots | wrapper | 2026-06-04 |
-| `pvp-loadout-editor-screenshots.yaml` | PvP loadout editor focused screenshots | wrapper | 2026-07-02 |
-| `pvp-reference-sheet-screenshots.yaml` | PvP reference sheet focused screenshots | wrapper | 2026-06-04 |
-| `pvp-redesign-screenshots.yaml` | PvP board and replay redesign screenshots | wrapper | 2026-06-22 |
+| `pvp-smoke.yaml` | Adventure Time PvP battle smoke | `npm run test:mobile:e2e:pvp:ios` | 2026-10-11 |
+| `pvp-head-to-head-primary.yaml` | Adventure Time PvP head-to-head primary board | `npm run test:mobile:e2e:pvp:head-to-head:ios` | 2026-10-11 |
+| `pvp-head-to-head-opponent.yaml` | Adventure Time PvP head-to-head opponent board | (driven by the head-to-head script) | 2026-10-11 |
+| `pvp-head-to-head-replay.yaml` | Adventure Time PvP head-to-head replay | (driven by the head-to-head script) | 2026-10-11 |
+| `pvp-board-core.yaml` | Adventure Time PvP board core smoke | wrapper | 2026-10-11 |
+| `pvp-board-points.yaml` | Adventure Time PvP board point smoke | wrapper | 2026-10-11 |
+| `pvp-modal-regression.yaml` | Adventure Time PvP modal regression | wrapper | 2026-10-11 |
+| `pvp-modal-screenshots.yaml` | PvP modal focused screenshots | wrapper | 2026-10-11 |
+| `pvp-lobby-sheet-screenshots.yaml` | PvP lobby and sheet focused screenshots | wrapper | 2026-10-11 |
+| `pvp-loadout-editor-screenshots.yaml` | PvP loadout editor focused screenshots | wrapper | 2026-10-11 |
+| `pvp-reference-sheet-screenshots.yaml` | PvP reference sheet focused screenshots | wrapper | 2026-10-11 |
+| `pvp-redesign-screenshots.yaml` | PvP board and replay redesign screenshots | wrapper | 2026-10-11 |
 
 ### Collection and packs
 

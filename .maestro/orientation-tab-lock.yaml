@@ -4,6 +4,10 @@ tags:
   - orientation
   - tabs
   - pvp
+onFlowStart:
+  - setOrientation: PORTRAIT
+onFlowComplete:
+  - setOrientation: PORTRAIT
 ---
 - launchApp:
     clearState: true
@@ -23,7 +27,7 @@ tags:
 - runFlow: subflows/confirm-open-link-if-needed.yaml
 - extendedWaitUntil:
     visible:
-      id: pvp-open-mechanics-button
+      id: pvp-lobby-hero
     timeout: 30000
 - setOrientation: LANDSCAPE_LEFT
 - waitForAnimationToEnd

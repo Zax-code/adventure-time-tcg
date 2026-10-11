@@ -4,6 +4,10 @@ tags:
   - pvp
   - loadouts
   - screenshots
+onFlowStart:
+  - setOrientation: PORTRAIT
+onFlowComplete:
+  - setOrientation: PORTRAIT
 ---
 - launchApp:
     clearState: true
@@ -11,8 +15,10 @@ tags:
 - openLink:
     link: adventure-time:///e2e-auth?redirect=%2Fpvp-loadouts%3Ffixture%3D${TEST_MATCH_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
 - runFlow: subflows/confirm-open-link-if-needed.yaml
-- assertVisible:
-    id: pvp-loadout-summary-card
+- extendedWaitUntil:
+    visible:
+      id: pvp-loadout-saved-section
+    timeout: 30000
 - takeScreenshot: tmp-loadout-editor-shots/01-create-top
 - tapOn:
     id: "pvp-loadout-saved-.*"

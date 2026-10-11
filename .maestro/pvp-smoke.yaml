@@ -3,6 +3,10 @@ name: Adventure Time PvP battle smoke
 tags:
   - smoke
   - pvp
+onFlowStart:
+  - setOrientation: PORTRAIT
+onFlowComplete:
+  - setOrientation: PORTRAIT
 ---
 - launchApp:
     clearState: true
@@ -14,6 +18,7 @@ tags:
     visible:
       id: pvp-battle-board
     timeout: 30000
+- runFlow: subflows/rotate-to-pvp-board.yaml
 - waitForAnimationToEnd
 - tapOn:
     id: pvp-battle-log-button

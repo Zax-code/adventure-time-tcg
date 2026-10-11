@@ -5,6 +5,10 @@ tags:
   - pvp
   - board
   - points
+onFlowStart:
+  - setOrientation: PORTRAIT
+onFlowComplete:
+  - setOrientation: PORTRAIT
 ---
 - launchApp:
     clearState: true
@@ -16,6 +20,7 @@ tags:
     visible:
       id: pvp-battle-board
     timeout: 30000
+- runFlow: subflows/rotate-to-pvp-board.yaml
 - waitForAnimationToEnd
 - longPressOn:
     id: pvp-battle-board
