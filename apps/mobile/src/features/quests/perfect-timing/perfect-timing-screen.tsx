@@ -14,7 +14,6 @@ import {
   ActivityIndicator,
   Alert,
   AppState,
-  Pressable,
   ScrollView,
   Text,
   View,
@@ -35,10 +34,10 @@ import {
   QuestScreenDescription,
   QuestScreenHeader,
 } from "../quest-screen-header";
+import { SegmentedControl } from "../../../components/ui/segmented-control";
 import { QuestActionButton } from "../quest-action-button";
 import { formatQuestShareDate } from "../quest-share-date";
 import { useTranslation } from "../../../i18n";
-import type { Locale } from "../../../i18n/types";
 import { apiClient } from "../../../lib/api";
 import { useSessionStore } from "../../../stores/session-store";
 import { useThemeStore } from "../../../stores/theme-store";
@@ -690,33 +689,14 @@ function ModeSelector({
   t: Translate;
 }) {
   return (
-    <View
-      className="flex-row rounded-2xl border border-primaryBorder bg-surfaceMuted p-1"
-      accessibilityRole="tablist"
-    >
-      {(["official", "training"] as const).map((mode) => {
-        const selected = trainingMode ? mode === "training" : mode === "official";
-        return (
-          <Pressable
-            key={mode}
-            onPress={() => onChange(mode)}
-            className={`min-h-11 flex-1 items-center justify-center rounded-xl px-3 ${
-              selected ? "bg-surface" : "bg-transparent"
-            }`}
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            testID={`perfect-timing-mode-${mode}`}
-          >
-            <Text
-              className={`font-nunito-bold text-sm ${
-                selected ? "text-primaryStrong" : "text-fgMuted"
-              }`}
-            >
-              {t(`quests.perfectTiming.${mode}`)}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+    <SegmentedControl<TimerOwner>
+      options={(["official", "training"] as const).map((mode) => ({
+        value: mode,
+        label: t(`quests.perfectTiming.${mode}`),
+        testID: `perfect-timing-mode-${mode}`,
+      }))}
+      value={trainingMode ? "training" : "official"}
+      onChange={onChange}
+    />
   );
 }

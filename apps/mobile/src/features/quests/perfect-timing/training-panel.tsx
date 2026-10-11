@@ -42,14 +42,14 @@ export function TrainingPanel({
 }) {
   return (
     <View className="gap-4">
-      <Text className="rounded-2xl border border-infoBorder bg-infoTint p-4 font-nunito text-sm leading-5 text-infoText">
+      <Text className="rounded-ds-md border border-infoBorder bg-infoTint p-4 font-nunito text-sm leading-5 text-infoText">
         {t("quests.perfectTiming.trainingBody")}
       </Text>
 
       {isLoading ? <ActivityIndicator color={tc.primaryDark} /> : null}
 
       {hasError ? (
-        <View className="gap-3 rounded-2xl border border-dangerBorder bg-dangerTint p-4">
+        <View className="gap-3 rounded-ds-md border border-dangerBorder bg-dangerTint p-4">
           <Text
             accessibilityRole="alert"
             className="text-center font-nunito-bold text-sm text-dangerDark"

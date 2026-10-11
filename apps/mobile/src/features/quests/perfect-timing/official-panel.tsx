@@ -82,7 +82,7 @@ export function OfficialPanel({
       ) : null}
 
       {stopError ? (
-        <View className="gap-3 rounded-2xl border border-dangerBorder bg-dangerTint p-4">
+        <View className="gap-3 rounded-ds-md border border-dangerBorder bg-dangerTint p-4">
           <Text className="font-nunito-bold text-sm leading-5 text-dangerDark">
             {t("quests.perfectTiming.stopError")}
           </Text>

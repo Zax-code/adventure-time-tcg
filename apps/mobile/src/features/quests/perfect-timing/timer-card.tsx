@@ -12,7 +12,7 @@ export function TimerCard({
   t: Translate;
 }) {
   return (
-    <View className="items-center gap-2 rounded-3xl border-2 border-primaryTint bg-surface px-5 py-8">
+    <View className="items-center gap-2 rounded-ds-lg border border-primaryBorder bg-surface px-5 py-8">
       <Text className="font-nunito-bold text-xs uppercase tracking-widest text-fgMuted">
         {t("quests.perfectTiming.timer")}
       </Text>
