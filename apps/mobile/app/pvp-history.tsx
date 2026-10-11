@@ -1,11 +1,16 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ScrollView, Text, View } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  Pressable,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RADIUS } from "@adventure-time/theme";
 
 import { apiClient } from "../src/lib/api";
-import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { Button } from "../src/components/ui/button";
 import { StackHeader } from "../src/components/ui/stack-header";
 import { SectionErrorState } from "../src/components/error-state";
@@ -156,7 +161,7 @@ export default function PvpHistoryScreen() {
               const result = getPvpMatchResultView(match, currentUserId);
 
               return (
-                <ThemedExpoButton
+                <Pressable
                   key={match.id}
                   onPress={() => {
                     if (match.hasReplayData) {
@@ -164,30 +169,22 @@ export default function PvpHistoryScreen() {
                     }
                   }}
                   disabled={!match.hasReplayData}
-                  preferFallback
-                  variant={
-                    result.tone === "draw"
-                      ? "secondary"
-                      : result.tone === "win"
-                        ? "primary"
-                        : "danger"
-                  }
-                  fallbackLayout="stretch"
-                  fallbackAppearance={{
-                    backgroundColor: tc.surface,
-                    borderColor:
-                      result.tone === "draw"
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    {
+                      borderRadius: RADIUS.md,
+                      borderWidth: 1,
+                      borderColor: result.tone === "draw"
                         ? tc.infoBorder
                         : result.tone === "win"
                           ? tc.successBorder
                           : tc.dangerBorder,
-                    borderRadius: 16,
-                    foregroundColor: tc.fg,
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 16,
-                    paddingVertical: 16,
-                  }}
+                      backgroundColor: tc.surface,
+                      paddingHorizontal: 16,
+                      paddingVertical: 16,
+                      opacity: !match.hasReplayData ? 0.6 : pressed ? 0.85 : 1,
+                    },
+                  ]}
                 >
                   <View className="flex-row items-center gap-4">
                     <View
@@ -241,7 +238,7 @@ export default function PvpHistoryScreen() {
                       </Text>
                     )}
                   </View>
-                </ThemedExpoButton>
+                </Pressable>
               );
             })}
           </View>

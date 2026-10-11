@@ -1,12 +1,13 @@
-import Ionicons from "@react-native-vector-icons/ionicons";
-import { LinearGradient } from "expo-linear-gradient";
 import { Text, View } from "react-native";
 
-import { GhostButton, PrimaryButton } from "./button";
+import CircleAlert from "lucide-react-native/icons/circle-alert";
+import CloudOff from "lucide-react-native/icons/cloud-off";
+
+import { Button } from "./ui/button";
+import { Chip } from "./ui/chip";
+import { IconTile } from "./ui/icon-tile";
 import { useTranslation } from "../i18n";
 import { isNetworkError } from "../lib/api";
-import { useThemeStore } from "../stores/theme-store";
-import { THEME_COLORS } from "../theme/themes";
 
 type ErrorStateVariant = "page" | "section";
 
@@ -34,12 +35,8 @@ function ErrorPanel({
   variant = "page",
 }: ErrorStateProps) {
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const isPage = variant === "page";
   const networkFailure = isNetworkError(error);
-  const iconName = networkFailure
-    ? "cloud-offline-outline"
-    : "alert-circle-outline";
   const eyebrow = networkFailure
     ? t("common.errorStates.network.eyebrow")
     : t("common.errorStates.generic.eyebrow");
@@ -61,147 +58,70 @@ function ErrorPanel({
   const technicalMessage =
     !networkFailure && error instanceof Error ? error.message : null;
 
+  const tone = networkFailure ? "info" : "danger";
+
   return (
     <View
-      className="w-full overflow-hidden border bg-surface"
-      style={{
-        maxWidth: isPage ? 420 : undefined,
-        borderRadius: isPage ? 34 : 28,
-        borderColor: tc.primaryBorder + "66",
-        boxShadow: isPage
-          ? `0px 12px 22px ${networkFailure ? tc.infoDark : tc.dangerDark}2B`
-          : `0px 8px 14px ${networkFailure ? tc.infoDark : tc.dangerDark}21`,
-      }}
+      accessibilityRole="alert"
+      className={`w-full items-center gap-ds-3 rounded-ds-lg border border-primaryBorder bg-surface p-ds-6 ${
+        isPage ? "max-w-[420px]" : ""
+      }`}
     >
-      <LinearGradient
-        colors={
-          networkFailure
-            ? [tc.surface, tc.infoTint, tc.primaryBg]
-            : [tc.surface, tc.dangerTint, tc.primaryBg]
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          paddingHorizontal: isPage ? 24 : 20,
-          paddingVertical: isPage ? 24 : 20,
-        }}
+      <IconTile
+        size={48}
+        tone={tone}
+        icon={networkFailure ? CloudOff : CircleAlert}
+      />
+      <Chip tone={tone} label={eyebrow} />
+      <Text className="text-center font-nunito-extrabold text-ds-h3 text-fg">
+        {resolvedTitle}
+      </Text>
+      <Text className="text-center font-nunito text-ds-body text-fgMuted">
+        {resolvedBody}
+      </Text>
+      <Text
+        className={`text-center font-nunito-semibold text-ds-sm ${
+          networkFailure ? "text-infoText" : "text-dangerText"
+        }`}
       >
-        <View className="items-center">
-          <View
-            className="items-center justify-center rounded-[26px]"
-            style={{
-              width: isPage ? 88 : 74,
-              height: isPage ? 88 : 74,
-              backgroundColor: networkFailure ? tc.infoTint : tc.dangerTint,
-            }}
-          >
-            <LinearGradient
-              colors={
-                networkFailure
-                  ? [tc.infoDark, tc.primary]
-                  : [tc.dangerDark, tc.primaryDark]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                width: isPage ? 68 : 56,
-                height: isPage ? 68 : 56,
-                borderRadius: isPage ? 20 : 16,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Ionicons name={iconName} size={isPage ? 34 : 28} color="#fff" />
-            </LinearGradient>
-          </View>
+        {resolvedDetail}
+      </Text>
 
-          <View
-            className="mt-4 rounded-full border px-3 py-1"
-            style={{
-              borderColor: networkFailure ? tc.infoBorder : tc.dangerBorder,
-              backgroundColor: networkFailure ? tc.infoTint : tc.dangerTint,
-            }}
-          >
-            <Text
-              className="font-nunito-bold uppercase tracking-[2px]"
-              style={{
-                color: networkFailure ? tc.infoDark : tc.dangerDark,
-                fontSize: 12,
-              }}
-            >
-              {eyebrow}
-            </Text>
-          </View>
-
-          <Text
-            className="mt-4 text-center font-nunito-extrabold text-fg"
-            style={{ fontSize: isPage ? 24 : 20, lineHeight: isPage ? 30 : 24 }}
-          >
-            {resolvedTitle}
+      {technicalMessage ? (
+        <View className="w-full gap-ds-1 rounded-ds-md border border-primaryBorder bg-surfaceMuted px-ds-4 py-ds-3">
+          <Text className="font-nunito-bold text-ds-overline uppercase tracking-[1px] text-fgMuted">
+            {t("common.errorStates.technicalLabel")}
           </Text>
-
-          <Text
-            className="mt-3 text-center font-nunito text-fgMuted"
-            style={{
-              fontSize: isPage ? 15 : 14,
-              lineHeight: isPage ? 22 : 20,
-            }}
-          >
-            {resolvedBody}
+          <Text className="font-nunito text-ds-sm text-fgMuted">
+            {technicalMessage}
           </Text>
-
-          <Text
-            className="mt-2 text-center font-nunito-semibold"
-            style={{
-              color: networkFailure ? tc.infoDark : tc.primaryDark,
-              fontSize: isPage ? 14 : 13,
-              lineHeight: isPage ? 20 : 18,
-            }}
-          >
-            {resolvedDetail}
-          </Text>
-
-          {technicalMessage ? (
-            <View
-              className="mt-5 w-full rounded-2xl border px-4 py-3"
-              style={{
-                borderColor: tc.primaryBorder + "88",
-                backgroundColor: tc.surface + "dd",
-              }}
-            >
-              <Text className="font-nunito-bold text-xs uppercase tracking-[1.5px] text-fgMuted">
-                {t("common.errorStates.technicalLabel")}
-              </Text>
-              <Text className="mt-2 font-nunito text-sm text-fgMuted">
-                {technicalMessage}
-              </Text>
-            </View>
-          ) : null}
-
-          <View className="mt-6 w-full gap-3">
-            {onRetry ? (
-              <PrimaryButton onPress={onRetry}>
-                {retryLabel ??
-                  (networkFailure
-                    ? t("common.errorStates.network.action")
-                    : t("common.errorStates.generic.action"))}
-              </PrimaryButton>
-            ) : null}
-            {onBack ? (
-              <GhostButton onPress={onBack}>
-                {backLabel ?? t("common.errorStates.backAction")}
-              </GhostButton>
-            ) : null}
-          </View>
         </View>
-      </LinearGradient>
+      ) : null}
+
+      {onRetry || onBack ? (
+        <View className="w-full gap-ds-2">
+          {onRetry ? (
+            <Button onPress={onRetry}>
+              {retryLabel ??
+                (networkFailure
+                  ? t("common.errorStates.network.action")
+                  : t("common.errorStates.generic.action"))}
+            </Button>
+          ) : null}
+          {onBack ? (
+            <Button tone="ghost" onPress={onBack}>
+              {backLabel ?? t("common.errorStates.backAction")}
+            </Button>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
 
 export function PageErrorState(props: ErrorStateProps) {
   return (
-    <View className="flex-1 items-center justify-center overflow-hidden bg-bg px-6">
+    <View className="flex-1 items-center justify-center bg-bg px-ds-6">
       <ErrorPanel {...props} variant="page" />
     </View>
   );

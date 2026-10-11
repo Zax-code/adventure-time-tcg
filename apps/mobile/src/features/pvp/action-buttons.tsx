@@ -1,9 +1,13 @@
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
-import { CheckIcon, SwapIcon, XIcon, ZapIcon } from "../../components/icons";
-import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
-import { useThemeStore } from "../../stores/theme-store";
-import { THEME_COLORS } from "../../theme/themes";
+import ArrowLeftRight from "lucide-react-native/icons/arrow-left-right";
+import Check from "lucide-react-native/icons/check";
+import X from "lucide-react-native/icons/x";
+import Zap from "lucide-react-native/icons/zap";
+
+import { Chip } from "../../components/ui/chip";
+import { IconButton } from "../../components/ui/icon-button";
+import { useTranslation } from "../../i18n";
 
 interface ActionButtonsProps {
   energy: number;
@@ -28,8 +32,7 @@ export function ActionButtons({
   onCancel,
   onEndTurn,
 }: ActionButtonsProps) {
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
+  const { t } = useTranslation();
   const { isSwapMode, isTargeting, hasBench, isMyTurn, isActing } = state;
   const showCancel = isTargeting || isSwapMode;
   const swapDisabled = !hasBench || !isMyTurn;
@@ -42,93 +45,39 @@ export function ActionButtons({
         className="flex-row gap-2"
         style={{ transform: [{ translateX: 13 }] }}
       >
-        <ThemedExpoButton
-          onPress={swapDisabled ? undefined : onSwapToggle}
+        <IconButton
+          icon={ArrowLeftRight}
+          tone={isSwapMode ? "secondary" : "primary"}
+          tinted={isSwapMode}
+          onPress={onSwapToggle}
           disabled={swapDisabled}
+          hitSlop={4}
+          accessibilityLabel={t("pvp.mechanics.swapTitle")}
           testID="pvp-action-swap-button"
-          fallbackAppearance={{
-            backgroundColor: isSwapMode
-              ? tc.secondary
-              : themeName === "nightosphere"
-                ? "rgba(255,255,255,0.18)"
-                : "rgba(255,255,255,0.76)",
-            borderColor: "transparent",
-            borderRadius: 999,
-            paddingHorizontal: 0,
-            paddingVertical: 0,
-            minHeight: 48,
-            gradientColors: null,
-          }}
-          style={{
-            width: 48,
-            height: 48,
-            minWidth: 48,
-            minHeight: 48,
-            boxShadow: "0 8px 14px rgba(15,23,42,0.14)",
-          }}
-          variant="ghost"
-        >
-          <SwapIcon
-            size={20}
-            color={isSwapMode ? tc.secondaryText : tc.primaryText}
-          />
-        </ThemedExpoButton>
+        />
 
         {showCancel && (
-          <ThemedExpoButton
+          <IconButton
+            icon={X}
+            tone="danger"
+            tinted
             onPress={onCancel}
+            hitSlop={4}
+            accessibilityLabel={t("common.cancel")}
             testID="pvp-action-cancel-button"
-            fallbackAppearance={{
-              backgroundColor: "#f43f5e",
-              borderColor: "transparent",
-              borderRadius: 999,
-              paddingHorizontal: 0,
-              paddingVertical: 0,
-              minHeight: 48,
-              gradientColors: null,
-            }}
-            style={{
-              width: 48,
-              height: 48,
-              minWidth: 48,
-              minHeight: 48,
-              boxShadow: "0 8px 14px rgba(244,63,94,0.2)",
-            }}
-            variant="danger"
-          >
-            <XIcon size={20} color="#fff" />
-          </ThemedExpoButton>
+          />
         )}
 
-        <ThemedExpoButton
-          onPress={endDisabled ? undefined : onEndTurn}
+        <IconButton
+          icon={Check}
+          tone="success"
+          tinted={!endDisabled}
+          onPress={onEndTurn}
           disabled={endDisabled}
+          hitSlop={4}
+          accessibilityLabel={t("pvp.match.endTurnConfirm")}
           testID="pvp-action-end-turn-button"
-          fallbackAppearance={{
-            backgroundColor: endDisabled
-              ? "rgba(148,163,184,0.32)"
-              : tc.successTint,
-            borderColor: "transparent",
-            borderRadius: 999,
-            paddingHorizontal: 0,
-            paddingVertical: 0,
-            minHeight: 48,
-            gradientColors: null,
-          }}
-          style={{
-            width: 48,
-            height: 48,
-            minWidth: 48,
-            minHeight: 48,
-            boxShadow: "0 8px 14px rgba(20,184,166,0.18)",
-          }}
-          variant="ghost"
-        >
-          <CheckIcon
-            size={21}
-            color={endDisabled ? tc.muted : tc.successText}
-          />
-        </ThemedExpoButton>
+        />
       </View>
     </View>
   );
@@ -141,12 +90,5 @@ export function ActionEnergyPill({
   energy: number;
   maxEnergy: number;
 }) {
-  return (
-    <View className="h-9 min-w-[78px] flex-row items-center justify-center gap-1.5 rounded-full bg-secondaryTint px-3">
-      <ZapIcon size={16} color="#B45309" />
-      <Text className="font-nunito-extrabold text-[16px] text-secondaryText">
-        {energy}/{maxEnergy}
-      </Text>
-    </View>
-  );
+  return <Chip tone="secondary" icon={Zap} label={`${energy}/${maxEnergy}`} />;
 }

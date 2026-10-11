@@ -4,9 +4,13 @@ import {
   ScrollView,
   Text,
   View,
-  useWindowDimensions } from "react-native";
+  useWindowDimensions,
+  Pressable,
+} from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import Minus from "lucide-react-native/icons/minus";
+import Plus from "lucide-react-native/icons/plus";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -15,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type {
   CollectionResponse,
   HomeResponse } from "@adventure-time/api-client";
+import { RADIUS } from "@adventure-time/theme";
 import { apiClient } from "../src/lib/api";
 import { useCollectionFeedbackStore } from "../src/stores/collection-feedback-store";
 import { useSessionStore } from "../src/stores/session-store";
@@ -33,8 +38,8 @@ import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import {
   LoadingPanel,
   PageLoadingState } from "../src/components/loading-state";
-import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { Button } from "../src/components/ui/button";
+import { IconButton } from "../src/components/ui/icon-button";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { RARITY_COLORS } from "../src/components/theme";
 import { THEME_COLORS } from "../src/theme/themes";
@@ -835,24 +840,21 @@ function useCollectionCardDetailScreenView() {
                       boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)" }}
                     testID="collection-card-detail-recycle"
                   >
-                    <ThemedExpoButton
+                    <Pressable
                       onPress={() => setRecycleExpanded(!recycleExpanded)}
-                      preferFallback
-                      fallbackLayout="stretch"
-                      fallbackAppearance={{
-                        backgroundColor: "transparent",
-                        borderColor: "transparent",
-                        borderRadius: 0,
-                        foregroundColor: tc.successText,
-                        gradientColors: null,
-                        minHeight: 0,
-                        paddingHorizontal: 16,
-                        paddingVertical: 14,
-                        textStyle: {
-                          fontFamily: "Nunito_800ExtraBold",
-                          fontSize: 16 } }}
                       testID="collection-card-detail-recycle-toggle"
-                      variant="ghost"
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        {
+                          borderRadius: RADIUS.sm,
+                          borderWidth: 1,
+                          borderColor: "transparent",
+                          backgroundColor: "transparent",
+                          paddingHorizontal: 16,
+                          paddingVertical: 14,
+                          opacity: pressed ? 0.85 : 1,
+                        },
+                      ]}
                     >
                       <View
                         style={{
@@ -927,7 +929,7 @@ function useCollectionCardDetailScreenView() {
                           </View>
                         </View>
                       </View>
-                    </ThemedExpoButton>
+                    </Pressable>
 
                     {recycleExpanded ? (
                       <View
@@ -1027,27 +1029,14 @@ function useCollectionCardDetailScreenView() {
                               className="flex-row items-center justify-center"
                               style={{ gap: 12 }}
                             >
-                              <ThemedExpoButton
+                              <IconButton
+                                tone="success"
+                                icon={Minus}
                                 onPress={() =>
                                   setRecycleQuantity(Math.max(1, recycleQuantity - 1))
                                 }
-                                label="−"
-                                preferFallback
-                                fallbackAppearance={{
-                                  backgroundColor: tc.surface,
-                                  borderColor: tc.successBorder,
-                                  borderRadius: 18,
-                                  foregroundColor: tc.successText,
-                                  gradientColors: null,
-                                  minHeight: 0,
-                                  paddingHorizontal: 0,
-                                  paddingVertical: 0,
-                                  textStyle: {
-                                    fontFamily: "Nunito_800ExtraBold",
-                                    fontSize: 22 } }}
-                                style={{ width: 42, height: 42 }}
                                 testID="collection-card-detail-recycle-minus"
-                                variant="ghost"
+                                accessibilityLabel="−"
                               />
                               <View
                                 style={{
@@ -1069,29 +1058,16 @@ function useCollectionCardDetailScreenView() {
                                   {recycleQuantity}
                                 </Text>
                               </View>
-                              <ThemedExpoButton
+                              <IconButton
+                                tone="success"
+                                icon={Plus}
                                 onPress={() =>
                                   setRecycleQuantity(
                                     Math.min(entry.quantity, recycleQuantity + 1),
                                   )
                                 }
-                                label="+"
-                                preferFallback
-                                fallbackAppearance={{
-                                  backgroundColor: tc.surface,
-                                  borderColor: tc.successBorder,
-                                  borderRadius: 18,
-                                  foregroundColor: tc.successText,
-                                  gradientColors: null,
-                                  minHeight: 0,
-                                  paddingHorizontal: 0,
-                                  paddingVertical: 0,
-                                  textStyle: {
-                                    fontFamily: "Nunito_800ExtraBold",
-                                    fontSize: 22 } }}
-                                style={{ width: 42, height: 42 }}
                                 testID="collection-card-detail-recycle-plus"
-                                variant="ghost"
+                                accessibilityLabel="+"
                               />
                             </View>
                           ) : (
@@ -1136,24 +1112,21 @@ function useCollectionCardDetailScreenView() {
                       boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)" }}
                     testID="collection-card-detail-gift"
                   >
-                    <ThemedExpoButton
+                    <Pressable
                       onPress={() => setGiftExpanded(!giftExpanded)}
-                      preferFallback
-                      fallbackLayout="stretch"
-                      fallbackAppearance={{
-                        backgroundColor: "transparent",
-                        borderColor: "transparent",
-                        borderRadius: 0,
-                        foregroundColor: tc.infoText,
-                        gradientColors: null,
-                        minHeight: 0,
-                        paddingHorizontal: 16,
-                        paddingVertical: 14,
-                        textStyle: {
-                          fontFamily: "Nunito_800ExtraBold",
-                          fontSize: 16 } }}
                       testID="collection-card-detail-gift-toggle"
-                      variant="ghost"
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        {
+                          borderRadius: RADIUS.sm,
+                          borderWidth: 1,
+                          borderColor: "transparent",
+                          backgroundColor: "transparent",
+                          paddingHorizontal: 16,
+                          paddingVertical: 14,
+                          opacity: pressed ? 0.85 : 1,
+                        },
+                      ]}
                     >
                       <View
                         style={{
@@ -1225,7 +1198,7 @@ function useCollectionCardDetailScreenView() {
                           </View>
                         </View>
                       </View>
-                    </ThemedExpoButton>
+                    </Pressable>
 
                     {giftExpanded ? (
                       <View
@@ -1298,31 +1271,26 @@ function useCollectionCardDetailScreenView() {
                                 const isSelected = selectedUserId === user.id;
 
                                 return (
-                                  <ThemedExpoButton
+                                  <Pressable
                                     key={user.id}
                                     onPress={() => setSelectedUserId(user.id)}
-                                    preferFallback
-                                    fallbackLayout="stretch"
-                                    fallbackAppearance={{
-                                      backgroundColor: isSelected
-                                        ? tc.primaryTint
-                                        : tc.surface,
-                                      borderColor: isSelected
+                                    testID={`collection-card-detail-gift-user-${user.id}`}
+                                    accessibilityRole="button"
+                                    style={({ pressed }) => [
+                                      {
+                                        borderRadius: RADIUS.md,
+                                        borderWidth: 1,
+                                        borderColor: isSelected
                                         ? tc.primaryBorder
                                         : tc.infoBorder,
-                                      borderRadius: 14,
-                                      foregroundColor: tc.fg,
-                                      gradientColors: null,
-                                      minHeight: 0,
-                                      paddingHorizontal: 12,
-                                      paddingVertical: 10,
-                                      textStyle: {
-                                        fontFamily: isSelected
-                                          ? "Nunito_700Bold"
-                                          : "Nunito_600SemiBold",
-                                        fontSize: 14 } }}
-                                    testID={`collection-card-detail-gift-user-${user.id}`}
-                                    variant="ghost"
+                                        backgroundColor: isSelected
+                                        ? tc.primaryTint
+                                        : tc.surface,
+                                        paddingHorizontal: 12,
+                                        paddingVertical: 10,
+                                        opacity: pressed ? 0.85 : 1,
+                                      },
+                                    ]}
                                   >
                                     <Text
                                       style={{
@@ -1338,7 +1306,7 @@ function useCollectionCardDetailScreenView() {
                                     {isSelected ? (
                                       <CheckIcon size={16} color={tc.primaryText} />
                                     ) : null}
-                                  </ThemedExpoButton>
+                                  </Pressable>
                                 );
                               })}
                             </View>

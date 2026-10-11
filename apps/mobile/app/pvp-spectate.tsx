@@ -1,10 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { ScrollView, Text, View } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  Pressable,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RADIUS } from "@adventure-time/theme";
 
 import { apiClient } from "../src/lib/api";
-import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { StackHeader } from "../src/components/ui/stack-header";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
@@ -89,22 +94,21 @@ export default function PvpSpectateScreen() {
               const timeoutLabel = formatTurnTimeout(match.turnExpiresAt, t, now);
 
               return (
-                <ThemedExpoButton
+                <Pressable
                   key={match.id}
                   onPress={() => router.push(`/pvp-spectate-match?id=${match.id}` as never)}
-                  preferFallback
-                  variant="secondary"
-                  fallbackLayout="stretch"
-                  fallbackAppearance={{
-                    backgroundColor: tc.surface,
-                    borderColor: tc.infoBorder,
-                    borderRadius: 16,
-                    foregroundColor: tc.fg,
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 16,
-                    paddingVertical: 16,
-                  }}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    {
+                      borderRadius: RADIUS.md,
+                      borderWidth: 1,
+                      borderColor: tc.infoBorder,
+                      backgroundColor: tc.surface,
+                      paddingHorizontal: 16,
+                      paddingVertical: 16,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
                 >
                   <View className="flex-row items-center gap-4">
                     <View className="items-center gap-1.5">
@@ -139,7 +143,7 @@ export default function PvpSpectateScreen() {
                       {t("pvp.spectateNow")}
                     </Text>
                   </View>
-                </ThemedExpoButton>
+                </Pressable>
               );
             })}
           </View>
