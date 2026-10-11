@@ -216,17 +216,28 @@ describe("mobile UI regression contracts", () => {
 
   it("keeps leaderboard public profiles discoverable from every ranking placement", () => {
     assert.match(rankingsSource, /pathname: "\/public-profile"/);
-    assert.match(rankingsSource, /<PodiumCard[\s\S]*?onPress=/);
-    assert.match(rankingsSource, /<TiedRankGroup[\s\S]*?onPress=/);
-    assert.match(rankingsSource, /<RankingRow[\s\S]*?onPress=/);
+    assert.match(
+      rankingsSource,
+      /data\.rows\.map\(\(row, index\) => \([\s\S]*?<RankingRow[\s\S]*?onPress=/,
+      "every standings row, tied or not, should open the public profile",
+    );
+    assert.match(
+      rankingsSource,
+      /<RankingRow[\s\S]*?row=\{data\.currentPlayer\}[\s\S]*?onPress=/,
+      "the current player row outside the listed standings should open the profile too",
+    );
   });
 
-  it("authenticates custom profile pictures throughout the rankings", () => {
-    assert.equal(
-      rankingsSource.match(/avatarUrl=\{row\.profile\.avatarUrl\}/g)?.length,
-      3,
-      "podium cards, tied-rank rows, and ranking rows should pass the public profile picture to LeaderboardAvatar",
+  it("shows the backend rank on every standings row so ties share a placement", () => {
+    assert.match(rankingsSource, /\{row\.rank\}/);
+    assert.doesNotMatch(
+      rankingsSource,
+      /index \+ 1\}<\/Text>/,
+      "placements must come from the backend rank, never the list index",
     );
+  });
+
+  it("authenticates custom profile pictures on the public profile", () => {
     assert.match(
       leaderboardAvatarSource,
       /useSessionStore\(\(state\) => state\.accessToken\)/,

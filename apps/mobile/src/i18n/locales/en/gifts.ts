@@ -1,7 +1,6 @@
 const gifts = {
   title: "Gifts",
-  subtitle:
-    "Keep track of incoming cards, review gift history, and send new gifts from your collection.",
+  subtitle: "Incoming cards, gift history and sending from your collection.",
   giftTo: "Gift to",
   sendGift: "Send gift",
   sendGiftButton: "Send gift",
@@ -11,27 +10,14 @@ const gifts = {
   accepting: "Accepting...",
   reject: "Reject",
   rejecting: "Rejecting...",
-  openCollection: "Open collection",
   quickSendTitle: "Send from your collection",
-  quickSendBody:
-    "Choose a card you own, open its detail screen, and use the built-in gift flow there.",
-  quickSendSteps: {
-    openCollection: "Open your collection.",
-    pickCard: "Choose the card you want to gift.",
-    choosePlayer: "Tap Send gift, then choose the player and optional message.",
-  },
-  heroBadge: {
-    pending: "{count} waiting for you",
-    clear: "Nothing waiting right now",
-  },
+  quickSendBody: "Pick a friend and a card you own.",
+  chooseCard: "Choose a card to send",
   summary: {
     pending: "Needs action",
     received: "Received",
     sent: "Sent",
   },
-  manageTitle: "Manage gift activity",
-  manageSubtitle:
-    "Switch between incoming cards, sent gifts, and your full timeline.",
   cardMeta: {
     rarity: "Rarity",
     type: "Type",
@@ -50,11 +36,12 @@ const gifts = {
   needsActionTitle: "Needs your answer",
   needsActionSubtitle:
     "These gifts are waiting for you to accept them into your collection or reject them.",
-  activityTitle: "Recent activity",
-  activitySubtitle: {
+  activityTitle: "Gift activity",
+  activitySubtitle: "Incoming cards, sent gifts and your full timeline.",
+  recentTitle: "Recent activity",
+  recentSubtitle: {
     received: "Everything you have received outside the pending queue.",
-    sent: "Every gift you have sent, including ones still waiting on a reply.",
-    all: "Your full gift history, with pending arrivals surfaced separately above.",
+    all: "The rest of your gift history.",
   },
   receivedBadge: "Received",
   sentBadge: "Sent",

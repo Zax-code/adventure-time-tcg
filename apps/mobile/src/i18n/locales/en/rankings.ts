@@ -4,7 +4,7 @@ const rankings = {
   previewLabel: "Preview standings",
   loadingTitle: "Gathering the adventurers",
   loadingBody: "Loading the latest closed and provisional standings.",
-  liveProvisional: "Live · Provisional",
+  liveProvisional: "Live · provisional",
   final: "Final",
   provisionalHint: "Results update as accepted games arrive.",
   finalHint: "This period is closed and no longer changes.",
@@ -14,13 +14,15 @@ const rankings = {
   viewDays: "View daily results",
   hideDays: "Hide daily results",
   scoringHelp: "How the leaderboard works",
-  profileTapHint: "Tap any adventurer to see their crowns and achievements",
-  placements: {
-    first: "1st place",
-    second: "2nd place",
-    third: "3rd place",
-    tied: "{count}-way tie",
-  },
+  emptyTitle: "No standings yet",
+  emptyBodyDay:
+    "One accepted result is enough to appear. Finish any quest today to join today's board.",
+  emptyBodyWeek:
+    "One accepted result is enough to appear. Finish any quest today to join this week's board.",
+  emptyAction: "Go to quests",
+  points: "{points} pts",
+  you: "You",
+  youWithResult: "You · {result}",
   historyTitle: "Leaderboard history",
   historyBody: "No closed competition days or weeks yet.",
   periods: {

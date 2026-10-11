@@ -1,30 +1,32 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ScrollView,
-  Text,
-  View,
-  Pressable,
-} from "react-native";
+import { ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
+import Flag from "lucide-react-native/icons/flag";
 import Swords from "lucide-react-native/icons/swords";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { RADIUS } from "@adventure-time/theme";
 
 import { apiClient } from "../src/lib/api";
+import { Card } from "../src/components/ui/card";
+import { ListRow } from "../src/components/ui/list-row";
+import { SectionHeader } from "../src/components/ui/section-header";
 import { StatePanel } from "../src/components/ui/state-panel";
 import { StatTile } from "../src/components/ui/stat-tile";
 import { StackHeader } from "../src/components/ui/stack-header";
+import type { Tone } from "../src/components/ui/tokens";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
 import { getPvpMatchResultView } from "../src/features/pvp/match-result";
 import { useFocusedRefetchInterval } from "../src/hooks/use-focused-refetch-interval";
 import { useTranslation } from "../src/i18n";
-import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_COLORS } from "../src/theme/themes";
-import { ChevronRightIcon, ClockIcon } from "../src/components/icons";
 
 const PVP_HISTORY_REFETCH_INTERVAL_MS = 5_000;
+
+const RESULT_TONE: Record<"win" | "loss" | "draw", Tone> = {
+  win: "success",
+  loss: "danger",
+  draw: "info",
+};
 
 function formatDate(
   dateStr: string,
@@ -53,7 +55,6 @@ export default function PvpHistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
   const historyRefetchInterval = useFocusedRefetchInterval(
     PVP_HISTORY_REFETCH_INTERVAL_MS,
@@ -70,43 +71,41 @@ export default function PvpHistoryScreen() {
       (historyQueryData?.matches ?? []).filter((match) => match.status === "COMPLETED"),
     [historyQueryData?.matches],
   );
+  const completedCount = historyQueryData?.totalCount ?? completedMatches.length;
 
   return (
-    <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingBottom: 32 }}>
-      <View style={{ paddingTop: insets.top }}>
-        <StackHeader
-          title={t("pvp.matchHistory")}
-          onBack={() => router.push("/(tabs)/pvp")}
-          backLabel={t("common.errorStates.backAction")}
-        />
-        <Text className="px-ds-4 text-center font-nunito text-ds-sm text-fgMuted">
-          {t("pvp.completedMatches", {
-            count: historyQueryData?.totalCount ?? completedMatches.length,
-          })}
-        </Text>
-      </View>
+    <ScrollView
+      className="flex-1 bg-bg"
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <View style={{ height: insets.top }} />
+      <StackHeader
+        title={t("pvp.matchHistory")}
+        onBack={() => router.push("/(tabs)/pvp")}
+        backLabel={t("common.errorStates.backAction")}
+      />
 
-      <View className="px-4 pt-5">
-        <View className="mb-ds-6 flex-row flex-wrap gap-ds-3">
+      <View className="gap-ds-3 px-ds-4 pt-ds-3">
+        <View className="flex-row gap-ds-3">
           <StatTile
-            className="grow basis-[45%]"
+            className="flex-1"
             tone="success"
             label={t("pvp.wins")}
             value={historyQueryData?.stats?.wins ?? 0}
           />
           <StatTile
-            className="grow basis-[45%]"
+            className="flex-1"
             tone="danger"
             label={t("pvp.losses")}
             value={historyQueryData?.stats?.losses ?? 0}
           />
           <StatTile
-            className="grow basis-[45%]"
+            className="flex-1"
             label={t("pvp.draws")}
             value={historyQueryData?.stats?.draws ?? 0}
           />
           <StatTile
-            className="grow basis-[45%]"
+            className="flex-1"
             tone="info"
             label={t("pvp.winRate")}
             value={`${historyQueryData?.stats?.winRate ?? 0}%`}
@@ -138,97 +137,63 @@ export default function PvpHistoryScreen() {
             }}
           />
         ) : (
-          <View className="gap-3">
-            {completedMatches.map((match) => {
-              const currentUserId = historyQueryData?.currentUserId;
-              const opponentName =
-                match.inviterId === currentUserId
-                  ? match.inviteeName ?? match.inviteeId.slice(0, 8)
-                  : match.inviterName ?? match.inviterId.slice(0, 8);
-              const result = getPvpMatchResultView(match, currentUserId);
+          <>
+            <SectionHeader
+              title={t("pvp.historyCompleted")}
+              subtitle={
+                completedCount === 1
+                  ? t("pvp.historyMatchCountOne")
+                  : t("pvp.historyMatchCount", { count: completedCount })
+              }
+            />
+            <Card flush>
+              {completedMatches.map((match, index) => {
+                const currentUserId = historyQueryData?.currentUserId;
+                const opponentName =
+                  match.inviterId === currentUserId
+                    ? match.inviteeName ?? match.inviteeId.slice(0, 8)
+                    : match.inviterName ?? match.inviterId.slice(0, 8);
+                const result = getPvpMatchResultView(match, currentUserId);
+                const turns = match.currentTurn ?? 1;
+                const meta = [
+                  formatDate(match.updatedAt, t),
+                  turns === 1
+                    ? t("pvp.historyTurnOne")
+                    : t("pvp.historyTurns", { count: turns }),
+                  ...(match.hasReplayData ? [] : [t("pvp.noReplay")]),
+                ].join(" \u00b7 ");
 
-              return (
-                <Pressable
-                  key={match.id}
-                  onPress={() => {
-                    if (match.hasReplayData) {
-                      router.push(`/pvp-replay?id=${match.id}` as never);
+                return (
+                  <ListRow
+                    key={match.id}
+                    icon={Flag}
+                    iconTone={RESULT_TONE[result.tone]}
+                    title={t("pvp.historyVersus", { name: opponentName })}
+                    meta={meta}
+                    trailingChip={{
+                      tone: RESULT_TONE[result.tone],
+                      label: t(
+                        result.labelKey.replace("pvp.", "pvp.historyResult."),
+                      ),
+                    }}
+                    chevron={Boolean(match.hasReplayData)}
+                    divider={index < completedMatches.length - 1}
+                    onPress={
+                      match.hasReplayData
+                        ? () => router.push(`/pvp-replay?id=${match.id}` as never)
+                        : undefined
                     }
-                  }}
-                  disabled={!match.hasReplayData}
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    {
-                      borderRadius: RADIUS.md,
-                      borderWidth: 1,
-                      borderColor: result.tone === "draw"
-                        ? tc.infoBorder
-                        : result.tone === "win"
-                          ? tc.successBorder
-                          : tc.dangerBorder,
-                      backgroundColor: tc.surface,
-                      paddingHorizontal: 16,
-                      paddingVertical: 16,
-                      opacity: !match.hasReplayData ? 0.6 : pressed ? 0.85 : 1,
-                    },
-                  ]}
-                >
-                  <View className="flex-row items-center gap-4">
-                    <View
-                      className={`h-14 w-14 items-center justify-center rounded-ds-sm ${
-                        result.tone === "draw"
-                          ? "bg-info"
-                          : result.tone === "win"
-                            ? "bg-successDark"
-                            : "bg-dangerDark"
-                      }`}
-                    >
-                      <Text className="font-nunito-extrabold text-lg text-white">
-                        {result.badge}
-                      </Text>
-                      <Text className="font-nunito text-[10px] text-white/80">
-                        T{match.currentTurn ?? 1}
-                      </Text>
-                    </View>
-
-                    <View className="flex-1">
-                      <Text className="font-nunito-bold text-fg">vs {opponentName}</Text>
-                      <View className="mt-1 flex-row items-center gap-2">
-                        <ClockIcon size={14} color={tc.fgMuted} />
-                        <Text className="font-nunito text-sm text-fgMuted">
-                          {formatDate(match.updatedAt, t)}
-                        </Text>
-                      </View>
-                      <Text
-                        className={`mt-1 font-nunito-bold text-xs ${
-                          result.tone === "draw"
-                            ? "text-infoDark"
-                            : result.tone === "win"
-                              ? "text-successDark"
-                              : "text-dangerDark"
-                        }`}
-                      >
-                        {t(result.labelKey)}
-                      </Text>
-                    </View>
-
-                    {match.hasReplayData ? (
-                      <View className="flex-row items-center gap-1">
-                        <Text className="font-nunito-semibold text-accentText">
-                          {t("pvp.replay")}
-                        </Text>
-                        <ChevronRightIcon size={16} color={tc.accentText} />
-                      </View>
-                    ) : (
-                      <Text className="font-nunito text-xs text-fgMuted">
-                        {t("pvp.noReplay")}
-                      </Text>
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
+                    testID={`pvp-history-match-${match.id}`}
+                  />
+                );
+              })}
+            </Card>
+            <StatePanel
+              icon={Swords}
+              title={t("pvp.historyEndTitle")}
+              body={t("pvp.historyEndBody")}
+            />
+          </>
         )}
       </View>
     </ScrollView>

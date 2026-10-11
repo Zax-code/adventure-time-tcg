@@ -42,6 +42,12 @@ const NAV_ITEMS: { path: string; labelKey: string; icon: LucideIcon }[] = [
   { path: "/admin/users", labelKey: "admin.shell.nav.users", icon: Users },
 ];
 
+// Per-screen PageTitle subtitles; screens without an entry show the title only.
+const PAGE_SUBTITLE_KEYS: Record<string, string> = {
+  "/admin": "admin.shell.subtitles.cards",
+  "/admin/cards": "admin.shell.subtitles.cards",
+};
+
 const ADMIN_PREFETCH_STALE_TIME = 5 * 60 * 1000;
 
 export function AdminShell({ children }: { children: ReactNode }) {
@@ -167,7 +173,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
               />
             </View>
           </View>
-          <PageTitle title={t("admin.shell.consoleTitle")} className="px-ds-4 pb-ds-3" />
+          <PageTitle
+            title={t("admin.shell.consoleTitle")}
+            subtitle={
+              PAGE_SUBTITLE_KEYS[pathname]
+                ? t(PAGE_SUBTITLE_KEYS[pathname])
+                : undefined
+            }
+            className="px-ds-4 pb-ds-3"
+          />
         </View>
 
         <View className="flex-1">{children}</View>

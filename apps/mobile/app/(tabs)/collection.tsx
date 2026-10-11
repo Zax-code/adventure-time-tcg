@@ -9,7 +9,8 @@ import {
 } from "react";
 import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import ArrowUpDown from "lucide-react-native/icons/arrow-up-down";
-import Check from "lucide-react-native/icons/check";
+import Circle from "lucide-react-native/icons/circle";
+import CircleCheck from "lucide-react-native/icons/circle-check";
 import Search from "lucide-react-native/icons/search";
 import X from "lucide-react-native/icons/x";
 import { useQuery } from "@tanstack/react-query";
@@ -43,15 +44,21 @@ import {
 } from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
-import { Button } from "../../src/components/ui/button";
 import { Chip } from "../../src/components/ui/chip";
 import { Dialog } from "../../src/components/ui/dialog";
 import { Input } from "../../src/components/ui/input";
+import { ListRow } from "../../src/components/ui/list-row";
 import { PageTitle } from "../../src/components/ui/page-title";
+import { SectionHeader } from "../../src/components/ui/section-header";
 import { SegmentedControl } from "../../src/components/ui/segmented-control";
+import { StatePanel } from "../../src/components/ui/state-panel";
 import { StatTile } from "../../src/components/ui/stat-tile";
 import { SheetHeader } from "../../src/components/ui/sheet-header";
-import { getBackdropColor, ICON_STROKE_WIDTH } from "../../src/components/ui/tokens";
+import {
+  getBackdropColor,
+  ICON_STROKE_WIDTH,
+  type Tone,
+} from "../../src/components/ui/tokens";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-aware-scroll-props";
@@ -81,6 +88,21 @@ const DUST_TABLE = [
 ];
 
 const DUST_SHEET_TOP_GAP = 56;
+
+// Rarity filter chips wear their rarity color until selected.
+const RARITY_CHIP_TONE: Record<string, Tone | "neutral"> = {
+  Common: "neutral",
+  Uncommon: "success",
+  Rare: "info",
+  Epic: "accent",
+  Legendary: "secondary",
+};
+
+const OWNERSHIP_SECTION_TITLE_KEYS: Record<OwnershipFilter, string> = {
+  all: "collection.sectionTitles.all",
+  owned: "collection.sectionTitles.owned",
+  "not-owned": "collection.sectionTitles.notOwned",
+};
 
 function DustInfoSheet({
   children,
@@ -191,6 +213,7 @@ function useCollectionScreenView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
+  const [sortDraft, setSortDraft] = useState<SortOption>("rarity");
   const [showDustModal, setShowDustModal] = useState(false);
   const [dustSheetIndex, setDustSheetIndex] = useState(0);
   const [appActive, setAppActive] = useState(
@@ -202,6 +225,10 @@ function useCollectionScreenView() {
   } | null>(null);
   const toastAnim = useSharedValue(-60);
 
+  const openSortDialog = () => {
+    setSortDraft(sortBy);
+    setShowSortModal(true);
+  };
   const openDustSheet = () => {
     setShowDustModal(true);
     setDustSheetIndex(1);
@@ -522,7 +549,14 @@ function useCollectionScreenView() {
 
   const listHeader = (
     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
-      <PageTitle title={t("collection.title")} className="mb-ds-3" />
+      <PageTitle
+        title={t("collection.title")}
+        subtitle={t("collection.subtitle", {
+          owned: collection.stats.uniqueOwned,
+          total: allCards.length,
+        })}
+        className="mb-ds-3"
+      />
 
       <View className="mb-ds-3 flex-row gap-ds-3">
         <Pressable
@@ -532,16 +566,26 @@ function useCollectionScreenView() {
           accessibilityLabel={`${t("collection.dust")} ${collection.dust}`}
           testID="collection-dust-tile"
         >
-          <StatTile tone="secondary" label={t("collection.dust")} value={collection.dust} />
+          <StatTile
+            tone="secondary"
+            label={t("collection.dust")}
+            value={collection.dust}
+            caption={t("collection.dustCaption")}
+          />
         </Pressable>
         <Pressable
           className="flex-1"
           onPress={() => setShowStatsModal(true)}
           accessibilityRole="button"
-          accessibilityLabel={`${t("collection.cardStats")} ${collection.stats.uniqueOwned}`}
+          accessibilityLabel={`${t("collection.cardsOwned")} ${collection.stats.uniqueOwned}`}
           testID="collection-stats-tile"
         >
-          <StatTile label={t("collection.cardStats")} value={collection.stats.uniqueOwned} />
+          <StatTile
+            tone="primary"
+            label={t("collection.cardsOwned")}
+            value={collection.stats.uniqueOwned}
+            caption={t("collection.cardsOwnedCaption")}
+          />
         </Pressable>
       </View>
 
@@ -589,31 +633,38 @@ function useCollectionScreenView() {
       >
         <Chip
           tone={filterRarity === "all" ? "selected" : "neutral"}
-          label={`${t("collection.all")} (${allCards.length})`}
+          label={`${t("collection.all")} ${allCards.length}`}
           onPress={() => setFilterRarity("all")}
+          accessibilityState={{ selected: filterRarity === "all" }}
+          testID="collection-rarity-filter-all"
         />
         {/* Five rarities at most; virtualization would add overhead. */}
         {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
         {rarityGroups.map(({ name, count }) => (
           <Chip
             key={name}
-            tone={filterRarity === name ? "selected" : "neutral"}
-            label={`${name} (${count})`}
+            tone={
+              filterRarity === name
+                ? "selected"
+                : (RARITY_CHIP_TONE[name] ?? "neutral")
+            }
+            label={`${name} ${count}`}
             onPress={() => setFilterRarity(name)}
+            accessibilityState={{ selected: filterRarity === name }}
           />
         ))}
       </ScrollView>
 
-      <View className="mb-ds-2 flex-row justify-end">
-        <Button
-          tone="ghost"
-          size="sm"
-          icon={ArrowUpDown}
-          onPress={() => setShowSortModal(true)}
-        >
-          {`${t("collection.sortBy")}: ${t(`collection.sortOptions.${sortBy}`)}`}
-        </Button>
-      </View>
+      <SectionHeader
+        className="mb-ds-3"
+        title={t(OWNERSHIP_SECTION_TITLE_KEYS[ownershipFilter])}
+        subtitle={t(`collection.sortedBy.${sortBy}`)}
+        action={{
+          label: t("collection.sort"),
+          onPress: openSortDialog,
+          testID: "collection-sort-button",
+        }}
+      />
     </View>
   );
 
@@ -646,19 +697,14 @@ function useCollectionScreenView() {
           <View style={{ paddingTop: headerHeight }}>{listHeader}</View>
         }
         ListEmptyComponent={
-          <View style={{ padding: 32, alignItems: "center" }}>
-            <Text
-              className="text-primaryText"
-              style={{
-                fontFamily: "Nunito_600SemiBold",
-                fontSize: 16,
-                textAlign: "center",
-              }}
-            >
-              {allCards.length > 0
-                ? t("collection.noFilterMatches")
-                : t("collection.empty")}
-            </Text>
+          <View className="px-ds-4">
+            <StatePanel
+              title={
+                allCards.length > 0
+                  ? t("collection.noFilterMatches")
+                  : t("collection.empty")
+              }
+            />
           </View>
         }
         renderItem={renderCollectionItem}
@@ -710,42 +756,45 @@ function useCollectionScreenView() {
       <Dialog
         visible={showSortModal}
         onClose={() => setShowSortModal(false)}
+        icon={ArrowUpDown}
         title={t("collection.sortTitle")}
         cancel={{
-          label: t("common.close"),
+          label: t("common.cancel"),
           onPress: () => setShowSortModal(false),
+          testID: "collection-sort-cancel",
+        }}
+        confirm={{
+          label: t("collection.applySort"),
+          onPress: () => {
+            setSortBy(sortDraft);
+            setShowSortModal(false);
+          },
+          testID: "collection-sort-apply",
         }}
         testID="collection-sort-modal"
       >
-        <View className="gap-ds-2">
-          {SORT_OPTIONS.map((option) => {
-            const isActive = sortBy === option;
+        <View className="overflow-hidden rounded-ds-md border border-primaryBorder">
+          {SORT_OPTIONS.map((option, index) => {
+            const isActive = sortDraft === option;
+            const Indicator = isActive ? CircleCheck : Circle;
             return (
-              <Pressable
+              <View
                 key={option}
-                onPress={() => {
-                  setSortBy(option);
-                  setShowSortModal(false);
-                }}
-                accessibilityRole="button"
+                className={isActive ? "bg-primaryTint" : undefined}
                 accessibilityState={{ selected: isActive }}
-                className={`min-h-[48px] flex-row items-center justify-between rounded-ds-md border px-ds-4 ${
-                  isActive
-                    ? "border-primaryBorder bg-primaryTint"
-                    : "border-transparent bg-surfaceMuted"
-                }`}
               >
-                <Text
-                  className={`font-nunito-bold text-ds-body ${
-                    isActive ? "text-primaryText" : "text-fg"
-                  }`}
-                >
-                  {t(`collection.sortOptions.${option}`)}
-                </Text>
-                {isActive ? (
-                  <Check size={18} color={tc.primaryText} strokeWidth={ICON_STROKE_WIDTH} />
-                ) : null}
-              </Pressable>
+                <ListRow
+                  title={t(`collection.sortOptions.${option}`)}
+                  divider={index < SORT_OPTIONS.length - 1}
+                  onPress={() => setSortDraft(option)}
+                  testID={`collection-sort-option-${option}`}
+                  trailingIcon={{
+                    icon: Indicator,
+                    size: 22,
+                    color: isActive ? tc.primaryText : tc.muted,
+                  }}
+                />
+              </View>
             );
           })}
         </View>

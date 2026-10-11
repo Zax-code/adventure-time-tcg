@@ -14,6 +14,16 @@ tags:
 - assertVisible:
     id: pvp-lobby-hero
 - tapOn:
+    id: pvp-open-mechanics-button
+- assertVisible:
+    id: pvp-mechanics-overview-card
+- scrollUntilVisible:
+    element:
+      id: pvp-open-reference-button
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- tapOn:
     id: pvp-open-reference-button
 - assertVisible:
     id: pvp-reference-overview-card

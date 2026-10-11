@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import ScrollText from "lucide-react-native/icons/scroll-text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -12,6 +13,7 @@ import {
   ZapIcon,
 } from "../src/components/icons";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
+import { Button } from "../src/components/ui/button";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
@@ -196,6 +198,15 @@ export default function PvpMechanicsScreen() {
               </Text>
             </View>
           </RuleCard>
+
+          <Button
+            tone="ghost"
+            icon={ScrollText}
+            onPress={() => router.push("/pvp-reference")}
+            testID="pvp-open-reference-button"
+          >
+            {t("pvp.reference.open")}
+          </Button>
         </ScrollView>
       </View>
     </ModalSheetRoute>
