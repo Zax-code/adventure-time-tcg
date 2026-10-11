@@ -5,8 +5,9 @@ Turns `docs/design/design-system-proposal.pen` (summary in
 Each lot leaves the app shippable. No gameplay, contract, backend or data
 change is part of this plan.
 
-Status: lots 0 to 2 in review as a stack (`codex/ds-0-tokens` on #325,
-`codex/ds-1-primitives`, `codex/ds-2-headers`); lots 3 to 7 not started. Prerequisite: pull requests #324 (view inventory) and #325
+Status: lots 0 to 3 in review as a stack (`codex/ds-0-tokens` on #325,
+`codex/ds-1-primitives`, `codex/ds-2-headers`, `codex/ds-3-tab-screens`);
+lots 4 to 7 not started. Prerequisite: pull requests #324 (view inventory) and #325
 (proposal) merged, or the branch based on #325.
 
 ## Ground rules
@@ -254,6 +255,35 @@ Acceptance: `npx react-doctor --scope changed --base main` clean; raw
 `Pressable` command buttons in these files = 0; re-run the view-inventory
 Maestro flows and attach the new captures to the pull request.
 
+Lot 3 as built (one commit per screen):
+
+- Home: Notice with inline Buttons for the notifications prompt, reward Card
+  (secondary tint) with a Chip and a Primary lg Button, collection Card with
+  ProgressBar and StatTiles, quick actions as ListRows, drop rates and
+  featured cards under SectionHeaders. No PageTitle (no existing copy).
+- Quests: the summary is a primary-tinted Card with an overline, display
+  counter, ProgressBar and the existing actions; reward, status and variant
+  pills are Chips toned by lifecycle (`QuestTone.chipTone`). Quest cards keep
+  their variant chips, per-quest progress and footer actions instead of
+  collapsing to the board's ListRows, which would drop behavior.
+- Rankings: SegmentedControls for both period switches, Chips for boards and
+  modes, a period Card with a status Chip and the live countdown, standings
+  in a flush Card, StatePanel when empty, ghost help Button.
+- Collection: StatTiles for dust and card stats (still open the dust sheet and
+  stats dialog), Input search with a clear control, SegmentedControl with
+  inline counts, rarity Chips, ghost sort Button; stats and sort modals are
+  Dialogs. Grid items stay the bare CardTile.
+- Gifts: status Chip plus three StatTiles, SegmentedControl filters, danger
+  Notice, StatePanel empty states, SectionHeaders, quick send Card; gift cards
+  are Cards with direction, status and meta Chips around the CardTile.
+- PvP hub: StatTiles, challenge Card with a ready Chip and a Primary lg Button,
+  loadouts/spectate/mechanics/reference as ListRows; section titles 22/800.
+  The incoming, active, sent and recent lists keep their row components until
+  lot 4 touches PvP.
+- Packs: summary Card with a success Chip, danger Notice for errors, pack
+  cards keep their pack color and art with the Card radius, a secondary price
+  Chip and an accent recommended Chip.
+
 ### Lot 4: stack screens and games
 
 - Quest hubs: Speed Calculus index and training, Daily Numbers history,
@@ -335,9 +365,9 @@ Acceptance: no hex literal in either `icons.tsx`.
 | --- | --- | --- |
 | Dead mobile color tokens (`pinkLight` et al.) | 0 (lot 0; was 7) | 0 |
 | `font-weight: 900` in web CSS | 0 (lot 0; was 44) | 0 |
-| Distinct corner radii in `apps/mobile/app` | ~20 | 5 |
-| Distinct text sizes in `apps/mobile/app` | 30+ | 8 |
-| Button implementations | 9 before; after lot 1: `ui/Button` (93 call sites incl. wrappers), `AdminButton` (41, lot 5), `ThemedExpoButton` (26 non-command or board/admin uses) | 1 |
+| Distinct corner radii in `apps/mobile/app` | ~20; lot 3 tab screens: 142 raw radius literals (23 distinct) down to 72 (17), the rest in lists and game screens | 5 |
+| Distinct text sizes in `apps/mobile/app` | 30+; lot 3 tab screens: 259 raw size literals (22 distinct) down to 142 (18) | 8 |
+| Button implementations | 9 before; after lot 1: `ui/Button` (93 call sites incl. wrappers), `AdminButton` (41, lot 5), `ThemedExpoButton` (26 after lot 1, 20 after lot 3) | 1 |
 | Segmented-control implementations | 7 | 1 |
 | Stat-tile implementations | 7 | 1 |
 | Header implementations | 4 + 9 ad hoc; after lot 2: AppHeader, StackHeader, SheetHeader (+ 4 PvP takeover chromes) | 3 |
