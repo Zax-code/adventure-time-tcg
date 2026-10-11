@@ -385,7 +385,7 @@ const quests = {
     pickRight: "Choisis un autre nombre",
     applyResult: "Utiliser le résultat {{result}}",
     applyResultHint: "Ajoute ce résultat aux nombres disponibles.",
-    undo: "Annuler la dernière étape",
+    undo: "Annuler",
     reset: "Réinitialiser",
     submit: "Envoyer le résultat",
     submitConfirmTitle: "Verrouiller ce résultat ?",
