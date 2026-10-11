@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Ionicons from "@react-native-vector-icons/ionicons";
+import Bell from "lucide-react-native/icons/bell";
+import Calendar from "lucide-react-native/icons/calendar";
+import Check from "lucide-react-native/icons/check";
+import Clock from "lucide-react-native/icons/clock";
+import Coins from "lucide-react-native/icons/coins";
+import Layers from "lucide-react-native/icons/layers";
+import Package from "lucide-react-native/icons/package";
+import Settings from "lucide-react-native/icons/settings";
 import {
   AppState,
   FlatList,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,22 +24,18 @@ import {
   setNotificationPermissionPromptHidden } from "../../src/lib/app-notifications";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useStepSyncStore } from "../../src/stores/step-sync-store";
-import { useThemeStore } from "../../src/stores/theme-store";
 import {
   useAppHeaderHeight,
   useBottomTabBarContentPadding } from "../../src/theme/layout";
-import { THEME_COLORS } from "../../src/theme/themes";
-import {
-  GhostButton,
-  PrimaryButton,
-  SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
-import {
-  CardsIcon,
-  ChevronRightIcon,
-  ClockIcon,
-  DailyLoginQuestIcon,
-  PackIcon } from "../../src/components/icons";
+import { Button } from "../../src/components/ui/button";
+import { Card } from "../../src/components/ui/card";
+import { Chip } from "../../src/components/ui/chip";
+import { ListRow } from "../../src/components/ui/list-row";
+import { Notice } from "../../src/components/ui/notice";
+import { ProgressBar } from "../../src/components/ui/progress-bar";
+import { SectionHeader } from "../../src/components/ui/section-header";
+import { StatTile } from "../../src/components/ui/stat-tile";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
@@ -67,7 +69,7 @@ function DailyClaimCountdown({ timeUntilNextClaim }: { timeUntilNextClaim: numbe
   }, [liveTime, queryClient]);
 
   return (
-    <Text className="font-nunito text-sm leading-5 text-fgMuted">
+    <Text className="font-nunito text-ds-body text-fgMuted">
       {t("home.nextClaim", { time: formatTimeRemaining(liveTime) })}
     </Text>
   );
@@ -78,30 +80,6 @@ function formatTimeRemaining(ms: number) {
   const m = Math.floor((ms % 3600000) / 60000);
   const s = Math.floor((ms % 60000) / 1000);
   return `${h}h ${m}m ${s}s`;
-}
-
-function NotificationSettingsButton({
-  color,
-  label,
-  onPress }: {
-  color: string;
-  label: string;
-  onPress: () => void;
-}) {
-  const leadingAccessory = useMemo(
-    () => <Ionicons name="settings-outline" size={16} color={color} />,
-    [color],
-  );
-
-  return (
-    <SecondaryButton
-      onPress={onPress}
-      icon={leadingAccessory}
-      style={{ flex: 1 }}
-    >
-      {label}
-    </SecondaryButton>
-  );
 }
 
 export default function HomeScreen() {
@@ -118,7 +96,6 @@ function useHomeScreenView() {
     (state) => state.notificationPermissionStatus,
   );
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
 
@@ -299,51 +276,36 @@ function useHomeScreenView() {
 
   return (
     <ScrollView className="flex-1 bg-bg">
-      <View className="gap-5 px-5" style={{ paddingTop: headerHeight }}>
+      <View className="gap-ds-3 px-ds-4" style={{ paddingTop: headerHeight + 12 }}>
         {shouldShowNotificationPrompt ? (
-          <View className="rounded-2xl border border-primaryBorder bg-surface px-4 py-4">
-            <View className="flex-row items-center gap-3">
-              <View
-                className="h-10 w-10 items-center justify-center rounded-2xl"
-                style={{ backgroundColor: tc.primaryTint }}
-              >
-                <Ionicons
-                  name="notifications-outline"
-                  size={20}
-                  color={tc.primaryText}
-                />
-              </View>
-              <View className="flex-1 gap-1 pr-1">
-                <Text className="font-nunito-bold text-base text-fg">
-                  {t("home.notificationsPromptTitle")}
-                </Text>
-                <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                  {t("home.notificationsPromptBody")}
-                </Text>
-              </View>
-            </View>
-
-            <View className="mt-3 flex-row gap-2">
-              <NotificationSettingsButton
-                onPress={() => {
-                  router.push({
-                    pathname: "/settings",
-                    params: { section: "notifications" } });
-                }}
-                color={tc.secondaryText}
-                label={t("home.notificationsPromptSettings")}
-              />
-
-              <GhostButton
-                onPress={() => {
-                  setNotificationPromptIgnored(true);
-                }}
-              >
-                {t("home.notificationsPromptIgnore")}
-              </GhostButton>
-            </View>
-
-            <Pressable
+          <Notice
+            icon={Bell}
+            title={t("home.notificationsPromptTitle")}
+            body={t("home.notificationsPromptBody")}
+          >
+            <Button
+              tone="ghost"
+              size="sm"
+              onPress={() => {
+                setNotificationPromptIgnored(true);
+              }}
+            >
+              {t("home.notificationsPromptIgnore")}
+            </Button>
+            <Button
+              size="sm"
+              icon={Settings}
+              onPress={() => {
+                router.push({
+                  pathname: "/settings",
+                  params: { section: "notifications" } });
+              }}
+            >
+              {t("home.notificationsPromptSettings")}
+            </Button>
+            <Button
+              tone="ghost"
+              size="sm"
               onPress={() => {
                 if (!user?.id) {
                   return;
@@ -355,191 +317,104 @@ function useHomeScreenView() {
                   },
                 );
               }}
-              className="mt-3 self-start"
-              hitSlop={8}
             >
-              <Text className="font-nunito-semibold text-xs text-fgMuted">
-                {t("home.notificationsPromptHide")}
-              </Text>
-            </Pressable>
-          </View>
+              {t("home.notificationsPromptHide")}
+            </Button>
+          </Notice>
         ) : null}
 
-        <View
-          style={{
-            backgroundColor: tc.surface,
-            borderColor: tc.primaryBorder,
-            borderRadius: 24,
-            borderWidth: 1 }}
-        >
-          <View className="gap-4 px-5 py-5">
-            <View className="flex-row items-start justify-between gap-4">
-              <View className="flex-1 gap-1">
-                <Text className="font-nunito-semibold text-sm uppercase text-primaryText">
-                  {t("home.todayStatus")}
-                </Text>
-                <Text className="font-nunito-extrabold text-2xl leading-8 text-fg">
-                  {canClaim ? t("home.rewardReady") : t("home.rewardClaimed")}
-                </Text>
-                {canClaim ? (
-                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                    {t("home.claimCoins", {
-                      amount: dailyClaimQueryData?.dailyReward ?? 50 })}
-                  </Text>
-                ) : (
-                  <DailyClaimCountdown
-                    timeUntilNextClaim={dailyClaimQueryData?.timeUntilNextClaim ?? 0}
-                  />
-                )}
-              </View>
-
-              <View
-                className="h-14 w-14 items-center justify-center rounded-3xl border"
-                style={{
-                  backgroundColor: canClaim ? tc.secondaryTint : tc.infoTint,
-                  borderColor: canClaim ? tc.secondaryBorder : tc.infoBorder }}
-              >
-                {canClaim ? (
-                  <DailyLoginQuestIcon size={28} color={tc.secondaryText} />
-                ) : (
-                  <ClockIcon size={28} color={tc.infoText} />
-                )}
-              </View>
-            </View>
-
-            <PrimaryButton
-              onPress={() => claimMutation.mutate()}
-              disabled={!canClaim || claimMutation.isPending}
-              loading={claimMutation.isPending}
-              style={{ alignSelf: "stretch" }}
-            >
-              {canClaim ? t("home.claim") : t("home.claimed")}
-            </PrimaryButton>
+        <Card tone={canClaim ? "secondary" : "neutral"}>
+          <Chip
+            tone={canClaim ? "secondary" : "info"}
+            icon={canClaim ? Calendar : Clock}
+            label={t("home.todayStatus")}
+          />
+          <View className="gap-[2px]">
+            <Text className="font-nunito-extrabold text-ds-h2 text-fg">
+              {canClaim ? t("home.rewardReady") : t("home.rewardClaimed")}
+            </Text>
+            {canClaim ? (
+              <Text className="font-nunito text-ds-body text-fgMuted">
+                {t("home.claimCoins", {
+                  amount: dailyClaimQueryData?.dailyReward ?? 50 })}
+              </Text>
+            ) : (
+              <DailyClaimCountdown
+                timeUntilNextClaim={dailyClaimQueryData?.timeUntilNextClaim ?? 0}
+              />
+            )}
           </View>
-        </View>
+          <Button
+            size="lg"
+            icon={Coins}
+            onPress={() => claimMutation.mutate()}
+            disabled={!canClaim || claimMutation.isPending}
+            loading={claimMutation.isPending}
+          >
+            {canClaim ? t("home.claim") : t("home.claimed")}
+          </Button>
+        </Card>
 
-        <View className="rounded-3xl border border-primaryBorder bg-surface px-5 py-5">
-          <View className="flex-row items-start justify-between gap-4">
-            <View className="flex-1 gap-1">
-              <Text className="font-nunito-bold text-lg text-fg">
-                {t("home.collectionProgress")}
-              </Text>
-              <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                {t("home.cardsCollected", {
-                  owned: home.collectionStats.uniqueOwned,
-                  total: home.collectionStats.totalCards })}
-              </Text>
-            </View>
-
-            <View
-              className="rounded-2xl px-3 py-2"
-              style={{ backgroundColor: tc.primaryTint }}
-            >
-              <Text className="font-nunito-extrabold text-lg text-primaryStrong">
-                {collectionPercent}%
-              </Text>
-            </View>
-          </View>
-
-          <View className="mt-4 h-3 overflow-hidden rounded-full bg-primaryTint">
-            <View
-              style={{
-                backgroundColor: tc.primaryDark,
-                width: `${collectionPercent}%`,
-                height: "100%",
-                borderRadius: 999 }}
+        <Card>
+          <View className="flex-row items-center justify-between gap-ds-3">
+            <Text className="flex-1 font-nunito-extrabold text-ds-h3 text-fg">
+              {t("home.collectionProgress")}
+            </Text>
+            <Chip
+              tone={collectionPercent >= 100 ? "success" : "primary"}
+              icon={collectionPercent >= 100 ? Check : undefined}
+              label={`${collectionPercent}%`}
             />
           </View>
-
-          <View className="mt-4 flex-row gap-3">
-            <View
-              className="flex-1 rounded-2xl border px-4 py-3"
-              style={{
-                backgroundColor: tc.secondaryTint,
-                borderColor: tc.secondaryBorder }}
-            >
-              <Text className="font-nunito-extrabold text-xl text-secondaryText">
-                {home.collectionStats.uniqueOwned}
-              </Text>
-              <Text className="font-nunito text-xs text-secondaryText">
-                {t("home.uniqueCards")}
-              </Text>
-            </View>
-            <View
-              className="flex-1 rounded-2xl border px-4 py-3"
-              style={{
-                backgroundColor: tc.accentTint,
-                borderColor: tc.accentBorder }}
-            >
-              <Text className="font-nunito-extrabold text-xl text-accentText">
-                {cardsRemaining}
-              </Text>
-              <Text className="font-nunito text-xs text-accentText">
-                {t("home.cardsRemaining")}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View className="gap-3">
-          <Text className="font-nunito-bold text-lg text-fg">
-            {t("home.quickActions")}
+          <Text className="font-nunito text-ds-sm text-fgMuted">
+            {t("home.cardsCollected", {
+              owned: home.collectionStats.uniqueOwned,
+              total: home.collectionStats.totalCards })}
           </Text>
+          <ProgressBar value={collectionPercent / 100} />
+          <View className="flex-row gap-ds-3">
+            <StatTile
+              className="flex-1"
+              tone="secondary"
+              label={t("home.uniqueCards")}
+              value={home.collectionStats.uniqueOwned}
+            />
+            <StatTile
+              className="flex-1"
+              tone="accent"
+              label={t("home.cardsRemaining")}
+              value={cardsRemaining}
+            />
+          </View>
+        </Card>
 
-          <Pressable
+        <SectionHeader title={t("home.quickActions")} className="mt-ds-3" />
+        <Card flush>
+          <ListRow
+            icon={Package}
+            iconTone="secondary"
+            title={t("home.openPack")}
+            meta={t("home.openPackHint")}
+            chevron
             onPress={() => router.push("/(tabs)/packs")}
-            className="rounded-3xl border border-secondaryBorder bg-surface px-4 py-4"
-          >
-            <View className="flex-row items-center gap-3">
-              <View
-                className="h-12 w-12 items-center justify-center rounded-2xl"
-                style={{ backgroundColor: tc.secondaryTint }}
-              >
-                <PackIcon size={26} color={tc.secondaryText} />
-              </View>
-              <View className="flex-1 gap-1">
-                <Text className="font-nunito-bold text-base text-fg">
-                  {t("home.openPack")}
-                </Text>
-                <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                  {t("home.openPackHint")}
-                </Text>
-              </View>
-              <ChevronRightIcon size={22} color={tc.primaryText} />
-            </View>
-          </Pressable>
-
-          <Pressable
+          />
+          <ListRow
+            icon={Layers}
+            title={t("home.myCards")}
+            meta={t("home.myCardsHint")}
+            chevron
+            divider={false}
             onPress={() => router.push("/(tabs)/collection")}
-            className="rounded-3xl border border-primaryBorder bg-surface px-4 py-4"
-          >
-            <View className="flex-row items-center gap-3">
-              <View
-                className="h-12 w-12 items-center justify-center rounded-2xl"
-                style={{ backgroundColor: tc.primaryTint }}
-              >
-                <CardsIcon size={26} color={tc.primaryText} />
-              </View>
-              <View className="flex-1 gap-1">
-                <Text className="font-nunito-bold text-base text-fg">
-                  {t("home.myCards")}
-                </Text>
-                <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                  {t("home.myCardsHint")}
-                </Text>
-              </View>
-              <ChevronRightIcon size={22} color={tc.primaryText} />
-            </View>
-          </Pressable>
-        </View>
+          />
+        </Card>
 
         {rarities.length > 0 ? (
-          <View className="gap-3 rounded-3xl border border-primaryBorder bg-surface px-5 py-5">
-            <View className="gap-1">
-              <Text className="font-nunito-bold text-lg text-fg">
+          <Card>
+            <View className="gap-[2px]">
+              <Text className="font-nunito-extrabold text-ds-h3 text-fg">
                 {t("home.dropRates")}
               </Text>
-              <Text className="font-nunito text-sm leading-5 text-fgMuted">
+              <Text className="font-nunito text-ds-sm text-fgMuted">
                 {t("home.dropRatesHint")}
               </Text>
             </View>
@@ -548,41 +423,34 @@ function useHomeScreenView() {
               {rarities.map((rarity) => (
                 <View
                   key={rarity.id}
-                  className="rounded-2xl border px-3 py-2"
-                  style={{
-                    backgroundColor: tc.surfaceMuted,
-                    borderColor: rarity.color,
-                    minHeight: 56,
-                    width: "48%" }}
+                  className="min-h-[56px] w-[48%] justify-center rounded-ds-md border bg-surfaceMuted px-ds-3 py-ds-2"
+                  style={{ borderColor: rarity.color }}
                 >
                   <View className="flex-row items-center justify-between gap-2">
                     <Text
-                      className="flex-1 font-nunito-extrabold text-sm"
+                      className="flex-1 font-nunito-extrabold text-ds-sm"
                       style={{ color: rarity.color }}
                       numberOfLines={1}
                     >
                       {rarity.name}
                     </Text>
-                    <Text className="font-nunito-bold text-xs text-fgMuted">
+                    <Text className="font-nunito-bold text-ds-caption text-fgMuted">
                       {formatDropRatePercentage(rarity.dropRate)}
                     </Text>
                   </View>
                 </View>
               ))}
             </View>
-          </View>
+          </Card>
         ) : null}
 
         {featuredCards.length > 0 ? (
-          <View className="-mx-5 gap-3">
-            <View className="gap-1 px-5">
-              <Text className="font-nunito-bold text-lg text-fg">
-                {t("home.featuredCards")}
-              </Text>
-              <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                {t("home.featuredHint")}
-              </Text>
-            </View>
+          <View className="-mx-ds-4 mt-ds-3 gap-ds-3">
+            <SectionHeader
+              title={t("home.featuredCards")}
+              subtitle={t("home.featuredHint")}
+              className="px-ds-4"
+            />
 
             <FlatList
               horizontal
@@ -592,8 +460,8 @@ function useHomeScreenView() {
               contentContainerStyle={{
                 gap: 12,
                 paddingBottom: 4,
-                paddingLeft: 20,
-                paddingRight: 20 }}
+                paddingLeft: 16,
+                paddingRight: 16 }}
               showsHorizontalScrollIndicator={false}
             />
           </View>
