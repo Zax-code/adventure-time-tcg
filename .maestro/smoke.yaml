@@ -9,7 +9,7 @@ tags:
 - openLink:
     link: adventure-time:///e2e-auth?redirect=%2Fpvp&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
 - assertVisible:
-    id: pvp-open-mechanics-button
+    id: tab-pvp
 - tapOn:
     id: app-header-gifts-button
 - assertVisible:
@@ -22,23 +22,31 @@ tags:
     id: gifts-filter-received
 - tapOn:
     id: tab-pvp
-- assertVisible:
-    id: pvp-open-mechanics-button
+- scrollUntilVisible:
+    element:
+      id: pvp-open-mechanics-button
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: pvp-open-mechanics-button
 - assertVisible:
     id: pvp-mechanics-screen
+- scrollUntilVisible:
+    element:
+      id: pvp-open-reference-button
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: pvp-open-reference-button
+- assertVisible:
+    id: pvp-reference-screen
 - swipe:
     start: "50%,10%"
     end: "50%,88%"
     duration: 700
 - waitForAnimationToEnd
 - assertVisible:
-    id: pvp-open-reference-button
-- tapOn:
-    id: pvp-open-reference-button
-- assertVisible:
-    id: pvp-reference-screen
+    id: pvp-mechanics-screen
 - swipe:
     start: "50%,10%"
     end: "50%,88%"
