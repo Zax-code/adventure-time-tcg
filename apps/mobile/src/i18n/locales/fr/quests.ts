@@ -237,7 +237,7 @@ const quests = {
   speedCalculusFinishError: "Impossible de terminer la manche.",
   speedCalculusCashOutError: "Impossible de sécuriser le score.",
   speedCalculusRoundOver: "La manche est terminée !",
-  speedCalculusBackToMain: "Retour au calcul mental",
+  speedCalculusBackToMain: "Retour",
   speedCalculusReset:
     "Ta partie de calcul rapide a été réinitialisée. Actualisation en cours.",
   speedCalculusResetByAdmin:

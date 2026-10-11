@@ -235,7 +235,7 @@ const quests = {
   speedCalculusFinishError: "Failed to finish the run.",
   speedCalculusCashOutError: "Failed to cash out the run.",
   speedCalculusRoundOver: "Round is over!",
-  speedCalculusBackToMain: "Back to speed calculus",
+  speedCalculusBackToMain: "Back",
   speedCalculusReset: "Your Speed Calculus run was reset. Refreshing state.",
   speedCalculusResetByAdmin: "Your Speed Calculus run was reset by {name}.",
   speedCalculusPause: "Pause",
