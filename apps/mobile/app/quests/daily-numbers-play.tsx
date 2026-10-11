@@ -1846,7 +1846,7 @@ function AvailableNumbersGrid({
                   </Text>
                 ) : null}
                 <Text
-                  className={`${BOARD_NUMBER_TEXT_CLASS} text-center font-nunito-extrabold ${
+                  className={`${BOARD_NUMBER_TEXT_CLASS} w-full text-center font-nunito-extrabold ${
                     availability.selected
                       ? "text-white"
                       : derived
@@ -2010,7 +2010,7 @@ function EquationResult({
           >
             {previewState.result}
           </Text>
-          {!committing ? (
+          {!committing && exactHitPreview ? (
             <View
               pointerEvents="none"
               className="absolute bottom-0.5 right-1.5"
@@ -2018,9 +2018,9 @@ function EquationResult({
               importantForAccessibility="no-hide-descendants"
             >
               <Text
-                className={`font-nunito-extrabold text-[11px] ${exactHitPreview ? "text-successDark" : "text-white"}`}
+                className="font-nunito-extrabold text-[11px] text-successDark"
               >
-                {exactHitPreview ? "✦" : "↓"}
+                ✦
               </Text>
             </View>
           ) : null}
@@ -2070,9 +2070,9 @@ function SelectionSlot({
       accessibilityLabel={accessibilityLabel}
     >
       <Text
-        className={`${BOARD_NUMBER_TEXT_CLASS} text-center font-nunito-extrabold ${text}`}
+        className={`${BOARD_NUMBER_TEXT_CLASS} w-full text-center font-nunito-extrabold ${text}`}
         numberOfLines={1}
-        adjustsFontSizeToFit={label.length > 2}
+        adjustsFontSizeToFit={label.length > 3}
         minimumFontScale={0.6}
         style={{ fontVariant: ["tabular-nums"] }}
       >
