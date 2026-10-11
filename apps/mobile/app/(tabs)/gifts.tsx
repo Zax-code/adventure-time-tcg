@@ -172,7 +172,7 @@ function useGiftsScreenView() {
       {...KEYBOARD_AWARE_SCROLL_PROPS}
       className="flex-1 bg-bg"
       contentContainerStyle={{
-        padding: 20,
+        padding: 16,
         paddingBottom: 20,
       }}
       contentInset={{ bottom: bottomTabPadding }}
