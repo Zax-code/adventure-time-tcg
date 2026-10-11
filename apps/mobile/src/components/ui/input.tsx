@@ -1,4 +1,4 @@
-import { type ComponentProps, useState } from "react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 import { View } from "react-native";
 
 import { CONTROL } from "@adventure-time/theme";
@@ -13,6 +13,8 @@ type TextInputProps = Omit<
 
 export interface InputProps extends TextInputProps {
   icon?: IconSlot;
+  // Small trailing control such as a clear button.
+  trailing?: ReactNode;
   invalid?: boolean;
   className?: string;
   containerTestID?: string;
@@ -20,6 +22,7 @@ export interface InputProps extends TextInputProps {
 
 export function Input({
   icon,
+  trailing,
   invalid,
   className,
   containerTestID,
@@ -70,6 +73,7 @@ export function Input({
           fontSize: 15,
         }}
       />
+      {trailing}
     </View>
   );
 }

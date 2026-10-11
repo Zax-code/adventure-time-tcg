@@ -205,6 +205,7 @@ function getLifecycleTone(
       iconColor: tc.successDark,
       statusBackground: tc.successTint,
       statusText: tc.successText,
+      chipTone: "success",
     };
   }
 
@@ -215,6 +216,7 @@ function getLifecycleTone(
       iconColor: tc.muted,
       statusBackground: tc.surfaceMuted,
       statusText: tc.fgMuted,
+      chipTone: "neutral",
     };
   }
 
@@ -225,6 +227,7 @@ function getLifecycleTone(
       iconColor: tc.dangerDark,
       statusBackground: tc.dangerTint,
       statusText: tc.dangerText,
+      chipTone: "danger",
     };
   }
 
@@ -235,6 +238,7 @@ function getLifecycleTone(
       iconColor: tc.infoDark,
       statusBackground: tc.infoTint,
       statusText: tc.infoText,
+      chipTone: "info",
     };
   }
 
@@ -244,6 +248,7 @@ function getLifecycleTone(
     iconColor: tc.primaryText,
     statusBackground: tc.primaryTint,
     statusText: tc.primaryText,
+    chipTone: "primary",
   };
 }
 

@@ -33,7 +33,7 @@ export function StatTile({
         className ?? ""
       }`}
     >
-      <Text className={`font-nunito-bold text-ds-caption ${muted}`} numberOfLines={1}>
+      <Text className={`font-nunito-bold text-ds-caption ${muted}`} numberOfLines={2}>
         {label}
       </Text>
       <Text

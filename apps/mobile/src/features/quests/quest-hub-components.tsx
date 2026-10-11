@@ -1,5 +1,4 @@
 import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import {
   useEffect,
@@ -25,14 +24,25 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
-  CoinIcon,
   ShareIcon,
-  SparklesIcon,
 } from "../../components/icons";
+import ChevronRight from "lucide-react-native/icons/chevron-right";
+import Coins from "lucide-react-native/icons/coins";
+import Share from "lucide-react-native/icons/share";
+import Sparkles from "lucide-react-native/icons/sparkles";
+
 import { RADIUS } from "@adventure-time/theme";
 
+import { Card } from "../../components/ui/card";
+import { Chip, type ChipTone } from "../../components/ui/chip";
+import { Notice } from "../../components/ui/notice";
+import { ProgressBar } from "../../components/ui/progress-bar";
 import { SheetHeader } from "../../components/ui/sheet-header";
-import { getBackdropColor, useThemeName } from "../../components/ui/tokens";
+import {
+  getBackdropColor,
+  ICON_STROKE_WIDTH,
+  useThemeName,
+} from "../../components/ui/tokens";
 import { QuestActionButton } from "./quest-action-button";
 import type { QuestHubPreferenceId, QuestLifecycle } from "./quest-hub-model";
 import type { THEME_COLORS } from "../../theme/themes";
@@ -46,6 +56,8 @@ export type QuestTone = {
   iconColor: string;
   statusBackground: string;
   statusText: string;
+  // Chip tone for status and variant labels; primary when omitted.
+  chipTone?: ChipTone;
 };
 
 export type QuestVariantOption = {
@@ -82,39 +94,18 @@ function QuestRewardPill({
   accessibilityLabel,
   amount,
   label,
-  tc,
 }: {
   accessibilityLabel: string;
   amount: number;
   label?: string;
-  tc: ThemeColors;
 }) {
   return (
-    <View
-      accessible
+    <Chip
+      tone="secondary"
+      icon={Coins}
+      label={label ? `${amount} ${label}` : String(amount)}
       accessibilityLabel={accessibilityLabel}
-      className="flex-row items-center gap-1 rounded-full border px-2.5 py-1.5"
-      style={{
-        backgroundColor: tc.secondaryTint,
-        borderColor: tc.secondaryBorder,
-      }}
-    >
-      <CoinIcon size={16} />
-      <Text
-        className="font-nunito-extrabold text-sm"
-        style={{ color: tc.secondaryText }}
-      >
-        {amount}
-      </Text>
-      {label ? (
-        <Text
-          className="font-nunito-bold text-xs"
-          style={{ color: tc.secondaryText }}
-        >
-          {label}
-        </Text>
-      ) : null}
-    </View>
+    />
   );
 }
 
@@ -134,7 +125,6 @@ export function QuestHubSummary({
   shareLabel,
   shareRef,
   subtitle,
-  tc,
   title,
   totalCount,
 }: {
@@ -158,164 +148,96 @@ export function QuestHubSummary({
   totalCount: number;
 }) {
   const { fontScale, width } = useWindowDimensions();
-  const percentage = totalCount === 0 ? 0 : (finishedCount / totalCount) * 100;
   const stackActions = fontScale >= 1.25 || width < 375;
 
   return (
-    <View
-      className="overflow-hidden rounded-[28px] border"
-      style={{
-        borderColor: tc.primaryBorder,
-        boxShadow: `0px 10px 22px ${tc.primaryStrong}24`,
-      }}
-      testID="quests-progress-summary"
-    >
-      <LinearGradient
-        colors={[tc.surface, tc.primaryTint, tc.surface]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ padding: 20 }}
-      >
-        <View className="absolute -right-4 -top-4 opacity-20">
-          <SparklesIcon size={88} color={tc.primary} />
-        </View>
-
-        <View className="flex-row items-center justify-between gap-3">
-          <Text className="shrink font-nunito-bold text-xs uppercase tracking-[2px] text-primaryText">
-            {title}
-          </Text>
-          <QuestActionButton
-            tone="ghost"
-            size="sm"
-            label={customizeLabel}
-            onPress={onCustomize}
-            testID="quests-customize-order"
-          />
-        </View>
-        <View
-          className={
-            stackActions ? "mt-2 gap-3" : "mt-2 flex-row items-end gap-4"
-          }
-        >
-          <View className="flex-1">
-            <View
-              accessible
-              accessibilityLabel={`${finishedCount} / ${totalCount}`}
-              className="flex-row items-baseline"
-            >
-              <Text className="font-nunito-extrabold text-[28px] leading-10 text-fg">
-                {finishedCount}
-              </Text>
-              <Text className="font-nunito-bold text-lg leading-7 text-fgMuted">
-                {` / ${totalCount}`}
-              </Text>
-            </View>
-            <Text className="mt-1 font-nunito-semibold text-sm text-fgMuted">
-              {subtitle}
+    <Card tone="primary" testID="quests-progress-summary">
+      <View className="flex-row items-center justify-between gap-ds-3">
+        <Text className="shrink font-nunito-bold text-ds-overline uppercase tracking-[1.5px] text-primaryText">
+          {title}
+        </Text>
+        <QuestActionButton
+          tone="ghost"
+          size="sm"
+          label={customizeLabel}
+          onPress={onCustomize}
+          testID="quests-customize-order"
+        />
+      </View>
+      <View className={stackActions ? "gap-ds-3" : "flex-row items-end gap-ds-4"}>
+        <View className="flex-1">
+          <View
+            accessible
+            accessibilityLabel={`${finishedCount} / ${totalCount}`}
+            className="flex-row items-baseline gap-[6px]"
+          >
+            <Text className="font-nunito-extrabold text-ds-display text-fg">
+              {finishedCount}
+            </Text>
+            <Text className="font-nunito text-ds-body text-fgMuted">
+              {`/ ${totalCount}`}
             </Text>
           </View>
-          {readyReward > 0 ? (
-            <QuestRewardPill
-              accessibilityLabel={rewardAccessibilityLabel}
-              amount={readyReward}
-              tc={tc}
-            />
-          ) : null}
+          <Text className="font-nunito text-ds-body text-fgMuted">{subtitle}</Text>
         </View>
+        {readyReward > 0 ? (
+          <QuestRewardPill
+            accessibilityLabel={rewardAccessibilityLabel}
+            amount={readyReward}
+          />
+        ) : null}
+      </View>
 
+      <ProgressBar
+        value={totalCount === 0 ? 0 : finishedCount / totalCount}
+        accessibilityLabel={`${finishedCount} / ${totalCount}`}
+      />
+
+      {onAction ? (
         <View
-          className="mt-4 h-2.5 overflow-hidden rounded-full bg-surface"
-          accessibilityRole="progressbar"
-          accessibilityValue={{
-            min: 0,
-            max: Math.max(totalCount, 1),
-            now: finishedCount,
-          }}
+          className="w-full"
+          testID={claimMode ? "quests-primary-mode-claim" : "quests-primary-mode-open"}
         >
-          <View
-            className="h-full rounded-full"
-            style={{
-              backgroundColor: tc.primaryStrong,
-              width: `${percentage}%`,
-            }}
+          <QuestActionButton
+            tone={claimMode ? "secondary" : "primary"}
+            size="lg"
+            buttonRef={actionRef}
+            label={actionLabel}
+            onPress={onAction}
+            disabled={actionDisabled}
+            loading={actionLoading}
+            loadingMode="inline"
+            leadingIcon={claimMode ? Coins : Sparkles}
+            style={{ width: "100%" }}
+            testID="quests-primary-action"
           />
         </View>
-
-        <View className="mt-4 gap-3">
-          {onAction ? (
-            <View
-              className="w-full"
-              testID={
-                claimMode
-                  ? "quests-primary-mode-claim"
-                  : "quests-primary-mode-open"
-              }
-            >
-              <QuestActionButton
-                tone={claimMode ? "secondary" : "primary"}
-                size="lg"
-                buttonRef={actionRef}
-                label={actionLabel}
-                onPress={onAction}
-                disabled={actionDisabled}
-                loading={actionLoading}
-                loadingMode="inline"
-                leadingAccessory={
-                  claimMode ? (
-                    <CoinIcon size={19} />
-                  ) : (
-                    <SparklesIcon size={19} color="#FFFFFF" />
-                  )
-                }
-                style={{ width: "100%" }}
-                testID="quests-primary-action"
-              />
-            </View>
-          ) : (
-            <View
-              accessible
-              accessibilityLabel={actionLabel}
-              className="min-h-[50px] w-full flex-row items-center justify-center gap-2 rounded-xl border border-primaryBorder bg-surfaceMuted px-4 py-3"
-              testID="quests-completion-status"
-            >
-              <SparklesIcon size={19} color={tc.primaryText} />
-              <Text className="shrink text-center font-nunito-extrabold text-sm text-primaryText">
-                {actionLabel}
-              </Text>
-            </View>
-          )}
-          {onShare ? (
-            <QuestActionButton
-              tone="ghost"
-              size="lg"
-              buttonRef={shareRef}
-              label={shareLabel}
-              onPress={onShare}
-              leadingIcon={ShareIcon}
-              style={{ width: "100%" }}
-              testID="quests-share-results"
-            />
-          ) : null}
-        </View>
-      </LinearGradient>
-    </View>
+      ) : (
+        <Notice
+          tone="success"
+          icon={Sparkles}
+          title={actionLabel}
+          testID="quests-completion-status"
+        />
+      )}
+      {onShare ? (
+        <QuestActionButton
+          tone="ghost"
+          size="lg"
+          buttonRef={shareRef}
+          label={shareLabel}
+          onPress={onShare}
+          leadingIcon={Share}
+          style={{ width: "100%" }}
+          testID="quests-share-results"
+        />
+      ) : null}
+    </Card>
   );
 }
 
 function QuestStatusPill({ label, tone }: { label: string; tone: QuestTone }) {
-  return (
-    <View
-      className="self-start rounded-full px-2.5 py-1"
-      style={{ backgroundColor: tone.statusBackground }}
-    >
-      <Text
-        className="font-nunito-extrabold text-xs"
-        style={{ color: tone.statusText }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
+  return <Chip tone={tone.chipTone ?? "primary"} label={label} />;
 }
 
 export function QuestVariantChip({
@@ -325,22 +247,7 @@ export function QuestVariantChip({
   label: string;
   tone: QuestTone;
 }) {
-  return (
-    <View
-      className="rounded-full border px-2.5 py-1"
-      style={{
-        backgroundColor: tone.statusBackground,
-        borderColor: tone.border,
-      }}
-    >
-      <Text
-        className="font-nunito-bold text-xs"
-        style={{ color: tone.statusText }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
+  return <Chip tone={tone.chipTone ?? "primary"} label={label} />;
 }
 
 export function QuestHubCard({
@@ -405,52 +312,57 @@ export function QuestHubCard({
     .join(". ");
   const cardContent = (
     <>
-      <View className="flex-row items-start gap-3">
+      <View className="flex-row items-start gap-ds-3">
         <View
-          className="h-12 w-12 items-center justify-center rounded-2xl"
+          className="h-[40px] w-[40px] items-center justify-center rounded-ds-md"
           style={{ backgroundColor: tone.iconBackground }}
         >
-          <Icon size={28} color={tone.iconColor} />
+          <Icon size={24} color={tone.iconColor} />
         </View>
 
-        <View className="min-w-0 flex-1">
+        <View className="min-w-0 flex-1 gap-ds-2">
           <View
             className={
               stackMetadata
-                ? "items-start gap-2"
-                : "flex-row items-start justify-between gap-2"
+                ? "items-start gap-ds-2"
+                : "flex-row items-start justify-between gap-ds-2"
             }
           >
-            <View className="min-w-0 flex-1">
+            <View className="min-w-0 flex-1 gap-[2px]">
               <Text
                 ref={titleFocusRef}
-                className="font-nunito-extrabold text-base text-fg"
+                className="font-nunito-bold text-ds-body text-fg"
               >
                 {title}
               </Text>
-              <Text className="mt-0.5 font-nunito-semibold text-sm text-fgMuted">
+              <Text className="font-nunito text-ds-sm text-fgMuted">
                 {description}
               </Text>
             </View>
             <View
               className={
-                stackMetadata ? "items-start gap-2" : "items-end gap-2"
+                stackMetadata
+                  ? "flex-row items-center gap-ds-2"
+                  : "flex-row items-center gap-ds-2"
               }
             >
               {reward != null && reward > 0 ? (
                 <QuestRewardPill
-                  accessibilityLabel={
-                    rewardAccessibilityLabel ?? String(reward)
-                  }
+                  accessibilityLabel={rewardAccessibilityLabel ?? String(reward)}
                   amount={reward}
-                  tc={tc}
                 />
               ) : null}
-              {onPress ? <ChevronRightIcon size={19} color={tc.muted} /> : null}
+              {onPress ? (
+                <ChevronRight
+                  size={18}
+                  color={tc.muted}
+                  strokeWidth={ICON_STROKE_WIDTH}
+                />
+              ) : null}
             </View>
           </View>
 
-          <View className="mt-2 flex-row flex-wrap items-center gap-2">
+          <View className="flex-row flex-wrap items-center gap-ds-2">
             <QuestStatusPill label={statusLabel} tone={tone} />
             {variants}
           </View>
@@ -458,31 +370,19 @@ export function QuestHubCard({
       </View>
 
       {progressLabel != null && progressPercentage != null ? (
-        <View className="mt-3">
-          <View className="mb-1 flex-row items-center justify-between gap-3">
-            <Text className="font-nunito-semibold text-xs text-fgMuted">
+        <View className="mt-ds-3 gap-ds-1">
+          <View className="flex-row items-center justify-between gap-ds-3">
+            <Text className="font-nunito-semibold text-ds-caption text-fgMuted">
               {progressLabel}
             </Text>
             <Text
-              className="font-nunito-extrabold text-xs"
+              className="font-nunito-extrabold text-ds-caption"
               style={{ color: tone.statusText }}
             >
               {Math.round(progressPercentage)}%
             </Text>
           </View>
-          <View
-            className="h-2 overflow-hidden rounded-full bg-primaryTint"
-            accessibilityRole="progressbar"
-            accessibilityValue={{ min: 0, max: 100, now: progressPercentage }}
-          >
-            <View
-              className="h-full rounded-full"
-              style={{
-                backgroundColor: tone.statusText,
-                width: `${progressPercentage}%`,
-              }}
-            />
-          </View>
+          <ProgressBar value={progressPercentage / 100} />
         </View>
       ) : null}
     </>
@@ -491,14 +391,10 @@ export function QuestHubCard({
   return (
     <View
       ref={cardRef}
-      className="overflow-hidden rounded-[24px] border bg-surface"
+      className="overflow-hidden rounded-ds-lg border bg-surface"
       style={{
         borderColor: highlighted ? tc.accentStrong : tone.border,
         borderWidth: highlighted ? 2 : 1,
-        boxShadow:
-          lifecycle === "ready"
-            ? `0px 8px 16px ${tc.successDark}24`
-            : `0px 4px 10px ${tc.primaryStrong}14`,
       }}
       onLayout={onLayout}
       testID={testID}
@@ -512,7 +408,7 @@ export function QuestHubCard({
           accessibilityState={{ disabled }}
           disabled={disabled}
           onPress={onPress}
-          className="p-4"
+          className="p-ds-4"
           style={({ pressed }) => ({
             opacity: disabled ? 0.55 : pressed ? 0.82 : 1,
           })}
@@ -520,11 +416,11 @@ export function QuestHubCard({
           {cardContent}
         </Pressable>
       ) : (
-        <View className="p-4">{cardContent}</View>
+        <View className="p-ds-4">{cardContent}</View>
       )}
       {footer ? (
         <View
-          className="border-t px-4 pb-4 pt-3"
+          className="border-t px-ds-4 pb-ds-4 pt-ds-3"
           style={{ borderColor: tc.primaryBorder }}
         >
           {footer}
@@ -710,7 +606,6 @@ export function QuestLaunchSheet({
                   <QuestRewardPill
                     accessibilityLabel={option.rewardAccessibilityLabel}
                     amount={option.reward}
-                    tc={tc}
                   />
                   <ChevronRightIcon size={20} color={tc.muted} />
                 </View>

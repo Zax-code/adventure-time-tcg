@@ -19,7 +19,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
+import BookOpen from "lucide-react-native/icons/book-open";
 import Check from "lucide-react-native/icons/check";
+import Eye from "lucide-react-native/icons/eye";
+import Layers from "lucide-react-native/icons/layers";
+import ScrollText from "lucide-react-native/icons/scroll-text";
+import Swords from "lucide-react-native/icons/swords";
 import X from "lucide-react-native/icons/x";
 
 import { ApiClientError } from "@adventure-time/api-client";
@@ -36,13 +41,8 @@ import {
   ChevronRightIcon,
   CheckIcon,
   ClockIcon,
-  EyeIcon,
-  HelpCircleIcon,
-  QuestIcon,
   SwordsIcon,
-  TrophyIcon,
   UserPlusIcon,
-  ZapIcon,
 } from "../../src/components/icons";
 import { useFocusedRefetchInterval } from "../../src/hooks/use-focused-refetch-interval";
 import { useTranslation } from "../../src/i18n";
@@ -63,7 +63,11 @@ import {
   useMinuteNow,
 } from "../../src/features/pvp/turn-timeout";
 import { getPvpMatchResultView } from "../../src/features/pvp/match-result";
+import { Card } from "../../src/components/ui/card";
+import { Chip } from "../../src/components/ui/chip";
+import { ListRow } from "../../src/components/ui/list-row";
 import { PageTitle } from "../../src/components/ui/page-title";
+import { StatTile } from "../../src/components/ui/stat-tile";
 
 type ToastState = {
   message: string;
@@ -102,23 +106,16 @@ type PvpLobbyTurnStatus = {
 
 function SectionHeading({
   title,
-  toneColor,
-  icon,
   action,
 }: {
   title: string;
-  toneColor: string;
-  icon: ReactNode;
   action?: ReactNode;
 }) {
   return (
-    <View className="flex-row items-center gap-3">
-      <View className="h-11 w-11 items-center justify-center rounded-2xl border border-primaryTint bg-surface">
-        {icon}
-      </View>
+    <View className="flex-row items-center gap-ds-3">
       <Text
-        className="flex-1 font-nunito-bold text-lg"
-        style={{ color: toneColor }}
+        accessibilityRole="header"
+        className="flex-1 font-nunito-extrabold text-ds-h2 text-fg"
       >
         {title}
       </Text>
@@ -802,302 +799,115 @@ function usePvpScreenView() {
         }}
       >
         <View
-          className="gap-2"
+          className="gap-ds-3"
           testID="pvp-lobby-hero"
           style={{ paddingTop: headerHeight }}
         >
           <PageTitle
             title={t("pvp.lobby.title")}
             subtitle={t("pvp.lobby.subtitle")}
-            className="mb-ds-2"
           />
-          <View
-            style={{
-              backgroundColor: tc.surfaceMuted,
-              borderRadius: 28,
-              overflow: "hidden",
-              borderWidth: 1,
-              borderColor: tc.primaryBorder,
-            }}
-          >
-            <View className="gap-4 px-4 py-5">
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="flex-1 gap-3">
-                  <View className="flex-row gap-2" testID="pvp-lobby-overview">
-                    <View className="flex-1 rounded-2xl bg-surface px-3 py-2.5">
-                      <Text className="font-nunito-extrabold text-2xl text-fg">
-                        {activeMatches.length}
-                      </Text>
-                      <Text className="font-nunito-semibold text-xs text-fgMuted">
-                        {t("pvp.liveMatches")}
-                      </Text>
-                    </View>
-                    <View className="flex-1 rounded-2xl bg-surface px-3 py-2.5">
-                      <Text className="font-nunito-extrabold text-2xl text-fg">
-                        {pendingReceivedInvites.length}
-                      </Text>
-                      <Text className="font-nunito-semibold text-xs text-fgMuted">
-                        {t("pvp.incomingChallenges")}
-                      </Text>
-                    </View>
-                    <View className="flex-1 rounded-2xl bg-surface px-3 py-2.5">
-                      <Text className="font-nunito-extrabold text-2xl text-fg">
-                        {validLoadouts.length}
-                      </Text>
-                      <Text className="font-nunito-semibold text-xs text-fgMuted">
-                        {t("pvp.myLoadouts")}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                {pendingReceivedInvites.length > 0 ? (
-                  <View className="rounded-full bg-dangerTint px-3 py-1.5">
-                    <Text className="font-nunito-bold text-xs text-dangerDark">
-                      {pendingReceivedInvites.length}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-
-              <View className="flex-row gap-2">
-                <ThemedExpoButton
-                  onPress={() => router.push("/pvp-mechanics")}
-                  preferFallback
-                  style={{ flex: 1 }}
-                  testID="pvp-open-mechanics-button"
-                  variant="danger"
-                  fallbackLayout="stretch"
-                  fallbackAppearance={{
-                    backgroundColor: tc.surface,
-                    borderColor: tc.primaryBorder,
-                    borderRadius: 20,
-                    foregroundColor: tc.fg,
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 14,
-                    paddingVertical: 12,
-                  }}
-                >
-                  <View className="gap-2">
-                    <View className="flex-row items-center justify-between gap-2">
-                      <View className="h-10 w-10 items-center justify-center rounded-2xl bg-primaryTint">
-                        <HelpCircleIcon size={18} color={tc.primaryDark} />
-                      </View>
-                      <View className="rounded-full bg-primaryTint px-2.5 py-2">
-                        <ChevronRightIcon size={16} color={tc.primaryDark} />
-                      </View>
-                    </View>
-                    <Text className="font-nunito-bold text-sm leading-5 text-fg">
-                      {t("pvp.mechanics.open")}
-                    </Text>
-                    <Text className="font-nunito text-xs leading-5 text-fgMuted">
-                      {t("pvp.mechanics.intro")}
-                    </Text>
-                  </View>
-                </ThemedExpoButton>
-                <ThemedExpoButton
-                  onPress={() => router.push("/pvp-reference")}
-                  preferFallback
-                  style={{ flex: 1 }}
-                  testID="pvp-open-reference-button"
-                  variant="secondary"
-                  fallbackLayout="stretch"
-                  fallbackAppearance={{
-                    backgroundColor: tc.surface,
-                    borderColor: tc.accentBorder,
-                    borderRadius: 20,
-                    foregroundColor: tc.fg,
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 14,
-                    paddingVertical: 12,
-                  }}
-                >
-                  <View className="gap-2">
-                    <View className="flex-row items-center justify-between gap-2">
-                      <View className="h-10 w-10 items-center justify-center rounded-2xl bg-accentTint">
-                        <QuestIcon size={18} color={tc.accentText} />
-                      </View>
-                      <View className="rounded-full bg-accentTint px-2.5 py-2">
-                        <ChevronRightIcon size={16} color={tc.accentText} />
-                      </View>
-                    </View>
-                    <Text className="font-nunito-bold text-sm leading-5 text-fg">
-                      {t("pvp.reference.open")}
-                    </Text>
-                    <Text className="font-nunito text-xs leading-5 text-fgMuted">
-                      {t("pvp.reference.intro")}
-                    </Text>
-                  </View>
-                </ThemedExpoButton>
-              </View>
-            </View>
+          <View className="flex-row gap-ds-3" testID="pvp-lobby-overview">
+            <StatTile
+              className="flex-1"
+              tone="success"
+              label={t("pvp.liveMatches")}
+              value={activeMatches.length}
+            />
+            <StatTile
+              className="flex-1"
+              tone={pendingReceivedInvites.length > 0 ? "danger" : "primary"}
+              label={t("pvp.incomingChallenges")}
+              value={pendingReceivedInvites.length}
+            />
+            <StatTile
+              className="flex-1"
+              tone="accent"
+              label={t("pvp.myLoadouts")}
+              value={validLoadouts.length}
+            />
           </View>
 
-          <ThemedExpoButton
-            disabled={inviteActionDisabled}
-            onPress={openInviteSheet}
-            preferFallback
-            style={{ width: "100%" }}
-            testID="pvp-primary-action-card"
-            variant="primary"
-            fallbackLayout="stretch"
-            fallbackAppearance={{
-              backgroundColor: inviteActionDisabled
-                ? tc.surfaceMuted
-                : tc.primaryBg,
-              borderColor: inviteActionDisabled
-                ? tc.primaryBorder
-                : tc.primaryBorder,
-              borderRadius: 26,
-              foregroundColor: inviteActionDisabled ? tc.fgMuted : tc.fg,
-              gradientColors: null,
-              minHeight: 0,
-              paddingHorizontal: 18,
-              paddingVertical: 16,
-            }}
-          >
-            <View className="gap-3">
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="flex-1 gap-2">
-                  <View
-                    className={`h-12 w-12 items-center justify-center rounded-2xl ${
-                      inviteActionDisabled ? "bg-surface" : "bg-primaryTint"
-                    }`}
-                  >
-                    <UserPlusIcon
-                      size={24}
-                      color={
-                        inviteActionDisabled ? tc.fgMuted : tc.primaryDark
-                      }
-                    />
-                  </View>
-                  <Text
-                    className={`font-nunito-extrabold text-xl leading-7 ${
-                      inviteActionDisabled ? "text-fgMuted" : "text-fg"
-                    }`}
-                  >
-                    {t("pvp.sendChallenge")}
-                  </Text>
-                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                    {inviteActionHint}
-                  </Text>
-                </View>
-                {inviteActionDisabled ? (
-                  <HelpCircleIcon size={22} color={tc.fgMuted} />
-                ) : (
-                  <ChevronRightIcon size={22} color={tc.primaryDark} />
-                )}
-              </View>
-              <View className="flex-row flex-wrap gap-2">
-                <View
-                  className={`rounded-full px-3 py-1.5 ${
-                    inviteActionDisabled ? "bg-surface" : "bg-primaryTint"
-                  }`}
-                >
-                  <Text
-                    className={`font-nunito-semibold text-xs ${
-                      inviteActionDisabled
-                        ? "text-fgMuted"
-                        : "text-primaryDark"
-                    }`}
-                  >
-                    {hasLoadouts ? validLoadouts.length : 0}{" "}
-                    {t("pvp.loadoutReady").toLowerCase()}
-                  </Text>
-                </View>
-                {pendingChallengeCount > 0 ? (
-                  <View className="rounded-full bg-accentTint px-3 py-1.5">
-                    <Text className="font-nunito-semibold text-xs text-accentText">
-                      {pendingChallengeCount}{" "}
-                      {t("pvp.openChallenges").toLowerCase()}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
+          <Card tone={inviteActionDisabled ? "neutral" : "primary"}>
+            <View className="gap-[2px]">
+              <Text
+                className={`font-nunito-extrabold text-ds-h2 ${
+                  inviteActionDisabled ? "text-fgMuted" : "text-fg"
+                }`}
+              >
+                {t("pvp.sendChallenge")}
+              </Text>
+              <Text className="font-nunito text-ds-body text-fgMuted">
+                {inviteActionHint}
+              </Text>
             </View>
-          </ThemedExpoButton>
+            <View className="flex-row flex-wrap gap-ds-2">
+              <Chip
+                tone={inviteActionDisabled ? "neutral" : "success"}
+                icon={inviteActionDisabled ? undefined : Check}
+                label={`${hasLoadouts ? validLoadouts.length : 0} ${t("pvp.loadoutReady").toLowerCase()}`}
+              />
+              {pendingChallengeCount > 0 ? (
+                <Chip
+                  tone="accent"
+                  label={`${pendingChallengeCount} ${t("pvp.openChallenges").toLowerCase()}`}
+                />
+              ) : null}
+            </View>
+            <Button
+              size="lg"
+              icon={Swords}
+              disabled={inviteActionDisabled}
+              onPress={openInviteSheet}
+              testID="pvp-primary-action-card"
+            >
+              {t("pvp.sendChallenge")}
+            </Button>
+          </Card>
 
-          <View className="flex-row gap-2">
-            <ThemedExpoButton
+          <Card flush>
+            <ListRow
+              icon={Layers}
+              iconTone="accent"
+              title={hasLoadouts ? t("pvp.editLoadouts") : t("pvp.createLoadout")}
+              meta={t("pvp.manageLoadoutsHint")}
+              chevron
               onPress={() => router.push("/pvp-loadouts")}
-              preferFallback
-              style={{ flex: 1 }}
-              variant="warning"
-              fallbackLayout="stretch"
-              fallbackAppearance={{
-                backgroundColor: tc.surface,
-                borderColor: tc.accentBorder,
-                borderRadius: 24,
-                foregroundColor: tc.fg,
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-              }}
-            >
-              <View className="gap-2">
-                <View className="flex-row items-center justify-between gap-2">
-                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-accentTint">
-                    <CardsIcon size={22} color={tc.accentText} />
-                  </View>
-                  <ChevronRightIcon size={18} color={tc.accentText} />
-                </View>
-                <View className="gap-1">
-                  <Text className="font-nunito-bold text-base text-fg">
-                    {hasLoadouts
-                      ? t("pvp.editLoadouts")
-                      : t("pvp.createLoadout")}
-                  </Text>
-                  <Text className="font-nunito text-xs text-fgMuted">
-                    {t("pvp.manageLoadoutsHint")}
-                  </Text>
-                </View>
-              </View>
-            </ThemedExpoButton>
-            <ThemedExpoButton
+            />
+            <ListRow
+              icon={Eye}
+              iconTone="info"
+              title={t("pvp.spectateOpen")}
+              meta={t("pvp.spectateHint")}
+              chevron
               onPress={() => router.push("/pvp-spectate" as never)}
-              preferFallback
-              style={{ flex: 1 }}
-              variant="secondary"
-              fallbackLayout="stretch"
-              fallbackAppearance={{
-                backgroundColor: tc.surface,
-                borderColor: tc.infoBorder,
-                borderRadius: 24,
-                foregroundColor: tc.fg,
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-              }}
-            >
-              <View className="gap-2">
-                <View className="flex-row items-center justify-between gap-2">
-                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-infoTint">
-                    <EyeIcon size={22} color={tc.infoDark} />
-                  </View>
-                  <ChevronRightIcon size={18} color={tc.infoDark} />
-                </View>
-                <View className="gap-1">
-                  <Text className="font-nunito-bold text-base text-fg">
-                    {t("pvp.spectateOpen")}
-                  </Text>
-                  <Text className="font-nunito text-xs text-fgMuted">
-                    {t("pvp.spectateHint")}
-                  </Text>
-                </View>
-              </View>
-            </ThemedExpoButton>
-          </View>
+            />
+            <ListRow
+              icon={BookOpen}
+              iconTone="secondary"
+              title={t("pvp.mechanics.open")}
+              meta={t("pvp.mechanics.intro")}
+              chevron
+              onPress={() => router.push("/pvp-mechanics")}
+              testID="pvp-open-mechanics-button"
+            />
+            <ListRow
+              icon={ScrollText}
+              iconTone="primary"
+              title={t("pvp.reference.open")}
+              meta={t("pvp.reference.intro")}
+              chevron
+              divider={false}
+              onPress={() => router.push("/pvp-reference")}
+              testID="pvp-open-reference-button"
+            />
+          </Card>
         </View>
 
         {pendingReceivedInvites.length > 0 ? (
           <View className="mt-7 gap-3">
             <SectionHeading
               title={t("pvp.incomingChallenges")}
-              toneColor={tc.dangerDark}
-              icon={<SwordsIcon size={20} color={tc.dangerDark} />}
               action={
                 <View className="rounded-full bg-dangerTint px-3 py-1">
                   <Text className="font-nunito-bold text-xs text-dangerDark">
@@ -1270,8 +1080,6 @@ function usePvpScreenView() {
           <View className="mt-7 gap-4">
             <SectionHeading
               title={t("pvp.activeBattles", { count: activeMatches.length })}
-              toneColor={tc.successDark}
-              icon={<ZapIcon size={20} color={tc.successDark} />}
             />
             {activeMatches.map((match, index) => {
               const timeoutLabel = formatTurnTimeout(
@@ -1408,8 +1216,6 @@ function usePvpScreenView() {
           <View className="mt-7 gap-3">
             <SectionHeading
               title={t("pvp.sentInvites", { count: pendingSentInvites.length })}
-              toneColor={tc.infoDark}
-              icon={<ClockIcon size={20} color={tc.infoDark} />}
             />
             {pendingSentInvites.map((invite) => (
               <View
@@ -1446,8 +1252,6 @@ function usePvpScreenView() {
           <View className="mt-8 gap-3">
             <SectionHeading
               title={t("pvp.recentBattles")}
-              toneColor={tc.accentText}
-              icon={<TrophyIcon size={20} color={tc.accentText} />}
               action={
                 <Button
                   tone="ghost"
@@ -1553,8 +1357,6 @@ function usePvpScreenView() {
           <View className="mt-8 gap-3">
             <SectionHeading
               title={t("pvp.myLoadouts")}
-              toneColor={tc.accentText}
-              icon={<CardsIcon size={20} color={tc.accentText} />}
             />
             {sortedLoadouts.map((loadout) => {
               const isValid = loadout.invalidCardIds.length === 0;

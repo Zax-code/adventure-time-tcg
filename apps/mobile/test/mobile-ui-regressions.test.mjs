@@ -116,8 +116,8 @@ describe("mobile UI regression contracts", () => {
     );
     assert.match(
       questHubSource,
-      /text-\[28px\] leading-10[\s\S]*?\{finishedCount\}/,
-      "the large counter value needs a line box with vertical breathing room",
+      /text-ds-display[\s\S]*?\{finishedCount\}/,
+      "the large counter value needs the display role, whose 1.2 line height gives it vertical breathing room",
     );
   });
 
@@ -250,7 +250,7 @@ describe("mobile UI regression contracts", () => {
     ]) {
       assert.match(rankingsSource, new RegExp(option));
     }
-    assert.match(rankingsSource, /testID=\{`rankings-period-\$\{/);
+    assert.match(rankingsSource, /testID: `rankings-period-\$\{/);
     assert.match(rankingsSource, /useFocusedRefetchInterval\(60_000\)/);
     assert.match(rankingsSource, /refetchInterval: leaderboardRefetchInterval/);
     assert.match(rankingsSource, /<RefreshControl/);
@@ -277,13 +277,8 @@ describe("mobile UI regression contracts", () => {
     );
     assert.match(
       boardSelectorSource,
-      /selected \? "bg-primaryText" : "bg-surface"/,
-      "only the quest chip background color should change when selected",
-    );
-    assert.match(
-      boardSelectorSource,
-      /selected \? "text-surface" : "text-primaryText"/,
-      "the selected quest label should reverse the unselected label colors",
+      /<Chip[\s\S]*?tone=\{selected \? "selected" : "neutral"\}/,
+      "selected and unselected quests should be the same Chip with only its tone changed",
     );
   });
 

@@ -1,3 +1,7 @@
+import Check from "lucide-react-native/icons/check";
+import Info from "lucide-react-native/icons/info";
+import Radio from "lucide-react-native/icons/radio";
+import Trophy from "lucide-react-native/icons/trophy";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -24,11 +28,10 @@ import type {
 } from "@adventure-time/api-client";
 
 import { PageErrorState } from "../../components/error-state";
-import { GhostButton, SecondaryButton } from "../../components/button";
+import { SecondaryButton } from "../../components/button";
 import {
   ClockIcon,
   DailyNumbersQuestIcon,
-  HelpCircleIcon,
   SpeedCalculusQuestIcon,
   StepQuestIcon,
   TrophyIcon,
@@ -56,7 +59,12 @@ import {
   RANKINGS_TIED_PREVIEW_DATA,
   RANKINGS_TOP_SEVEN_PREVIEW_DATA,
 } from "./rankings-preview-data";
+import { Button } from "../../components/ui/button";
+import { Card } from "../../components/ui/card";
+import { Chip } from "../../components/ui/chip";
 import { PageTitle } from "../../components/ui/page-title";
+import { SegmentedControl } from "../../components/ui/segmented-control";
+import { StatePanel } from "../../components/ui/state-panel";
 
 type MainPeriod = "daily" | "weekly" | "history";
 type LivePeriod = "today" | "yesterday" | "current_week" | "last_week";
@@ -267,33 +275,15 @@ export function RankingsScreen() {
         ) : null}
       </View>
 
-      <View className="flex-row rounded-full border border-primaryBorder bg-surface p-1">
-        {(["daily", "weekly", "history"] as MainPeriod[]).map((item) => {
-          const selected = mainPeriod === item;
-          return (
-            <Pressable
-              key={item}
-              onPress={() => setMainPeriod(item)}
-              className="flex-1 items-center justify-center overflow-hidden rounded-full px-2 py-3"
-              testID={`rankings-period-${item}`}
-            >
-              {selected ? (
-                <LinearGradient
-                  colors={[tc.primaryDark, tc.primary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ position: "absolute", inset: 0 }}
-                />
-              ) : null}
-              <Text
-                className={`font-nunito-bold text-sm ${selected ? "text-white" : "text-primaryText"}`}
-              >
-                {t(`rankings.periods.${item}`)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <SegmentedControl<MainPeriod>
+        options={(["daily", "weekly", "history"] as MainPeriod[]).map((item) => ({
+          value: item,
+          label: t(`rankings.periods.${item}`),
+          testID: `rankings-period-${item}`,
+        }))}
+        value={mainPeriod}
+        onChange={setMainPeriod}
+      />
 
       {mainPeriod === "daily" ? (
         <PeriodSelector
@@ -360,8 +350,6 @@ function BoardSelector({
   onSelect: (boardKey: LeaderboardBoardKey) => void;
 }) {
   const { t } = useTranslation();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
   const modeOptions = useMemo(() => {
     if (boardKey.startsWith("daily-numbers/")) {
       return [
@@ -388,7 +376,7 @@ function BoardSelector({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-3"
+        contentContainerClassName="gap-ds-2"
       >
         {BOARD_OPTIONS.map((option) => {
           const selected =
@@ -400,59 +388,31 @@ function BoardSelector({
           const Icon = option.icon;
 
           return (
-            <Pressable
+            <Chip
               key={option.key}
+              tone={selected ? "selected" : "neutral"}
+              icon={({ color, size }: { color: string; size: number }) => (
+                <Icon size={size} color={color} />
+              )}
+              label={t(option.labelKey)}
               onPress={() => onSelect(option.key)}
               testID={`rankings-board-${option.key.replace("/", "-")}`}
-            >
-              <View
-                className={`h-[92px] w-[106px] items-center justify-center gap-2 rounded-3xl border border-primaryBorder ${
-                  selected ? "bg-primaryText" : "bg-surface"
-                }`}
-              >
-                <Icon
-                  size={30}
-                  color={selected ? tc.surface : tc.primaryText}
-                />
-                <Text
-                  className={`text-center font-nunito-bold text-xs ${
-                    selected ? "text-surface" : "text-primaryText"
-                  }`}
-                >
-                  {t(option.labelKey)}
-                </Text>
-              </View>
-            </Pressable>
+            />
           );
         })}
       </ScrollView>
 
       {modeOptions.length ? (
-        <View className="flex-row flex-wrap gap-2">
-          {modeOptions.map((option) => {
-            const selected = option.key === boardKey;
-
-            return (
-              <Pressable
-                key={option.key}
-                onPress={() => onSelect(option.key)}
-                className={`rounded-full border px-4 py-2 ${
-                  selected
-                    ? "border-primaryBorder bg-primaryTint"
-                    : "border-primaryBorder bg-surface"
-                }`}
-                testID={`rankings-mode-${option.key.replace("/", "-")}`}
-              >
-                <Text
-                  className={`font-nunito-bold text-sm ${
-                    selected ? "text-primaryText" : "text-fgMuted"
-                  }`}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View className="flex-row flex-wrap gap-ds-2">
+          {modeOptions.map((option) => (
+            <Chip
+              key={option.key}
+              tone={option.key === boardKey ? "primary" : "neutral"}
+              label={option.label}
+              onPress={() => onSelect(option.key)}
+              testID={`rankings-mode-${option.key.replace("/", "-")}`}
+            />
+          ))}
         </View>
       ) : null}
     </>
@@ -589,26 +549,15 @@ function PeriodSelector({
   const { t } = useTranslation();
 
   return (
-    <View className="flex-row rounded-2xl border border-primaryBorder bg-surfaceMuted p-1">
-      {options.map((option) => {
-        const active = selected === option;
-
-        return (
-          <Pressable
-            key={option}
-            onPress={() => onSelect(option)}
-            className={`flex-1 items-center rounded-xl px-3 py-2.5 ${active ? "bg-surface" : ""}`}
-            testID={`rankings-period-${option}`}
-          >
-            <Text
-              className={`font-nunito-bold text-sm ${active ? "text-primaryText" : "text-fgMuted"}`}
-            >
-              {t(`rankings.periods.${option}`)}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+    <SegmentedControl<LivePeriod>
+      options={options.map((option) => ({
+        value: option,
+        label: t(`rankings.periods.${option}`),
+        testID: `rankings-period-${option}`,
+      }))}
+      value={selected}
+      onChange={onSelect}
+    />
   );
 }
 
@@ -647,28 +596,25 @@ function RankingsContent({
 
   return (
     <View className="gap-4">
-      <View className="items-center gap-2 rounded-2xl bg-primaryTint px-4 py-3">
-        <Text
-          selectable
-          className="text-center font-nunito-extrabold text-base text-fg"
-        >
-          {formatPeriodDate(data.period, locale)}
-        </Text>
-        <View
-          className={`rounded-full px-3 py-1 ${data.period.provisional ? "bg-infoTint" : "bg-surface"}`}
-        >
-          <Text className="font-nunito-bold text-xs uppercase tracking-[1px] text-primaryText">
-            {t(
+      <Card>
+        <View className="flex-row items-center justify-between gap-ds-3">
+          <Text
+            selectable
+            className="flex-1 font-nunito-extrabold text-ds-h3 text-fg"
+          >
+            {formatPeriodDate(data.period, locale)}
+          </Text>
+          <Chip
+            tone={data.period.provisional ? "info" : "neutral"}
+            icon={data.period.provisional ? Radio : Check}
+            label={t(
               data.period.provisional
                 ? "rankings.liveProvisional"
                 : "rankings.final",
             )}
-          </Text>
+          />
         </View>
-        <Text
-          selectable
-          className="text-center font-nunito text-xs text-fgMuted"
-        >
+        <Text selectable className="font-nunito text-ds-sm text-fgMuted">
           {t(
             data.period.provisional
               ? "rankings.provisionalHint"
@@ -676,18 +622,18 @@ function RankingsContent({
           )}
         </Text>
         {closeCountdown ? (
-          <View className="flex-row items-center gap-1.5 rounded-full bg-surface px-3 py-1.5">
-            <ClockIcon size={14} color={tc.primaryText} />
+          <View className="flex-row items-center gap-[6px]">
+            <ClockIcon size={14} color={tc.infoText} />
             <Text
               accessibilityLiveRegion="polite"
-              className="font-nunito-extrabold text-xs text-primaryText"
+              className="font-nunito-bold text-ds-sm text-infoText"
               testID="rankings-close-countdown"
             >
               {t("rankings.closesIn", closeCountdown)}
             </Text>
           </View>
         ) : null}
-      </View>
+      </Card>
 
       {hasTopRankTie ? (
         <View className="gap-3" testID="leaderboard-tied-podium">
@@ -727,7 +673,7 @@ function RankingsContent({
       )}
 
       {remainingRows.length > 0 ? (
-        <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface">
+        <Card flush>
           {remainingRows.map((row, index) => (
             <RankingRow
               key={row.profile.handle}
@@ -737,11 +683,11 @@ function RankingsContent({
               onPress={() => openProfile(row)}
             />
           ))}
-        </View>
+        </Card>
       ) : null}
 
       {data.currentPlayer && data.currentPlayer.rank > 7 ? (
-        <View className="rounded-[24px] border-2 border-primaryBorder bg-primaryTint">
+        <View className="rounded-ds-lg border-2 border-primaryBorder bg-primaryTint">
           <View className="absolute -top-2 left-1/2 size-4 rotate-45 border-l-2 border-t-2 border-primaryBorder bg-primaryTint" />
           <RankingRow
             row={data.currentPlayer}
@@ -758,13 +704,14 @@ function RankingsContent({
       </View>
 
       <View className="items-center py-1">
-        <GhostButton
+        <Button
+          tone="ghost"
+          icon={Info}
           onPress={() => router.push("/leaderboard-help")}
-          icon={<HelpCircleIcon size={20} color={tc.primaryText} />}
           testID="rankings-open-help-button"
         >
           {t("rankings.scoringHelp")}
-        </GhostButton>
+        </Button>
       </View>
     </View>
   );
@@ -1153,15 +1100,5 @@ function formatPeriodDate(
 }
 
 function EmptyPanel({ title, body }: { title: string; body: string }) {
-  return (
-    <View className="items-center gap-3 rounded-[28px] border border-primaryBorder bg-surface p-8">
-      <TrophyIcon size={44} color="#DB2777" />
-      <Text className="text-center font-nunito-extrabold text-xl text-fg">
-        {title}
-      </Text>
-      <Text className="text-center font-nunito text-sm text-fgMuted">
-        {body}
-      </Text>
-    </View>
-  );
+  return <StatePanel icon={Trophy} title={title} body={body} />;
 }
