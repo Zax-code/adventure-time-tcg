@@ -1,0 +1,197 @@
+appId: love.leaetzak.adventuretime
+name: View inventory screenshots
+tags:
+  - screenshots
+  - view-inventory
+---
+# Captures every routed mobile view for docs/design/view-inventory.pen.
+# Needs an admin TEST_EMAIL plus -e VIEW_CARD_ID (owned card), VIEW_ABILITY_ID, VIEW_PROFILE_ID (another player).
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- extendedWaitUntil:
+    visible:
+      id: auth-email-input
+    timeout: 40000
+- takeScreenshot: tmp-view-inventory-shots/entry-login
+- runFlow: subflows/login.yaml
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 01-tab-home
+      VIEW_LINK: adventure-time:///
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 02-tab-packs
+      VIEW_LINK: adventure-time:///packs
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 03-tab-quests
+      VIEW_LINK: adventure-time:///quests
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 04-tab-pvp
+      VIEW_LINK: adventure-time:///pvp
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 05-tab-rankings
+      VIEW_LINK: adventure-time:///rankings
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 06-tab-collection
+      VIEW_LINK: adventure-time:///collection
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 07-tab-gifts
+      VIEW_LINK: adventure-time:///gifts
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 08-quest-daily-numbers-play
+      VIEW_LINK: adventure-time:///quests/daily-numbers-play?mode=2-4
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 09-quest-daily-numbers-history
+      VIEW_LINK: adventure-time:///quests/daily-numbers-history
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 10-quest-perfect-timing
+      VIEW_LINK: adventure-time:///quests/perfect-timing
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 11-quest-speed-calculus
+      VIEW_LINK: adventure-time:///quests/speed-calculus
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 12-quest-speed-calculus-training
+      VIEW_LINK: adventure-time:///quests/speed-calculus/training
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 13-quest-wordle
+      VIEW_LINK: adventure-time:///quests/wordle
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 14-pvp-match
+      VIEW_LINK: adventure-time:///pvp-match?id=${TEST_MATCH_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 15-pvp-replay
+      VIEW_LINK: adventure-time:///pvp-replay?id=${TEST_REPLAY_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 16-pvp-loadouts
+      VIEW_LINK: adventure-time:///pvp-loadouts
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 17-pvp-history
+      VIEW_LINK: adventure-time:///pvp-history
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 18-pvp-spectate
+      VIEW_LINK: adventure-time:///pvp-spectate
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 19-pvp-spectate-match
+      VIEW_LINK: adventure-time:///pvp-spectate-match?id=${TEST_MATCH_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 20-public-profile
+      VIEW_LINK: adventure-time:///public-profile?id=${VIEW_PROFILE_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 21-sheet-settings
+      VIEW_LINK: adventure-time:///settings
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 22-sheet-collection-card-detail
+      VIEW_LINK: adventure-time:///collection-card-detail?cardId=${VIEW_CARD_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 23-sheet-pvp-card-details
+      VIEW_LINK: adventure-time:///pvp-card-details?cardId=${VIEW_CARD_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 24-sheet-pvp-mechanics
+      VIEW_LINK: adventure-time:///pvp-mechanics
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 25-sheet-pvp-reference
+      VIEW_LINK: adventure-time:///pvp-reference
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 26-sheet-leaderboard-help
+      VIEW_LINK: adventure-time:///leaderboard-help
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 27-sheet-admin-card-editor
+      VIEW_LINK: adventure-time:///admin-card-editor?mode=edit&cardId=${VIEW_CARD_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 28-sheet-admin-ability-editor
+      VIEW_LINK: adventure-time:///admin-ability-editor?mode=edit&abilityId=${VIEW_ABILITY_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 29-sheet-admin-user-editor
+      VIEW_LINK: adventure-time:///admin-user-editor?userId=${VIEW_PROFILE_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 30-admin-cards
+      VIEW_LINK: adventure-time:///admin/cards
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 31-admin-packs
+      VIEW_LINK: adventure-time:///admin/packs
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 32-admin-abilities
+      VIEW_LINK: adventure-time:///admin/abilities
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 33-admin-users
+      VIEW_LINK: adventure-time:///admin/users
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 34-admin-featured
+      VIEW_LINK: adventure-time:///admin/featured
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 35-admin-image-assets
+      VIEW_LINK: adventure-time:///admin/image-assets
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 36-admin-card-back-visuals
+      VIEW_LINK: adventure-time:///admin/card-back-visuals

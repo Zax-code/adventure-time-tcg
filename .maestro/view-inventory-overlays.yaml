@@ -1,0 +1,205 @@
+appId: love.leaetzak.adventuretime
+name: View inventory overlay screenshots
+tags:
+  - screenshots
+  - view-inventory
+---
+# Captures in-screen sheets and modals plus retakes for docs/design/view-inventory.pen.
+# Same inputs as view-inventory-screenshots.yaml. Taps are optional so one missing overlay does not stop the pass.
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- extendedWaitUntil:
+    visible:
+      id: auth-email-input
+    timeout: 40000
+- runFlow: subflows/login.yaml
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 16-pvp-loadouts
+      VIEW_LINK: adventure-time:///pvp-loadouts
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 17-pvp-history
+      VIEW_LINK: adventure-time:///pvp-history
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 18-pvp-spectate
+      VIEW_LINK: adventure-time:///pvp-spectate
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: 20-public-profile
+      VIEW_LINK: adventure-time:///public-profile?id=${VIEW_PROFILE_ID}&preview=1
+# Collection overlays
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-00-collection-base
+      VIEW_LINK: adventure-time:///collection
+- tapOn:
+    text: "Your cards stats.*"
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: tmp-view-inventory-shots/overlay-01-collection-stats-modal
+- tapOn:
+    text: "Close"
+    optional: true
+- waitForAnimationToEnd
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-00b-collection-base
+      VIEW_LINK: adventure-time:///collection
+- tapOn:
+    text: "Sort by.*"
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: tmp-view-inventory-shots/overlay-02-collection-sort-modal
+- tapOn:
+    text: "Close"
+    optional: true
+- waitForAnimationToEnd
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-00c-collection-base
+      VIEW_LINK: adventure-time:///collection
+- tapOn:
+    text: "Dust.*"
+    index: 0
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: tmp-view-inventory-shots/overlay-03-collection-dust-sheet
+- swipe:
+    start: 50%,12%
+    end: 50%,95%
+    duration: 400
+- waitForAnimationToEnd
+# Quest overlays
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-00d-quests-base
+      VIEW_LINK: adventure-time:///quests
+- scrollUntilVisible:
+    element:
+      id: quests-card-wordle
+    direction: DOWN
+    timeout: 15000
+    optional: true
+- tapOn:
+    id: quests-card-wordle
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: tmp-view-inventory-shots/overlay-04-quest-launch-sheet
+- swipe:
+    start: 50%,40%
+    end: 50%,95%
+    duration: 400
+- waitForAnimationToEnd
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-00e-quests-base
+      VIEW_LINK: adventure-time:///quests
+- tapOn:
+    id: quests-customize-order
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: tmp-view-inventory-shots/overlay-05-quest-order-sheet
+- swipe:
+    start: 50%,30%
+    end: 50%,95%
+    duration: 400
+- waitForAnimationToEnd
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-06-quest-day-cutoff-modal
+      VIEW_LINK: adventure-time:///quests?_e2eQuestCutoff=quest-hub
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-00f-speed-calculus-base
+      VIEW_LINK: adventure-time:///quests/speed-calculus
+- tapOn:
+    text: "Start run.*"
+    optional: true
+- extendedWaitUntil:
+    visible: "__view-inventory-settle__"
+    timeout: 2500
+    optional: true
+- takeScreenshot: tmp-view-inventory-shots/overlay-07-speed-calculus-run-panel
+# Pack opening and summary card sheet
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-00g-packs-base
+      VIEW_LINK: adventure-time:///packs
+- scrollUntilVisible:
+    element:
+      id: pack-card-legendary-pack
+    direction: DOWN
+    timeout: 15000
+    centerElement: true
+    optional: true
+- tapOn:
+    id: pack-card-legendary-pack
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-ready
+    timeout: 15000
+    optional: true
+- takeScreenshot: tmp-view-inventory-shots/overlay-08-pack-opening-ready
+- tapOn:
+    id: pack-opening-ready
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-reveal
+    timeout: 15000
+    optional: true
+- takeScreenshot: tmp-view-inventory-shots/overlay-09-pack-opening-reveal
+- repeat:
+    times: 8
+    commands:
+      - tapOn:
+          id: pack-opening-reveal
+          optional: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-summary
+    timeout: 15000
+    optional: true
+- takeScreenshot: tmp-view-inventory-shots/overlay-10-pack-opening-summary
+- tapOn:
+    id: pack-summary-card-all-0
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: tmp-view-inventory-shots/overlay-11-pack-summary-card-sheet
+# PvP battle modals
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-00h-pvp-match-base
+      VIEW_LINK: adventure-time:///pvp-match?id=${TEST_MATCH_ID}
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-12-pvp-action-modal
+      VIEW_LINK: adventure-time:///pvp-match?id=${TEST_MATCH_ID}%3A%3Ae2e%3A%3Aaction
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-13-pvp-card-info-modal
+      VIEW_LINK: adventure-time:///pvp-match?id=${TEST_MATCH_ID}%3A%3Ae2e%3A%3Amy-card-info
+- runFlow:
+    file: subflows/capture-view.yaml
+    env:
+      VIEW_NAME: overlay-14-pvp-battle-log
+      VIEW_LINK: adventure-time:///pvp-match?id=${TEST_MATCH_ID}%3A%3Ae2e%3A%3Alog

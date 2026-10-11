@@ -1,0 +1,13 @@
+appId: love.leaetzak.adventuretime
+---
+# Opens VIEW_LINK, lets the screen settle, and saves tmp-view-inventory-shots/${VIEW_NAME}.png.
+- openLink:
+    link: ${VIEW_LINK}
+- runFlow: confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible: "__view-inventory-settle__"
+    timeout: 5000
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: tmp-view-inventory-shots/${VIEW_NAME}
