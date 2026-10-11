@@ -17,8 +17,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RADIUS } from "@adventure-time/theme";
 
-import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { Button } from "../src/components/ui/button";
 import { ThemedExpoSwitch } from "../src/components/expo-ui/themed-switch";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
@@ -1559,28 +1559,29 @@ function choiceCard({
   tc: (typeof THEME_COLORS)[ThemeName];
 }) {
   return (
-    <ThemedExpoButton
+    <Pressable
       onPress={onPress}
       disabled={disabled}
       testID={testID}
-      fallbackAppearance={{
-        backgroundColor: selected ? tc.primaryBg : tc.surface,
-        borderColor: tc.primaryBorder,
-        borderRadius: 24,
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        gradientColors: null,
-      }}
-      fallbackLayout="stretch"
-      preserveChildLayout
-      style={{
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        {
+          borderRadius: RADIUS.lg,
+          borderWidth: 1,
+          borderColor: tc.primaryBorder,
+          backgroundColor: selected ? tc.primaryBg : tc.surface,
+          paddingHorizontal: 16,
+          paddingVertical: 16,
+          opacity: disabled ? 0.6 : pressed ? 0.85 : 1,
+        },
+        {
         flex: 1,
         opacity: disabled ? 0.65 : 1,
-      }}
-      variant="ghost"
+      },
+      ]}
     >
       {children}
-    </ThemedExpoButton>
+    </Pressable>
   );
 }
 
@@ -1663,21 +1664,22 @@ function settingsToggleRow({
   value: boolean;
 }) {
   return (
-    <ThemedExpoButton
+    <Pressable
       onPress={() => onToggle(!value)}
       disabled={disabled}
-      fallbackAppearance={{
-        backgroundColor: tc.surfaceMuted,
-        borderColor: tc.primaryBorder,
-        borderRadius: 24,
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        gradientColors: null,
-      }}
-      fallbackLayout="stretch"
-      preserveChildLayout
-      style={{ opacity: disabled ? 0.65 : 1 }}
-      variant="ghost"
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        {
+          borderRadius: RADIUS.lg,
+          borderWidth: 1,
+          borderColor: tc.primaryBorder,
+          backgroundColor: tc.surfaceMuted,
+          paddingHorizontal: 16,
+          paddingVertical: 16,
+          opacity: disabled ? 0.6 : pressed ? 0.85 : 1,
+        },
+        { opacity: disabled ? 0.65 : 1 },
+      ]}
     >
       <View className="relative min-h-[60px] justify-center">
         <View className="gap-1 pr-24">
@@ -1702,7 +1704,7 @@ function settingsToggleRow({
           />
         </View>
       </View>
-    </ThemedExpoButton>
+    </Pressable>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import Pause from "lucide-react-native/icons/pause";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -9,6 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
+import { Button } from "../../../components/ui/button";
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
@@ -78,67 +80,50 @@ export function HudCard({
     width: `${progressAnim.value * 100}%`,
   }));
 
+  // Game HUD anatomy (board 02): timer left, score right, ghost-sm Pause,
+  // then the draining progress track.
   return (
-    <View
-      className="mx-4 mt-3 rounded-2xl px-4 pt-3 pb-2 bg-surface"
-      style={{
-        boxShadow: `0px 3px 10px ${tc.primaryDark}` }}
-    >
-      <View className="flex-row items-start justify-between gap-3">
-        {/* Timer */}
-        <View className="items-start">
+    <View className="mx-ds-4 mt-ds-3 gap-[10px] rounded-ds-lg border border-primaryBorder bg-surface px-ds-4 py-ds-3">
+      <View className="flex-row items-center gap-ds-3">
+        <View className="flex-1">
           <Text
-            className="font-nunito-extrabold text-4xl leading-10"
+            className="font-nunito-extrabold text-[24px] leading-[29px]"
             style={{ color: timerColor }}
           >
-            {remainingSeconds}
-            <Text className="text-base" style={{ color: timerColor }}>s</Text>
+            {remainingSeconds} s
           </Text>
-          <Text className="text-[10px] font-nunito-bold uppercase tracking-[2.5px] text-primaryDark/50 -mt-0.5">
+          <Text className="font-nunito-bold text-ds-caption text-fgMuted">
             {sessionLabel}
           </Text>
         </View>
 
-        {/* Score */}
-        <View className="items-end">
-          <Text className="font-nunito-extrabold text-primaryDark text-4xl leading-10">
+        <View className="flex-1 items-end">
+          <Text className="font-nunito-extrabold text-[24px] leading-[29px] text-fg">
             {displayedCorrectAnswers}
           </Text>
-          <Text className="text-[10px] font-nunito-bold uppercase tracking-[2.5px] text-primaryDark/50 -mt-0.5">
+          <Text className="font-nunito-bold text-ds-caption text-fgMuted">
             {t("quests.speedCalculusCorrectNow")}
           </Text>
         </View>
-      </View>
 
-      {activeRun ? (
-        <View className="mt-3 flex-row justify-end">
-          <Pressable
-            accessibilityRole="button"
+        {activeRun ? (
+          <Button
+            tone="ghost"
+            size="sm"
+            icon={Pause}
             disabled={pauseDisabled}
             onPress={onPause}
-            className="rounded-full border px-4 py-2"
-            style={({ pressed }) => ({
-              opacity: pauseDisabled ? 0.45 : pressed ? 0.8 : 1,
-              borderColor: tc.primaryBorder,
-              backgroundColor: isManuallyPaused ? tc.primaryTint : tc.primaryBg })}
+            accessibilityState={{ selected: isManuallyPaused }}
           >
-            <Text className="font-nunito-bold text-sm" style={{ color: tc.primaryDark }}>
-              {t("quests.speedCalculusPause")}
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
+            {t("quests.speedCalculusPause")}
+          </Button>
+        ) : null}
+      </View>
 
-      {/* Timer progress bar — smooth continuous drain */}
-      <View className="mt-2.5 mb-0.5 h-[5px] rounded-full overflow-hidden bg-primaryTint">
+      <View className="h-ds-2 overflow-hidden rounded-ds-pill bg-primaryTint">
         <Animated.View
-          className="h-full rounded-full"
-          style={[
-            {
-              backgroundColor: timerColor,
-            },
-            progressStyle,
-          ]}
+          className="h-full rounded-ds-pill"
+          style={[{ backgroundColor: timerColor }, progressStyle]}
         />
       </View>
     </View>

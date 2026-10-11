@@ -14,7 +14,7 @@ export function TargetCard({
 }) {
   return (
     <View
-      className="items-center gap-2 rounded-3xl border-2 border-primaryBorder bg-primaryTint px-5 py-6"
+      className="items-center gap-2 rounded-ds-lg border border-primaryBorder bg-primaryTint px-5 py-6"
       testID="perfect-timing-target-card"
     >
       <Text className="font-nunito-bold text-xs uppercase tracking-widest text-primaryText">

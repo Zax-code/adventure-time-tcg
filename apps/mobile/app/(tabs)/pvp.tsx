@@ -6,7 +6,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { ScrollView, Text, View } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  Pressable,
+} from "react-native";
 import {
   cancelAnimation,
   useSharedValue,
@@ -28,8 +33,8 @@ import Swords from "lucide-react-native/icons/swords";
 import X from "lucide-react-native/icons/x";
 
 import { ApiClientError } from "@adventure-time/api-client";
+import { RADIUS } from "@adventure-time/theme";
 
-import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
 import { Button } from "../../src/components/ui/button";
 import { IconButton } from "../../src/components/ui/icon-button";
 import { ThemedExpoTextInput } from "../../src/components/expo-ui/themed-text-input";
@@ -967,7 +972,7 @@ function usePvpScreenView() {
                         </Text>
                         <View className="gap-2">
                           {validLoadouts.map((loadout) => (
-                            <ThemedExpoButton
+                            <Pressable
                               key={loadout.id}
                               onPress={() =>
                                 setAcceptLoadoutMap((current) => ({
@@ -975,31 +980,29 @@ function usePvpScreenView() {
                                   [invite.id]: loadout.id,
                                 }))
                               }
-                              preferFallback
-                              variant="ghost"
-                              fallbackAppearance={{
-                                backgroundColor:
-                                  selectedLoadoutId === loadout.id
-                                    ? tc.primaryBg
-                                    : tc.surface,
-                                borderColor:
-                                  selectedLoadoutId === loadout.id
+                              accessibilityRole="button"
+                              style={({ pressed }) => [
+                                {
+                                  borderRadius: RADIUS.md,
+                                  borderWidth: 1,
+                                  borderColor: selectedLoadoutId === loadout.id
                                     ? tc.primary
                                     : tc.primaryBorder,
-                                borderRadius: 12,
-                                foregroundColor: tc.fg,
-                                gradientColors: null,
-                                minHeight: 0,
-                                paddingHorizontal: 12,
-                                paddingVertical: 8,
-                                textStyle: {
-                                  fontFamily: "Nunito_600SemiBold",
-                                  fontSize: 14,
+                                  backgroundColor: selectedLoadoutId === loadout.id
+                                    ? tc.primaryBg
+                                    : tc.surface,
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 8,
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  opacity: pressed ? 0.85 : 1,
                                 },
-                              }}
+                              ]}
                             >
-                              {loadout.name}
-                            </ThemedExpoButton>
+                              <Text className="text-center font-nunito-bold text-ds-sm" style={{ color: tc.fg }}>
+                                {loadout.name}
+                              </Text>
+                            </Pressable>
                           ))}
                         </View>
                         <View className="flex-row gap-2">
@@ -1122,26 +1125,26 @@ function usePvpScreenView() {
               });
 
               return (
-                <ThemedExpoButton
+                <Pressable
                   key={match.id}
                   onPress={() => router.push(`/pvp-match?id=${match.id}`)}
                   testID={`pvp-active-match-card-${index}`}
                   accessibilityLabel={`${summary.title}. ${turnOwnerLabel}. ${t(
                     "pvp.continueBattle",
                   )}`}
-                  preferFallback
-                  variant="primary"
-                  fallbackLayout="stretch"
-                  fallbackAppearance={{
-                    backgroundColor: tc.surface,
-                    borderColor: turnBorderColor,
-                    borderRadius: 26,
-                    foregroundColor: tc.fg,
-                    gradientColors: null,
-                    minHeight: 132,
-                    paddingHorizontal: 18,
-                    paddingVertical: 18,
-                  }}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    {
+                      borderRadius: RADIUS.lg,
+                      borderWidth: 1,
+                      borderColor: turnBorderColor,
+                      backgroundColor: tc.surface,
+                      paddingHorizontal: 18,
+                      paddingVertical: 18,
+                      minHeight: 132,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
                 >
                   <View className="gap-4">
                     <View className="flex-row items-start gap-3">
@@ -1206,7 +1209,7 @@ function usePvpScreenView() {
                       <ChevronRightIcon size={18} color={tc.successDark} />
                     </View>
                   </View>
-                </ThemedExpoButton>
+                </Pressable>
               );
             })}
           </View>
@@ -1268,38 +1271,30 @@ function usePvpScreenView() {
               const summary = getLobbyMatchSummary(match, currentPvpUserId, t);
 
               return (
-                <ThemedExpoButton
+                <Pressable
                   key={match.id}
-                  disabled={!match.hasReplayData}
                   onPress={() => {
                     if (match.hasReplayData) {
                       router.push(`/pvp-replay?id=${match.id}` as never);
                     }
                   }}
-                  preferFallback
-                  variant={
-                    result.tone === "draw"
-                      ? "secondary"
-                      : result.tone === "win"
-                        ? "primary"
-                        : "danger"
-                  }
-                  fallbackLayout="stretch"
-                  fallbackAppearance={{
-                    backgroundColor: tc.surface,
-                    borderColor:
-                      result.tone === "draw"
+                  disabled={!match.hasReplayData}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    {
+                      borderRadius: RADIUS.lg,
+                      borderWidth: 1,
+                      borderColor: result.tone === "draw"
                         ? tc.infoBorder
                         : result.tone === "win"
                           ? tc.successBorder
                           : tc.dangerBorder,
-                    borderRadius: 20,
-                    foregroundColor: tc.fg,
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                  }}
+                      backgroundColor: tc.surface,
+                      paddingHorizontal: 12,
+                      paddingVertical: 12,
+                      opacity: !match.hasReplayData ? 0.6 : pressed ? 0.85 : 1,
+                    },
+                  ]}
                 >
                   <View className="flex-row items-center gap-3">
                     <Text
@@ -1325,7 +1320,7 @@ function usePvpScreenView() {
                         : t("pvp.noReplay")}
                     </Text>
                   </View>
-                </ThemedExpoButton>
+                </Pressable>
               );
             })}
           </View>
@@ -1626,29 +1621,25 @@ function usePvpScreenView() {
                   </View>
                 ) : null}
                 {filteredLoadouts.map((loadout) => (
-                  <ThemedExpoButton
+                  <Pressable
                     key={loadout.id}
                     onPress={() => setSelectedInviteLoadoutId(loadout.id)}
-                    preferFallback
-                    variant="ghost"
-                    fallbackAppearance={{
-                      backgroundColor:
-                        selectedInviteLoadoutId === loadout.id
-                          ? tc.primaryBg
-                          : tc.surface,
-                      borderColor:
-                        selectedInviteLoadoutId === loadout.id
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      {
+                        borderRadius: RADIUS.md,
+                        borderWidth: 1,
+                        borderColor: selectedInviteLoadoutId === loadout.id
                           ? tc.primary
                           : tc.primaryBorder,
-                      borderRadius: 12,
-                      foregroundColor: tc.fg,
-                      gradientColors: null,
-                      minHeight: 0,
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                    }}
-                    fallbackLayout="stretch"
-                    preserveChildLayout
+                        backgroundColor: selectedInviteLoadoutId === loadout.id
+                          ? tc.primaryBg
+                          : tc.surface,
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        opacity: pressed ? 0.85 : 1,
+                      },
+                    ]}
                   >
                     <View className="flex-row items-center gap-3">
                       <View
@@ -1725,7 +1716,7 @@ function usePvpScreenView() {
                         <CheckIcon size={18} color={tc.primaryDark} />
                       ) : null}
                     </View>
-                  </ThemedExpoButton>
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -1826,27 +1817,25 @@ function usePvpScreenView() {
                     const isSelected = selectedOpponentId === user.id;
 
                     return (
-                      <ThemedExpoButton
+                      <Pressable
                         key={user.id}
                         onPress={() => setSelectedOpponentId(user.id)}
-                        preferFallback
-                        variant="ghost"
-                        fallbackLayout="stretch"
-                        fallbackAppearance={{
-                          backgroundColor: isSelected
-                            ? tc.primaryBg
-                            : tc.surface,
-                          borderColor: isSelected
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                          {
+                            borderRadius: RADIUS.md,
+                            borderWidth: 1,
+                            borderColor: isSelected
                             ? tc.primary
                             : tc.primaryBorder,
-                          borderRadius: 12,
-                          foregroundColor: tc.fg,
-                          gradientColors: null,
-                          minHeight: 0,
-                          paddingHorizontal: 16,
-                          paddingVertical: 12,
-                        }}
-                        preserveChildLayout
+                            backgroundColor: isSelected
+                            ? tc.primaryBg
+                            : tc.surface,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                            opacity: pressed ? 0.85 : 1,
+                          },
+                        ]}
                       >
                         <View className="flex-row items-center gap-3">
                           <View
@@ -1876,7 +1865,7 @@ function usePvpScreenView() {
                             <CheckIcon size={18} color={tc.primaryDark} />
                           ) : null}
                         </View>
-                      </ThemedExpoButton>
+                      </Pressable>
                     );
                   })
                 )
@@ -1895,32 +1884,30 @@ function usePvpScreenView() {
                     const isUnavailable = Boolean(interaction);
 
                     return (
-                      <ThemedExpoButton
+                      <Pressable
                         key={user.id}
-                        disabled={isUnavailable}
                         onPress={() => setSelectedOpponentId(user.id)}
-                        preferFallback
-                        variant="ghost"
-                        fallbackLayout="stretch"
-                        fallbackAppearance={{
-                          backgroundColor: isUnavailable
-                            ? tc.surfaceMuted
-                            : isSelected
-                              ? tc.primaryBg
-                              : tc.surface,
-                          borderColor: isUnavailable
+                        disabled={isUnavailable}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                          {
+                            borderRadius: RADIUS.md,
+                            borderWidth: 1,
+                            borderColor: isUnavailable
                             ? tc.primaryBorder
                             : isSelected
                               ? tc.primary
                               : tc.primaryBorder,
-                          borderRadius: 12,
-                          foregroundColor: tc.fg,
-                          gradientColors: null,
-                          minHeight: 0,
-                          paddingHorizontal: 16,
-                          paddingVertical: 12,
-                        }}
-                        preserveChildLayout
+                            backgroundColor: isUnavailable
+                            ? tc.surfaceMuted
+                            : isSelected
+                              ? tc.primaryBg
+                              : tc.surface,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                            opacity: isUnavailable ? 0.6 : pressed ? 0.85 : 1,
+                          },
+                        ]}
                       >
                         <View className="flex-row items-center gap-3">
                           <View
@@ -1964,7 +1951,7 @@ function usePvpScreenView() {
                             <CheckIcon size={18} color={tc.primaryDark} />
                           ) : null}
                         </View>
-                      </ThemedExpoButton>
+                      </Pressable>
                     );
                   })}
                 </>

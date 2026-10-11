@@ -98,11 +98,11 @@ export function WordleTile({
 
   return (
     <Animated.View
-      className={`rounded-xl border-2 items-center justify-center ${bgBorderCls}`}
+      className={`rounded-ds-md border items-center justify-center ${bgBorderCls}`}
       style={[{ width: "100%", height: 48 }, animatedStyle]}
     >
       <Animated.Text
-        className={`text-xl font-nunito-extrabold ${letterCls}`}
+        className={`text-[24px] leading-[29px] font-nunito-extrabold ${letterCls}`}
         style={[
           letter === "I" ? NARROW_TILE_LETTER_STYLE : undefined,
           letterAnimatedStyle,

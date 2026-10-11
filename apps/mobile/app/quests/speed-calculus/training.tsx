@@ -627,10 +627,9 @@ function useSpeedCalculusTrainingScreenView() {
           accessibilityLabel={toast.message}
           accessibilityLiveRegion="polite"
           accessibilityRole="alert"
-          className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
+          className={`absolute left-4 right-4 z-[100] rounded-ds-sm p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
           style={{
             top: insets.top + 8,
-            boxShadow: `0px 4px 8px ${withAlpha(toast.type === "success" ? tc.successDark : tc.dangerDark, "2E")}`,
           }}
         >
           <Text

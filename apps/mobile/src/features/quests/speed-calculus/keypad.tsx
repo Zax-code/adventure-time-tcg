@@ -5,13 +5,11 @@ import {
   type GestureResponderEvent,
   type ViewStyle,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
 import { KEYPAD_ROWS, type KeypadKey } from "./constants";
-import { withAlpha } from "./palette";
 import {
   getChangedTouchIdentifiers,
   getKeyPressesForChangedTouches,
@@ -21,7 +19,7 @@ import {
 type InteractiveKeyId = KeypadKey | "CLEAR" | "SUBMIT";
 
 const KEY_GAP = 8;
-const KEY_HEIGHT = 58;
+const KEY_HEIGHT = 56;
 const KEY_RADIUS = 16;
 
 const KEYPAD_GRID_STYLE: ViewStyle = { gap: KEY_GAP };
@@ -38,7 +36,7 @@ const KEY_BASE_STYLE: ViewStyle = {
   flex: 1,
   height: KEY_HEIGHT,
   borderRadius: KEY_RADIUS,
-  borderWidth: 2,
+  borderWidth: 1,
   alignItems: "center",
   justifyContent: "center",
   minWidth: 0,
@@ -50,7 +48,7 @@ const SUBMIT_KEY_STYLE: ViewStyle = {
   overflow: "hidden",
   minWidth: 0,
 };
-const SUBMIT_GRADIENT_STYLE: ViewStyle = {
+const SUBMIT_FILL_STYLE: ViewStyle = {
   flex: 1,
   alignItems: "center",
   justifyContent: "center",
@@ -162,43 +160,31 @@ export function Keypad({
   const [pressedKeys, setPressedKeys] = useState<Set<InteractiveKeyId>>(
     () => new Set(),
   );
-  const keypadContainerStyle = useMemo<ViewStyle>(
+  // Keypad Key palette (board 02): digits default, ± action, delete and
+  // clear operator, submit selected.
+  const digitKeyStyle = useMemo<ViewStyle>(
     () => ({
+      ...KEY_BASE_STYLE,
       backgroundColor: tc.surface,
-      borderColor: tc.primaryTint,
-      borderWidth: 2,
-      padding: KEY_GAP,
-      shadowColor: withAlpha(tc.primaryDark, "24"),
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 8,
-      elevation: 2,
+      borderColor: tc.primaryBorder,
     }),
-    [tc.primaryDark, tc.primaryTint, tc.surface],
+    [tc.primaryBorder, tc.surface],
   );
-  const primaryKeyStyle = useMemo<ViewStyle>(
+  const operatorKeyStyle = useMemo<ViewStyle>(
     () => ({
       ...KEY_BASE_STYLE,
       backgroundColor: tc.primaryTint,
-      borderColor: tc.primaryBorder,
+      borderColor: tc.primaryTint,
     }),
-    [tc.primaryBorder, tc.primaryTint],
+    [tc.primaryTint],
   );
-  const accentKeyStyle = useMemo<ViewStyle>(
+  const actionKeyStyle = useMemo<ViewStyle>(
     () => ({
       ...KEY_BASE_STYLE,
       backgroundColor: tc.accentTint,
       borderColor: tc.accentBorder,
     }),
     [tc.accentBorder, tc.accentTint],
-  );
-  const dangerKeyStyle = useMemo<ViewStyle>(
-    () => ({
-      ...KEY_BASE_STYLE,
-      backgroundColor: tc.dangerTint,
-      borderColor: tc.dangerBorder,
-    }),
-    [tc.dangerBorder, tc.dangerTint],
   );
 
   const activateKey = useCallback(
@@ -262,11 +248,10 @@ export function Keypad({
 
   return (
     <View
-      className="mx-4 mt-3 rounded-3xl"
+      className="mx-ds-4 mt-ds-3 rounded-ds-lg border border-primaryBorder bg-surface p-ds-2"
       onTouchStart={handleKeypadTouchStart}
       onTouchEnd={releaseKeypadTouches}
       onTouchCancel={releaseKeypadTouches}
-      style={keypadContainerStyle}
     >
       <View style={KEYPAD_GRID_STYLE}>
         {KEYPAD_ROWS.map((row) => (
@@ -277,10 +262,10 @@ export function Keypad({
                 k === "DEL" ? keypadLocked || !answer : keypadLocked;
               const isDigit = /^\d$/.test(k);
               const fontSizeClass = isDigit
-                ? "text-[28px]"
+                ? "text-[24px] leading-[29px]"
                 : k === "±"
-                  ? "text-[20px]"
-                  : "text-sm";
+                  ? "text-ds-h3"
+                  : "text-ds-sm";
 
               const label =
                 k === "±"
@@ -291,17 +276,17 @@ export function Keypad({
 
               const keyStyle =
                 k === "DEL"
-                  ? dangerKeyStyle
+                  ? operatorKeyStyle
                   : k === "±"
-                    ? accentKeyStyle
-                    : primaryKeyStyle;
+                    ? actionKeyStyle
+                    : digitKeyStyle;
 
               const keyTextClass =
                 k === "DEL"
-                  ? `font-nunito-extrabold text-center text-dangerDark ${fontSizeClass}`
+                  ? `font-nunito-extrabold text-center text-primaryText ${fontSizeClass}`
                   : k === "±"
-                    ? `font-nunito-extrabold text-center text-accentDark ${fontSizeClass}`
-                    : `font-nunito-extrabold text-center text-primaryDark ${fontSizeClass}`;
+                    ? `font-nunito-extrabold text-center text-accentText ${fontSizeClass}`
+                    : `font-nunito-extrabold text-center text-fg ${fontSizeClass}`;
 
               return (
                 <KeyButton
@@ -329,11 +314,11 @@ export function Keypad({
           testID={keyTestID("CLEAR")}
           disabled={keypadLocked || !answer}
           pressed={pressedKeys.has("CLEAR")}
-          style={primaryKeyStyle}
+          style={operatorKeyStyle}
           onPress={() => activateKey("CLEAR")}
           onBoundsChange={updateKeyBounds}
         >
-          <Text className="text-sm font-nunito-extrabold text-primaryDark">
+          <Text className="text-ds-sm font-nunito-extrabold text-primaryText">
             {t("quests.speedCalculusClear")}
           </Text>
         </KeyButton>
@@ -349,16 +334,11 @@ export function Keypad({
           scalePressed={0.99}
           pressedOpacity={0.9}
         >
-          <LinearGradient
-            colors={[tc.secondary, tc.secondaryDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={SUBMIT_GRADIENT_STYLE}
-          >
-            <Text className="text-base font-nunito-extrabold text-secondaryText">
+          <View style={[SUBMIT_FILL_STYLE, { backgroundColor: tc.primary }]}>
+            <Text className="text-ds-body font-nunito-extrabold text-white">
               {submitting ? "···" : t("quests.speedCalculusSubmit")}
             </Text>
-          </LinearGradient>
+          </View>
         </KeyButton>
       </View>
     </View>

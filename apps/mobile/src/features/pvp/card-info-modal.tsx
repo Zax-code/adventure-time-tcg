@@ -132,7 +132,7 @@ export function CardInfoModal({
       testID="pvp-card-info-modal"
     >
       <View className="pb-4">
-        <View className="mx-4 overflow-hidden rounded-[28px] bg-white shadow-sm">
+        <View className="mx-4 overflow-hidden rounded-ds-lg bg-white shadow-sm">
           <View className="flex-row">
             <View
               className="w-1/2 overflow-hidden"
@@ -291,7 +291,7 @@ function StatusEffectsList({
         return (
           <View
             key={`${status.name}-${status.appliedAt}-${status.appliedDuringPlayerId ?? "none"}-${status.targetOwnerId ?? "none"}`}
-            className={`rounded-2xl border px-3 py-3 ${isDebuff ? "border-dangerBorder/60 bg-dangerTint" : "border-infoBorder/60 bg-infoTint"}`}
+            className={`rounded-ds-md border px-3 py-3 ${isDebuff ? "border-dangerBorder/60 bg-dangerTint" : "border-infoBorder/60 bg-infoTint"}`}
           >
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1">
@@ -342,7 +342,7 @@ function ActiveEffectsSummary({
   return (
     <View className="gap-3">
       {statuses.length > 0 ? (
-        <View className="gap-2 rounded-2xl border border-primaryBorder bg-surfaceMuted p-3">
+        <View className="gap-2 rounded-ds-md border border-primaryBorder bg-surfaceMuted p-3">
           <Text className="font-nunito-bold text-sm text-primaryDark">
             {statusTitle}
           </Text>
@@ -360,7 +360,7 @@ function ActiveEffectsSummary({
       ) : null}
 
       {effects.length > 0 ? (
-        <View className="gap-2 rounded-2xl border border-successBorder bg-successTint p-3">
+        <View className="gap-2 rounded-ds-md border border-successBorder bg-successTint p-3">
           <Text className="font-nunito-bold text-sm text-successDark">
             {effectTitle}
           </Text>
@@ -394,7 +394,7 @@ function StatusChip({
   const textClass = isDebuff ? "text-dangerDark" : "text-infoDark";
 
   return (
-    <View className={`rounded-2xl border px-3 py-2 ${chipClass}`}>
+    <View className={`rounded-ds-md border px-3 py-2 ${chipClass}`}>
       <Text
         className={`font-nunito-extrabold text-[11px] uppercase ${textClass}`}
       >
@@ -407,7 +407,7 @@ function StatusChip({
 
 function EffectChip({ label, detail }: { label: string; detail: string }) {
   return (
-    <View className="rounded-2xl border border-successBorder bg-successTint px-3 py-2">
+    <View className="rounded-ds-md border border-successBorder bg-successTint px-3 py-2">
       <Text className="font-nunito-extrabold text-[11px] uppercase text-successDark">
         {label}
       </Text>
@@ -449,7 +449,7 @@ function StatCard({
   const delta = base != null ? value - base : 0;
 
   return (
-    <View className={`flex-1 rounded-2xl p-3 ${bgClass}`}>
+    <View className={`flex-1 rounded-ds-md p-3 ${bgClass}`}>
       <Text className={`font-nunito-extrabold text-base ${textClass}`}>
         {label}
       </Text>
@@ -489,7 +489,7 @@ function AbilityCard({
   const showAvailability = cooldownRemaining > 0 || used;
 
   return (
-    <View className={`rounded-2xl border p-3 ${colorClass}`}>
+    <View className={`rounded-ds-md border p-3 ${colorClass}`}>
       <View className="mb-2 flex-row items-center gap-2">
         <View className={`rounded-full px-2 py-1 ${badgeClass}`}>
           <Text className="font-nunito-bold text-[10px] uppercase">
@@ -551,7 +551,7 @@ function MissingAbilityCard({
   const { t } = useTranslation();
 
   return (
-    <View className={`rounded-2xl border p-3 ${colorClass}`}>
+    <View className={`rounded-ds-md border p-3 ${colorClass}`}>
       <View className="mb-2 flex-row items-center gap-2">
         <View className={`rounded-full px-2 py-1 ${badgeClass}`}>
           <Text className="font-nunito-bold text-[10px] uppercase">
@@ -573,7 +573,7 @@ function NoPassiveCard() {
   const { t } = useTranslation();
 
   return (
-    <View className="rounded-2xl border border-primaryBorder/20 bg-surfaceMuted p-3">
+    <View className="rounded-ds-md border border-primaryBorder/20 bg-surfaceMuted p-3">
       <View className="mb-2 flex-row items-center gap-2">
         <View className="rounded-full bg-primaryBorder/30 px-2 py-1">
           <Text className="font-nunito-bold text-[10px] uppercase text-fgMuted">
@@ -590,7 +590,7 @@ function NoPassiveCard() {
 
 function NoAbilityCard({ label, body }: { label: string; body: string }) {
   return (
-    <View className="rounded-2xl border border-primaryBorder/20 bg-surfaceMuted p-3">
+    <View className="rounded-ds-md border border-primaryBorder/20 bg-surfaceMuted p-3">
       <View className="mb-2 flex-row items-center gap-2">
         <View className="rounded-full bg-primaryBorder/30 px-2 py-1">
           <Text className="font-nunito-bold text-[10px] uppercase text-fgMuted">

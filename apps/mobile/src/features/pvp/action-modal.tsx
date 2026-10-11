@@ -1,11 +1,15 @@
 import { useMemo } from "react";
-import { Text, View } from "react-native";
+import {
+  Text,
+  View,
+  Pressable,
+} from "react-native";
 
 import { getStrongAgainst, getWeakAgainst } from "@adventure-time/game-engine";
 import type { PvpAction } from "@adventure-time/api-client";
 import type { ComponentType } from "react";
+import { RADIUS } from "@adventure-time/theme";
 
-import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 import { ZapIcon, SwordsIcon, SparklesIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";
 import { localizeTypeName } from "../../lib/combat-i18n";
@@ -96,10 +100,10 @@ function useActionModalView({
         label: t("pvp.action.basic"),
         subtitle: t("pvp.action.basicSubtitle"),
         Icon: SwordsIcon as ComponentType<{ size?: number; color?: string }>,
-        iconColor: "#4B5563",
-        tint: "bg-slate-100",
-        border: "border-slate-200",
-        text: "text-slate-700",
+        iconColor: tc.fgMuted,
+        tint: "bg-surface",
+        border: "border-primaryBorder",
+        text: "text-fg",
         cost: basicCost,
         disabled: energy < basicCost,
         note: energy < basicCost ? t("pvp.action.notEnoughEnergy") : null,
@@ -109,7 +113,7 @@ function useActionModalView({
         label: skillDef?.name ?? t("pvp.action.skillFallback"),
         subtitle: skillDef?.description ?? "",
         Icon: ZapIcon as ComponentType<{ size?: number; color?: string }>,
-        iconColor: "#1D4ED8",
+        iconColor: tc.infoText,
         tint: "bg-infoTint",
         border: "border-infoBorder",
         text: "text-infoDark",
@@ -129,9 +133,9 @@ function useActionModalView({
         label: ultimateDef?.name ?? t("pvp.action.ultimateFallback"),
         subtitle: ultimateDef?.description ?? "",
         Icon: SparklesIcon as ComponentType<{ size?: number; color?: string }>,
-        iconColor: "#BE185D",
+        iconColor: tc.accentText,
         tint: "bg-accentTint",
-        border: "border-accent",
+        border: "border-accentBorder",
         text: "text-accentText",
         cost: ultimateCost,
         disabled:
@@ -159,6 +163,9 @@ function useActionModalView({
     skillCost,
     skillDef,
     t,
+    tc.accentText,
+    tc.fgMuted,
+    tc.infoText,
     ultimateCd,
     ultimateCost,
     ultimateDef,
@@ -261,7 +268,7 @@ function useActionModalView({
                 <View className="mt-5 rounded-2xl bg-primaryBg px-4 py-3">
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2 rounded-full bg-secondaryTint px-3 py-1.5">
-                      <ZapIcon size={14} color="#854D0E" />
+                      <ZapIcon size={14} color={tc.secondaryText} />
                       <Text className="font-nunito-bold text-secondaryText">
                         {t("pvp.action.energy", {
                           count: `${energy}/${myPlayer.maxEnergy}`,
@@ -304,48 +311,35 @@ function useActionModalView({
 
             <View className="w-1/2 gap-3 px-4 py-4">
               {actionCards.map((card) => (
-                <ThemedExpoButton
+                <Pressable
                   key={card.key}
-                  disabled={card.disabled}
                   onPress={() => handleAction(card.key)}
+                  disabled={card.disabled}
                   testID={`pvp-action-${card.key}-button`}
-                  variant={
-                    card.key === "ultimate"
-                      ? "warning"
-                      : card.key === "skill"
-                        ? "secondary"
-                        : "ghost"
-                  }
-                  fallbackLayout="stretch"
-                  fallbackAppearance={{
-                    backgroundColor:
-                      card.key === "ultimate"
-                        ? "#FDF2F8"
-                        : card.key === "skill"
-                          ? tc.infoTint
-                          : "#F1F5F9",
-                    borderColor:
-                      card.key === "ultimate"
-                        ? tc.accent
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    {
+                      borderRadius: RADIUS.md,
+                      borderWidth: 1,
+                      borderColor: card.key === "ultimate"
+                        ? tc.accentBorder
                         : card.key === "skill"
                           ? tc.infoBorder
-                          : "#CBD5E1",
-                    borderRadius: 16,
-                    foregroundColor:
-                      card.key === "ultimate"
-                        ? tc.accentText
+                          : tc.primaryBorder,
+                      backgroundColor: card.key === "ultimate"
+                        ? tc.accentTint
                         : card.key === "skill"
-                          ? tc.infoDark
-                          : "#334155",
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 16,
-                    paddingVertical: 16,
-                  }}
+                          ? tc.infoTint
+                          : tc.surfaceMuted,
+                      paddingHorizontal: 16,
+                      paddingVertical: 16,
+                      opacity: card.disabled ? 0.6 : pressed ? 0.85 : 1,
+                    },
+                  ]}
                 >
                   <View className="flex-row items-start justify-between gap-3">
                     <View className="flex-1 flex-row gap-3">
-                      <View className={`rounded-xl p-2 ${card.tint}`}>
+                      <View className={`rounded-ds-sm p-2 ${card.tint}`}>
                         <card.Icon size={18} color={card.iconColor} />
                       </View>
                       <View className="flex-1">
@@ -370,7 +364,7 @@ function useActionModalView({
                       </Text>
                     </View>
                   </View>
-                </ThemedExpoButton>
+                </Pressable>
               ))}
             </View>
           </View>

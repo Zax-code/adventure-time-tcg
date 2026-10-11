@@ -44,7 +44,7 @@ export function ResultCard({
   const successful = result.tier !== "miss";
   return (
     <View
-      className={`gap-4 rounded-3xl border-2 p-5 ${
+      className={`gap-4 rounded-ds-lg border p-ds-4 ${
         successful
           ? "border-successBorder bg-successTint"
           : "border-dangerBorder bg-dangerTint"

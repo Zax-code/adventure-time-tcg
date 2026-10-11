@@ -25,6 +25,10 @@ import { Button, type ButtonSize, type ButtonTone } from "../src/components/ui/b
 import { Card } from "../src/components/ui/card";
 import { Chip, type ChipTone } from "../src/components/ui/chip";
 import { Dialog } from "../src/components/ui/dialog";
+import { GameHud } from "../src/components/ui/game/game-hud";
+import { GameKey } from "../src/components/ui/game/game-key";
+import { GameTile } from "../src/components/ui/game/game-tile";
+import { KeypadKey } from "../src/components/ui/game/keypad-key";
 import { IconButton } from "../src/components/ui/icon-button";
 import { IconTile } from "../src/components/ui/icon-tile";
 import { Input } from "../src/components/ui/input";
@@ -256,6 +260,37 @@ function UiKit() {
           />
           <StatePanel variant="error" title="Could not load" body="Pull to retry." />
           <StatePanel variant="loading" title="Loading" />
+        </KitSection>
+
+        <KitSection title="Game kit" testID="e2e-ui-kit-game">
+          <View className="flex-row flex-wrap gap-ds-2">
+            <GameTile />
+            <GameTile letter="A" />
+            <GameTile letter="B" state="correct" />
+            <GameTile letter="C" state="present" />
+            <GameTile letter="D" state="absent" />
+          </View>
+          <View className="flex-row flex-wrap gap-[6px]">
+            <GameKey label="Q" />
+            <GameKey label="E" state="correct" />
+            <GameKey label="R" state="present" />
+            <GameKey label="T" state="absent" />
+            <GameKey label="Enter" kind="enter" />
+            <GameKey label="⌫" kind="delete" accessibilityLabel="Delete" />
+          </View>
+          <View className="flex-row flex-wrap gap-ds-2">
+            <KeypadKey className="w-[80px]" label="7" />
+            <KeypadKey className="w-[80px]" label="50" variant="selected" />
+            <KeypadKey className="w-[80px]" label="×" variant="operator" />
+            <KeypadKey className="w-[80px]" label="75" variant="used" />
+            <KeypadKey className="w-[120px]" label="+/−" variant="action" />
+          </View>
+          <GameHud
+            left={{ value: "29 s", label: "Run 1 / 3" }}
+            right={{ value: 0, label: "Correct now" }}
+            pause={{ label: "Pause", onPress: () => {} }}
+            progress={0.8}
+          />
         </KitSection>
 
         <KitSection title="Dialog" testID="e2e-ui-kit-dialog">

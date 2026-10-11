@@ -163,7 +163,7 @@ function compactStat({
 }) {
   return (
     <View
-      className="flex-1 rounded-2xl p-2"
+      className="flex-1 rounded-ds-md p-2"
       style={{ backgroundColor }}
     >
       <Text
@@ -230,7 +230,7 @@ function loadoutSlotCard({
       </Text>
 
       <View
-        className="relative overflow-hidden rounded-[22px] border"
+        className="relative overflow-hidden rounded-ds-lg border"
         style={{
           aspectRatio: 0.72,
           backgroundColor: card ? "#FFFFFF" : emptyBackgroundColor,
@@ -378,7 +378,7 @@ const SavedLoadoutCard = memo(function SavedLoadoutCard({
     <Pressable
       testID={`pvp-loadout-saved-${loadout.id}`}
       onPress={() => onEdit(loadout.id)}
-      className="rounded-[24px] p-4"
+      className="rounded-ds-lg p-4"
       style={{
         width: 208,
         borderWidth: 1,
@@ -710,7 +710,7 @@ function usePvpLoadoutsScreenView() {
             pointerEvents="box-none"
           >
             <View
-              className={`w-full max-w-[420px] rounded-2xl px-4 py-3 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
+              className={`w-full max-w-[420px] rounded-ds-md px-4 py-3 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
             >
               <Text className="text-center font-nunito-bold text-white">
                 {toast.message}
@@ -736,7 +736,7 @@ function usePvpLoadoutsScreenView() {
             {loadouts.length > 0 ? (
               <View
                 testID="pvp-loadout-saved-section"
-                className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
+                className="rounded-ds-lg border border-primaryBorder/50 bg-surface/95 p-4"
               >
                 <Text className="font-nunito-bold text-base text-fg">
                   {t("pvp.yourLoadouts")}
@@ -773,10 +773,10 @@ function usePvpLoadoutsScreenView() {
 
             <View
               testID="pvp-loadout-summary-card"
-              className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-3"
+              className="rounded-ds-lg border border-primaryBorder/50 bg-surface/95 p-3"
             >
               <View
-                className="rounded-[24px] p-3"
+                className="rounded-ds-lg p-3"
                 style={{ backgroundColor: tc.primaryBg }}
               >
                 <View className="flex-row items-start justify-between gap-3">
@@ -856,7 +856,7 @@ function usePvpLoadoutsScreenView() {
 
               <View className="mt-3 gap-3">
                 <View
-                  className="rounded-[24px] p-3"
+                  className="rounded-ds-lg p-3"
                   style={{ backgroundColor: tc.successTint }}
                 >
                   <Text className="font-nunito-bold text-base text-successText">
@@ -895,7 +895,7 @@ function usePvpLoadoutsScreenView() {
                 </View>
 
                 <View
-                  className="rounded-[24px] p-3"
+                  className="rounded-ds-lg p-3"
                   style={{ backgroundColor: tc.accentTint }}
                 >
                   <Text className="font-nunito-bold text-base text-accentStrong">
@@ -938,7 +938,7 @@ function usePvpLoadoutsScreenView() {
             <View
               testID="pvp-loadout-collection"
               collapsable={false}
-              className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-3"
+              className="rounded-ds-lg border border-primaryBorder/50 bg-surface/95 p-3"
             >
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1">
@@ -989,7 +989,7 @@ function usePvpLoadoutsScreenView() {
                       key={entry.id}
                       onPress={() => toggleCardSelection(card)}
                       onLongPress={() => openCardDetails(card.id)}
-                      className="relative mb-0 overflow-hidden rounded-[24px] bg-white"
+                      className="relative mb-0 overflow-hidden rounded-ds-lg bg-white"
                       style={{
                         width: "48.5%",
                         borderColor: isSelected
