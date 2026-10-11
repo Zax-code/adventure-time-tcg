@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type ViewStyle,
   useWindowDimensions,
 } from "react-native";
 import Animated, {
@@ -25,6 +24,9 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Layers from "lucide-react-native/icons/layers";
+import Tag from "lucide-react-native/icons/tag";
+import User from "lucide-react-native/icons/user";
 
 import { RADIUS } from "@adventure-time/theme";
 
@@ -41,47 +43,34 @@ import {
 } from "../../components/icons";
 import { getPackOpeningArtSource } from "../../components/pack-opening-art";
 import { getPackOpeningVisualProfile } from "../../components/pack-opening-visuals";
-import { RARITY_COLORS } from "../../components/theme";
+import { Card } from "../../components/ui/card";
+import { ListRow } from "../../components/ui/list-row";
 import { SheetHeader } from "../../components/ui/sheet-header";
-import { getBackdropColor } from "../../components/ui/tokens";
+import {
+  getBackdropColor,
+  type IconSlot,
+  type Tone,
+} from "../../components/ui/tokens";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS, type ThemeName } from "../../theme/themes";
 
 import {
   CARD_BACK_STACK_SPECS,
-  IS_E2E_BUILD,
+  getRarityIcon,
+  getRarityTone,
   PACK_CARD_RATIO,
-  PACK_OPEN_BURST_MS,
-  PACK_OPEN_PROGRESS_MS,
-  PACK_OPEN_SHAKE_MS,
   REVEAL_CARD_RATIO,
-  REVEAL_FLIP_MS,
-  REVEAL_START_DELAY_MS,
-  SPARK_REVEAL_FLIP_MS,
-  SPARK_REVEAL_START_DELAY_MS,
   TREASURE_RAY_SPECS,
-  buildCardBackVisualMap,
-  canOpenPackWithBalance,
   createBurstPattern,
-  createLoadingSparkles,
-  formatPackAvailabilityDate,
-  getHapticForCard,
   getPackArtUrl,
-  getRarityGlowColor,
-  getThemeRarityPalette,
   getCardBackVisualKey,
   getTreasureRayPath,
-  isPackLimited,
-  slugifyPackName,
   toCardTileEntry,
-  toRarityName,
-  withOccurrenceKeys,
   withAlpha,
   type CardBackVisualMap,
   type LoadingSparkle,
   type OpenedCard,
-  type OpeningPhase,
   type Pack,
   type PackBurstPattern,
   type RarityName,
@@ -111,21 +100,6 @@ const packScreenStyles = StyleSheet.create({
     borderRadius: 999,
   },
 });
-
-export function BackgroundOrbs({
-  primary,
-  secondary,
-  accent,
-}: {
-  primary: string;
-  secondary: string;
-  accent: string;
-}) {
-  void primary;
-  void secondary;
-  void accent;
-  return null;
-}
 
 export function PackIconVisual({
   pack,
@@ -1480,109 +1454,6 @@ export function CrackedPackPreview({
   );
 }
 
-export function RevealPullProgress({
-  cards,
-  revealProgress,
-  revealedIndex,
-  tc,
-  themeName,
-}: {
-  cards: OpenedCard[];
-  revealProgress: SharedValue<number>;
-  revealedIndex: number;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  themeName: ThemeName;
-}) {
-  if (cards.length === 0) {
-    return null;
-  }
-
-  const keyedCards = withOccurrenceKeys(cards, (card) => card.id);
-
-  return (
-    <View className="w-full flex-row gap-1.5">
-      {keyedCards.map(({ item: card, key }, index) => {
-        const rarityName = toRarityName(card.rarity?.name);
-        const rarityPalette =
-          getThemeRarityPalette(themeName, rarityName) ??
-          getThemeRarityPalette(themeName, "Common");
-
-        return (
-          <RevealPullProgressSegment
-            key={key}
-            colorFrom={rarityPalette.from}
-            colorTo={rarityPalette.to}
-            index={index}
-            revealProgress={revealProgress}
-            revealedIndex={revealedIndex}
-            trackColor={withAlpha(tc.primaryBorder, "66")}
-          />
-        );
-      })}
-    </View>
-  );
-}
-
-function RevealPullProgressSegment({
-  colorFrom,
-  colorTo,
-  index,
-  revealProgress,
-  revealedIndex,
-  trackColor,
-}: {
-  colorFrom: string;
-  colorTo: string;
-  index: number;
-  revealProgress: SharedValue<number>;
-  revealedIndex: number;
-  trackColor: string;
-}) {
-  const isPast = index < revealedIndex;
-  const isCurrent = index === revealedIndex;
-  const fillStyle = useAnimatedStyle(() => {
-    const currentFill = interpolate(revealProgress.value, [0, 1], [0, 100]);
-    const currentOpacity = interpolate(
-      revealProgress.value,
-      [0, 0.42, 1],
-      [0, 0.35, 1],
-    );
-
-    return {
-      opacity: isPast ? 1 : currentOpacity,
-      width: `${isPast ? 100 : currentFill}%`,
-    };
-  });
-
-  return (
-    <View
-      className="h-2 flex-1 overflow-hidden rounded-full"
-      style={{ backgroundColor: trackColor }}
-    >
-      {isPast || isCurrent ? (
-        <Animated.View
-          style={[
-            {
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              left: 0,
-            },
-            fillStyle,
-          ]}
-        >
-          <LinearGradient
-            colors={[colorFrom, colorTo]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={{ flex: 1 }}
-          />
-        </Animated.View>
-      ) : null}
-    </View>
-  );
-}
-
 export function LoadingProgressFill({
   color,
   progress,
@@ -1802,39 +1673,16 @@ export function RevealCardStage({
   );
 }
 
-export function SectionBadge({
-  icon,
-  label,
-  backgroundColor,
-  textColor,
-}: {
-  icon: ReactNode;
-  label: string;
-  backgroundColor: string;
-  textColor: string;
-}) {
-  return (
-    <View
-      className="flex-row items-center gap-2 rounded-full px-3 py-1.5"
-      style={{ backgroundColor }}
-    >
-      {icon}
-      <Text
-        className="font-nunito-bold text-[11px]"
-        style={{ color: textColor }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 export function PackSummaryCardSheet({
   card,
+  pullIndex,
+  pullTotal,
   accessToken,
   onClose,
 }: {
   card: OpenedCard;
+  pullIndex: number;
+  pullTotal: number;
   accessToken: string | null;
   onClose: () => void;
 }) {
@@ -1842,18 +1690,16 @@ export function PackSummaryCardSheet({
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
   const [index, setIndex] = useState(1);
   const topGap = Math.max(insets.top + 16, 56);
   const maxSheetHeight = Math.max(0, height - topGap);
-  const bottomContentPadding = Math.max(insets.bottom + 36, 64);
-  const cardWidth = Math.min(width - 48, 340);
+  const bottomContentPadding = Math.max(insets.bottom + 16, 32);
+  const cardWidth = Math.min(width - 64, 196);
   const rarityName = card.rarity?.name ?? "Common";
-  const rarityColor = RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
   const sheetSurface = useMemo(
     () => (
       <View
-        className="bg-bg"
+        className="bg-surface"
         style={[
           StyleSheet.absoluteFill,
           {
@@ -1866,30 +1712,43 @@ export function PackSummaryCardSheet({
     [],
   );
 
-  const stats = [
+  const details: {
+    key: string;
+    title: string;
+    meta: string;
+    icon: IconSlot;
+    tone: Tone;
+  }[] = [
     {
-      label: "HP",
-      value: card.hp,
-      color: tc.dangerDark,
-      backgroundColor: tc.dangerTint,
+      key: "rarity",
+      title: rarityName,
+      meta: t("packs.summary.cardRarity"),
+      icon: getRarityIcon(rarityName),
+      tone: getRarityTone(rarityName),
     },
     {
-      label: "ATK",
-      value: card.attack,
-      color: tc.secondaryText,
-      backgroundColor: tc.secondaryTint,
+      key: "type",
+      title: card.type,
+      meta: t("packs.summary.cardType"),
+      icon: Tag,
+      tone: "primary",
     },
     {
-      label: "DEF",
-      value: card.defense,
-      color: tc.infoText,
-      backgroundColor: tc.infoTint,
+      key: "pull",
+      title: t("packs.reveal.cardProgress", {
+        current: pullIndex + 1,
+        total: pullTotal,
+      }),
+      meta: t("packs.summary.cardPull"),
+      icon: Layers,
+      tone: "info",
     },
     {
-      label: "SPD",
-      value: card.speed,
-      color: tc.successText,
-      backgroundColor: tc.successTint,
+      key: "character",
+      title: card.character,
+      meta: t("packs.summary.cardCharacter"),
+      icon: User,
+      tone: "accent",
     },
   ];
 
@@ -1907,14 +1766,8 @@ export function PackSummaryCardSheet({
       surface={sheetSurface}
     >
       <View
-        className="bg-bg"
-        style={{
-          borderTopLeftRadius: RADIUS.xl,
-          borderTopRightRadius: RADIUS.xl,
-          maxHeight: maxSheetHeight,
-          minHeight: Math.min(maxSheetHeight, height * 0.7),
-          overflow: "hidden",
-        }}
+        className="overflow-hidden rounded-t-ds-xl bg-surface"
+        style={{ maxHeight: maxSheetHeight }}
         testID="pack-summary-card-preview-sheet"
       >
         <SheetHeader
@@ -1926,15 +1779,11 @@ export function PackSummaryCardSheet({
         />
 
         <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          contentInset={{ bottom: bottomContentPadding }}
-          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingTop: 18,
-            paddingBottom: 96,
-            gap: 16,
+            paddingTop: 12,
+            gap: 12,
           }}
         >
           <View className="items-center">
@@ -1948,119 +1797,19 @@ export function PackSummaryCardSheet({
             </View>
           </View>
 
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 10,
-            }}
-          >
-            {[
-              {
-                label: t("packs.summary.cardRarity"),
-                value: rarityName,
-                textColor: rarityColor.to,
-                backgroundColor: withAlpha(rarityColor.ring, "22"),
-                borderColor: withAlpha(rarityColor.ring, "66"),
-              },
-              {
-                label: t("packs.summary.cardType"),
-                value: card.type,
-                textColor: tc.primaryStrong,
-                backgroundColor: tc.surface,
-                borderColor: tc.primaryBorder,
-              },
-              {
-                label: t("packs.summary.cardPull"),
-                value: card.isNewForUser
-                  ? t("packs.reveal.newCard")
-                  : t("packs.reveal.duplicate"),
-                textColor: card.isNewForUser ? tc.successText : tc.fgMuted,
-                backgroundColor: card.isNewForUser
-                  ? tc.successTint
-                  : tc.surfaceMuted,
-                borderColor: card.isNewForUser
-                  ? tc.successBorder
-                  : tc.primaryBorder,
-              },
-              {
-                label: t("packs.summary.cardCharacter"),
-                value: card.character,
-                textColor: tc.secondaryText,
-                backgroundColor: tc.secondaryTint,
-                borderColor: tc.secondaryBorder,
-              },
-            ].map((metric) => (
-              <View
-                key={metric.label}
-                className="w-[47.5%] gap-1 rounded-[18px] border px-[14px] py-3"
-                style={{
-                  borderColor: metric.borderColor,
-                  backgroundColor: metric.backgroundColor,
-                }}
-              >
-                <Text className="font-nunito-semibold text-[12px] text-fgMuted">
-                  {metric.label}
-                </Text>
-                <Text
-                  className="font-nunito-extrabold text-[18px]"
-                  numberOfLines={1}
-                  style={{ color: metric.textColor }}
-                >
-                  {metric.value}
-                </Text>
-              </View>
+          <Card flush testID="pack-summary-card-preview-stats">
+            {details.map((detail, detailIndex) => (
+              <ListRow
+                key={detail.key}
+                title={detail.title}
+                meta={detail.meta}
+                icon={detail.icon}
+                iconTone={detail.tone}
+                divider={detailIndex < details.length - 1}
+              />
             ))}
-          </View>
-
-          <View
-            className="gap-4 rounded-[24px] border p-4"
-            style={{
-              backgroundColor: tc.surface,
-              borderColor: tc.primaryBorder,
-            }}
-            testID="pack-summary-card-preview-stats"
-          >
-            <View className="flex-row items-center justify-between gap-3">
-              <Text className="font-nunito-extrabold text-base text-fg">
-                {t("collection.detail.stats")}
-              </Text>
-              <LinearGradient
-                colors={[rarityColor.from, rarityColor.to]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  borderRadius: 999,
-                  paddingHorizontal: 12,
-                  paddingVertical: 7,
-                }}
-              >
-                <Text className="font-nunito-extrabold text-[11px] text-white">
-                  {rarityName.toUpperCase()}
-                </Text>
-              </LinearGradient>
-            </View>
-
-            <View className="flex-row gap-2.5">
-              {stats.map((stat) => (
-                <View
-                  key={stat.label}
-                  className="flex-1 items-center gap-0.5 rounded-[18px] px-2 py-3"
-                  style={{ backgroundColor: stat.backgroundColor }}
-                >
-                  <Text
-                    className="font-nunito-extrabold text-[20px]"
-                    style={{ color: stat.color }}
-                  >
-                    {stat.value}
-                  </Text>
-                  <Text className="font-nunito-bold text-[11px] text-fgMuted">
-                    {stat.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
+          </Card>
+          <View style={{ height: bottomContentPadding }} />
         </ScrollView>
       </View>
     </ModalBottomSheet>
