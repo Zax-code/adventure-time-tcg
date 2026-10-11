@@ -257,14 +257,6 @@
         android:src="@drawable/step_quest_widget_shape_fill" />
 
       <ImageView
-        android:id="@+id/widget_bar_border"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:contentDescription="@null"
-        android:scaleType="fitXY"
-        android:src="@drawable/step_quest_widget_shape_border" />
-
-      <ImageView
         android:id="@+id/widget_bar_fill"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

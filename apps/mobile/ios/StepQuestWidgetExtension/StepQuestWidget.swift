@@ -34,6 +34,7 @@ private struct StepQuestEntry: TimelineEntry {
 private struct StepQuestTokens {
   let fg: Color
   let fgMuted: Color
+  let bg: Color
   let surface: Color
   let surfaceMuted: Color
   let primary: Color
@@ -62,6 +63,7 @@ private struct StepQuestTokens {
   static let candy = StepQuestTokens(
     fg: Color(hex: 0x4A3728),
     fgMuted: Color(hex: 0x6B7280),
+    bg: Color(hex: 0xFFF0F5),
     surface: Color(hex: 0xFFFFFF, alpha: 0.96),
     surfaceMuted: Color(hex: 0xFFFFFF, alpha: 0.9),
     primary: Color(hex: 0xF472B6),
@@ -80,6 +82,7 @@ private struct StepQuestTokens {
   static let ice = StepQuestTokens(
     fg: Color(hex: 0x1F2937),
     fgMuted: Color(hex: 0x6B7280),
+    bg: Color(hex: 0xF0F7FF),
     surface: Color(hex: 0xFFFFFF, alpha: 0.98),
     surfaceMuted: Color(red: 240 / 255, green: 247 / 255, blue: 1, opacity: 0.95),
     primary: Color(hex: 0x60A5FA),
@@ -98,6 +101,7 @@ private struct StepQuestTokens {
   static let nightosphere = StepQuestTokens(
     fg: Color(hex: 0xF0C0C0),
     fgMuted: Color(hex: 0x9CA3AF),
+    bg: Color(hex: 0x0D0010),
     surface: Color(hex: 0x1A0B15),
     surfaceMuted: Color(hex: 0x120813),
     primary: Color(hex: 0xEF4444),
@@ -139,7 +143,6 @@ private struct StepQuestStyle {
   let status: ChipStyle
   let reward: ChipStyle
   let barTrack: Color
-  let barBorder: Color
   let barFill: Color
   let statusIcon: LucideIcon
   let tokens: StepQuestTokens
@@ -161,8 +164,7 @@ private struct StepQuestStyle {
         tile: tile,
         status: status,
         reward: reward,
-        barTrack: t.surfaceMuted,
-        barBorder: t.primaryBorder,
+        barTrack: t.surface,
         barFill: fill,
         statusIcon: icon,
         tokens: t
@@ -180,7 +182,7 @@ private struct StepQuestStyle {
       )
     case "claimed":
       return style(
-        background: t.surface,
+        background: t.bg,
         tile: ChipStyle(background: t.surfaceMuted, border: t.primaryBorder, foreground: t.fgMuted),
         status: ChipStyle(background: t.surface, border: t.primaryBorder, foreground: t.fgMuted),
         fill: t.success,
@@ -196,7 +198,7 @@ private struct StepQuestStyle {
       )
     default:
       return style(
-        background: t.surface,
+        background: t.bg,
         tile: primaryChip,
         status: primaryChip,
         fill: t.primary,
@@ -601,7 +603,6 @@ private struct ProgressBar: View {
       ZStack(alignment: .leading) {
         Capsule(style: .continuous)
           .fill(style.barTrack)
-          .overlay(Capsule(style: .continuous).strokeBorder(style.barBorder, lineWidth: 1))
 
         if progress > 0 {
           Capsule(style: .continuous)

@@ -38,6 +38,7 @@ private enum class WidgetLayout(val layoutRes: Int) {
 private data class WidgetTokens(
   val fg: Int,
   val fgMuted: Int,
+  val bg: Int,
   val surface: Int,
   val surfaceMuted: Int,
   val primary: Int,
@@ -56,6 +57,7 @@ private data class WidgetTokens(
     val CANDY = WidgetTokens(
       fg = 0xFF4A3728.toInt(),
       fgMuted = 0xFF6B7280.toInt(),
+      bg = 0xFFFFF0F5.toInt(),
       surface = 0xF5FFFFFF.toInt(),
       surfaceMuted = 0xE6FFFFFF.toInt(),
       primary = 0xFFF472B6.toInt(),
@@ -74,6 +76,7 @@ private data class WidgetTokens(
     val ICE = WidgetTokens(
       fg = 0xFF1F2937.toInt(),
       fgMuted = 0xFF6B7280.toInt(),
+      bg = 0xFFF0F7FF.toInt(),
       surface = 0xFAFFFFFF.toInt(),
       surfaceMuted = 0xF2F0F7FF.toInt(),
       primary = 0xFF60A5FA.toInt(),
@@ -92,6 +95,7 @@ private data class WidgetTokens(
     val NIGHTOSPHERE = WidgetTokens(
       fg = 0xFFF0C0C0.toInt(),
       fgMuted = 0xFF9CA3AF.toInt(),
+      bg = 0xFF0D0010.toInt(),
       surface = 0xFF1A0B15.toInt(),
       surfaceMuted = 0xFF120813.toInt(),
       primary = 0xFFEF4444.toInt(),
@@ -154,7 +158,7 @@ private data class WidgetStyle(
 
         "claimed" -> WidgetStyle(
           tokens = t,
-          background = t.surface,
+          background = t.bg,
           tile = mutedTile,
           status = mutedChip,
           reward = reward,
@@ -174,7 +178,7 @@ private data class WidgetStyle(
 
         else -> WidgetStyle(
           tokens = t,
-          background = t.surface,
+          background = t.bg,
           tile = primaryChip,
           status = primaryChip,
           reward = reward,
@@ -303,8 +307,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       tint(views, R.id.widget_status_chip_icon, style.status.foreground)
       views.setTextColor(R.id.widget_status_chip_text, style.status.foreground)
 
-      tint(views, R.id.widget_bar_bg, t.surfaceMuted)
-      tint(views, R.id.widget_bar_border, t.primaryBorder)
+      tint(views, R.id.widget_bar_bg, t.surface)
       tint(views, R.id.widget_bar_fill, style.barFill)
 
       views.setTextColor(R.id.widget_steps, t.fg)
