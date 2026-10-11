@@ -1,6 +1,13 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import Swords from "lucide-react-native/icons/swords";
 
-import { SwordsIcon } from "../../components/icons";
+import { Button } from "../../components/ui/button";
+import { IconTile } from "../../components/ui/icon-tile";
+import {
+  getBackdropColor,
+  getElevation,
+  useThemeName,
+} from "../../components/ui/tokens";
 import { useTranslation } from "../../i18n";
 
 interface ResultsScreenProps {
@@ -11,8 +18,11 @@ interface ResultsScreenProps {
   onBack: () => void;
 }
 
+// End-of-match overlay with the Dialog anatomy: backdrop, surface panel,
+// toned icon tile, 20/800 title, body and one Primary action.
 export function ResultsScreen({ phase, winnerId, myUserId, opponentName, onBack }: ResultsScreenProps) {
   const { t } = useTranslation();
+  const themeName = useThemeName();
   if (phase !== "ended") return null;
 
   const isDraw = winnerId == null;
@@ -27,78 +37,37 @@ export function ResultsScreen({ phase, winnerId, myUserId, opponentName, onBack 
     : isWinner
       ? t("pvp.results.youDefeated", { opponent: opponentName })
       : t("pvp.results.opponentWon", { opponent: opponentName });
-  const titleStyle = isDraw
-    ? styles.titleDraw
-    : isWinner
-      ? styles.titleWin
-      : styles.titleLose;
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.content}>
-        <SwordsIcon
-          size={64}
-          color={isDraw ? "#93C5FD" : isWinner ? "#FACC15" : "#9CA3AF"}
+    <View
+      className="absolute inset-0 z-[300] items-center justify-center p-ds-6"
+      style={{ backgroundColor: getBackdropColor(themeName) }}
+    >
+      <View
+        accessibilityViewIsModal
+        className="w-full max-w-[342px] items-center gap-ds-4 rounded-ds-xl bg-surface p-ds-5"
+        style={{ boxShadow: getElevation(themeName, "overlay") }}
+      >
+        <IconTile
+          icon={Swords}
+          size={48}
+          tone={isDraw ? "info" : isWinner ? "secondary" : "danger"}
         />
-        <Text style={[styles.title, titleStyle]}>
-          {t(titleKey)}
-        </Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
-        <Pressable style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backBtnText}>{t("pvp.results.back")}</Text>
-        </Pressable>
+        <View className="items-center gap-[6px]">
+          <Text
+            accessibilityRole="header"
+            className="text-center font-nunito-extrabold text-[20px] leading-[24px] text-fg"
+          >
+            {t(titleKey)}
+          </Text>
+          <Text className="text-center font-nunito text-ds-body text-fgMuted">
+            {subtitle}
+          </Text>
+        </View>
+        <Button onPress={onBack} style={{ alignSelf: "stretch" }}>
+          {t("pvp.results.back")}
+        </Button>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: "rgba(0,0,0,0.85)",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 300,
-  },
-  content: {
-    alignItems: "center",
-    padding: 32,
-  },
-  title: {
-    fontSize: 40,
-    fontFamily: "Nunito_800ExtraBold",
-    marginTop: 16,
-    letterSpacing: 2,
-  },
-  titleWin: {
-    color: "#FACC15",
-  },
-  titleLose: {
-    color: "#9CA3AF",
-  },
-  titleDraw: {
-    color: "#93C5FD",
-  },
-  subtitle: {
-    color: "#D1D5DB",
-    fontSize: 16,
-    marginTop: 8,
-    marginBottom: 32,
-    textAlign: "center",
-  },
-  backBtn: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 999,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-  },
-  backBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Nunito_700Bold",
-  },
-});

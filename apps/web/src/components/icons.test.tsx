@@ -93,7 +93,7 @@ const LIVE_MOBILE_ICONS = [
 ] as const;
 
 describe("web app icons", () => {
-  it("ports every live mobile SVG as a decorative native DOM SVG", () => {
+  it("renders every mobile icon name as a decorative outline SVG", () => {
     expect(LIVE_MOBILE_ICONS).toHaveLength(42);
 
     for (const Icon of LIVE_MOBILE_ICONS) {
@@ -103,30 +103,29 @@ describe("web app icons", () => {
       expect(svg).not.toBeNull();
       expect(svg).toHaveAttribute("aria-hidden", "true");
       expect(svg).toHaveAttribute("focusable", "false");
-      expect(svg?.querySelector("path, circle, rect, ellipse")).not.toBeNull();
+      expect(
+        svg?.querySelector("path, circle, rect, ellipse, line, polyline, polygon"),
+      ).not.toBeNull();
+      expect(svg).toHaveAttribute("stroke-width", "1.75");
       unmount();
     }
   });
 
-  it("namespaces repeated coin gradient ids", () => {
+  it("renders repeated icons without element ids that could collide", () => {
     const { container } = render(
       <>
         <CoinIcon />
         <CoinIcon />
       </>,
     );
-    const ids = [...container.querySelectorAll("[id]")].map((node) => node.id);
 
-    expect(ids).toHaveLength(6);
-    expect(new Set(ids).size).toBe(ids.length);
+    expect(container.querySelectorAll("[id]")).toHaveLength(0);
   });
 
-  it("uses the exact SVG Ionicons search adapter instead of a Unicode glyph", () => {
+  it("draws search as an SVG instead of a Unicode glyph", () => {
     const { container } = render(<SearchIcon />);
 
-    expect(container.querySelector("svg path")).toHaveAttribute(
-      "d",
-      expect.stringContaining("456.69 421.39"),
-    );
+    expect(container.querySelector("svg")).not.toBeNull();
+    expect(container.textContent).toBe("");
   });
 });
