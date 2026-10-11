@@ -51,7 +51,7 @@ export function BottomTabBarFrame({
   }));
 
   useEffect(() => {
-    if (!selectorWidth) {
+    if (!selectorWidth || activeIndex < 0) {
       return;
     }
 
@@ -107,7 +107,7 @@ export function BottomTabBarFrame({
               );
             }}
           >
-            {selectorWidth ? (
+            {selectorWidth && activeIndex >= 0 ? (
               <Animated.View
                 pointerEvents="none"
                 style={[

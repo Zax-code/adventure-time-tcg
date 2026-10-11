@@ -60,10 +60,8 @@ export function BottomTabBar({
     return { route, focused, icon: config.icon, label: t(config.labelKey) };
   }).filter((tab): tab is NonNullable<typeof tab> => tab !== null);
 
-  const activeTabIndex = Math.max(
-    tabs.findIndex((tab) => tab.focused),
-    0,
-  );
+  // -1 on hidden tabs such as Gifts: no item is highlighted.
+  const activeTabIndex = tabs.findIndex((tab) => tab.focused);
   const activeDescriptor = descriptors[state.routes[state.index]?.key];
   const activeTabBarStyle = StyleSheet.flatten(
     activeDescriptor?.options.tabBarStyle,
