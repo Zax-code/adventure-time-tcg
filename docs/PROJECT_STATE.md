@@ -1,8 +1,8 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-10-10 (design system lots 0 to 5; 2026-10-08 object storage migration; audit remediation entries as of 2026-10-07; other sections as of 2026-09-14)
+Last verified: 2026-10-10 (design system lots 0 to 6; 2026-10-08 object storage migration; audit remediation entries as of 2026-10-07; other sections as of 2026-09-14)
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/ds-5-admin`
+Branch: `codex/ds-6-web`
 Verified baseline commit: `36d6b48fc886b45f9a68648554aec9b7050ccb6d` (plus the SDK patch reconciliation recorded below)
 
 ## Purpose and authority
@@ -260,6 +260,7 @@ At verification time the local development and test databases and production wer
 - **IN PROGRESS — 2026-10-10 design system lot 3 (tab screens):** branch `codex/ds-3-tab-screens`, stacked on lot 2. Home, Quests, Rankings, Collection, Gifts, the PvP hub and Packs are rebuilt from the `ui/` primitives (Card, StatTile, Chip, SegmentedControl, Notice, ListRow, StatePanel, Dialog), one commit per screen, with copy, queries, actions and test ids unchanged.
 - **IN PROGRESS — 2026-10-10 design system lot 4 (games and stack screens):** branch `codex/ds-4-games`, stacked on lot 3. A game control kit (`ui/game/`) drives Wordle tiles and keys, the Speed Calculus keypad and HUD, and Daily Numbers tiles; quest game overlays use the Dialog anatomy; the battle board actions are IconButtons; loading and error states use StatePanel; `ThemedExpoButton` is now used only by admin.
 - **IN PROGRESS — 2026-10-10 design system lot 5 (admin):** branch `codex/ds-5-admin`, stacked on lot 4. `apps/mobile/src/components/admin/admin-ui.tsx` exports thin wrappers over the `ui/` primitives with unchanged names and props; `ThemedExpoButton` is removed.
+- **IN PROGRESS — 2026-10-10 design system lot 6 (web parity):** branch `codex/ds-6-web`, stacked on lot 5. `apps/web/src/components/ui.tsx` uses the mobile component names and metrics, `styles.css` adopts the generated scales, the dock matches the mobile tab order with Gifts in the header, and the route manifest and admin nav gained `/admin/leaderboard-integrity` and `/admin/balance`. The website still has no rankings or public profile pages.
 - **IN PROGRESS — 2026-10-07 audit remediation:** findings and lot plan are versioned in `docs/audit/2026-10-07-audit.md` and `docs/audit/2026-10-07-remediation-plan.md`. Open pull requests: #305 (Phoenix hot paths: settled leaderboard periods with `leaderboard_periods.settled_at`, single-query auth, persisted `pvp_matches.current_player_id`, cached Daily Numbers puzzles; also stops the minute tick from superseding audited corrections), #306 (mobile focus-gated polling, in-memory access token, stable step-sync cache), #307 (web session survives transient refresh errors, lighter fonts/CSS), #308 (Daily Numbers ranked sessions as integrity evidence with an admin Integrity review page; single dust table), and this repository-hygiene pull request. Remaining lots: Phoenix 1.5–1.9 and the PvP row lock (after #305), mobile re-renders (after #306), and the remaining cleanup.
 - GitHub issue #256 is PLANNED exploration, not active implementation.
 

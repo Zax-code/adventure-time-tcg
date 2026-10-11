@@ -371,6 +371,27 @@ callers left and is deleted.
 Acceptance: `npm run test:web`, `npm run build:web`; a screenshot pass of the
 web views added to the inventory.
 
+Lot 6 as built:
+
+- `components/ui.tsx`: Button takes `size` (lg/md/sm), and Chip, PageTitle,
+  StatTile (StatCard kept as an alias) and StatePanel exist with the mobile
+  names; LoadingState, ErrorState and EmptyState render StatePanel.
+- `styles.css` ends with a parity block on the generated variables: buttons
+  44 (lg 52, sm 36) with 15/700 labels, flat 24-radius panels with 16 padding,
+  StatTile 12/24/12 type without the decorative ring, Notice radius 16,
+  StatePanel 24 radius with a 48 icon tile, SegmentedControl 44 with a primary
+  active segment, Dialog radius 28 on the backdrop token, inputs 48/16, an
+  8-high progress bar, dock labels 11/700 with a primaryTint active pill.
+  `admin.css` page titles use the h1 to display scale.
+- The dock follows the mobile order (Home, Packs, PvP, Quests, Collection);
+  Gifts is an icon button in the header. Rankings is not in the dock because
+  the website has no rankings page yet (out of scope here).
+- `route-manifest.ts` lists `/admin/leaderboard-integrity`; the admin nav links
+  `/admin/balance`.
+- Not done: the admin pages' own metric, table and editor components in
+  `styles/admin.css` (about 1,900 lines) keep their look apart from page
+  titles; they are a follow-up.
+
 ### Lot 7: icons
 
 - Replace `apps/mobile/src/components/icons.tsx` (43 SVGs, 97 hex) and
