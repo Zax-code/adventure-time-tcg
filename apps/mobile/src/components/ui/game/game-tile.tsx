@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 
-import { GAME_CELL_CLASS, type GameCellState } from "./game-state";
+import { GAME_CELL_CLASS, type GameCellState, glyphCenterStyle } from "./game-state";
 
 export interface GameTileProps {
   letter?: string;
@@ -18,7 +18,10 @@ export function GameTile({ letter, state, testID }: GameTileProps) {
       testID={testID}
       className={`h-[56px] w-[56px] items-center justify-center rounded-ds-md border ${classes.container}`}
     >
-      <Text className={`font-nunito-extrabold text-[24px] leading-[29px] ${classes.text}`}>
+      <Text
+        className={`font-nunito-extrabold text-[24px] leading-[29px] ${classes.text}`}
+        style={glyphCenterStyle(24)}
+      >
         {letter ?? ""}
       </Text>
     </View>

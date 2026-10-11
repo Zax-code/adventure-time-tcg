@@ -85,7 +85,6 @@ const KEY_HIT_SLOP = {
 // Game Key widths on board 04: letters 32, Enter 56, Delete 44, 4 apart.
 const KEY_GAP = 4;
 const LETTER_KEY_UNITS = 32;
-const ENTER_KEY_UNITS = 56;
 const DELETE_KEY_UNITS = 44;
 const KEY_HEIGHT = 40;
 const WORDLE_REMOVE_MS = 160;
@@ -1175,20 +1174,10 @@ function useWordleScreenView() {
     );
   };
 
-  const renderActionKeys = (letterCount: number) => {
+  const renderActionKeys = () => {
     const deleteWidth = keyWidth
       ? Math.round((keyWidth * DELETE_KEY_UNITS) / LETTER_KEY_UNITS)
       : undefined;
-    const enterWidth =
-      keyWidth && deleteWidth
-        ? Math.min(
-            Math.round((keyWidth * ENTER_KEY_UNITS) / LETTER_KEY_UNITS),
-            rowContainerWidth -
-              letterCount * keyWidth -
-              deleteWidth -
-              (letterCount + 1) * KEY_GAP,
-          )
-        : undefined;
     const enterPressed = activeKeySet.has("SUBMIT") && !submitLocked;
     const deletePressed = activeKeySet.has("CLEAR") && !rowClearDisabled;
 
@@ -1210,7 +1199,7 @@ function useWordleScreenView() {
           onPressOut={() => {
             setKeyPressed("SUBMIT", false);
           }}
-          style={keyPressStyle(enterPressed, enterWidth)}
+          style={keyPressStyle(enterPressed, undefined)}
           testID="wordle-key-SUBMIT"
         />
       ),
@@ -1238,6 +1227,8 @@ function useWordleScreenView() {
       ),
     };
   };
+
+  const submitAndDelete = renderActionKeys();
 
   const showStatus =
     message !== null ||
@@ -1446,16 +1437,14 @@ function useWordleScreenView() {
           {keyboardRows.map((row, rowIdx) => {
             const isLastRow = rowIdx === keyboardRows.length - 1;
             const letterKeys = row.split("").map(renderLetterKey);
-            const actionKeys = isLastRow ? renderActionKeys(row.length) : null;
-
             return (
               <View key={row} className="flex-row justify-center gap-ds-1">
-                {actionKeys?.enter}
                 {letterKeys}
-                {actionKeys?.delete}
+                {isLastRow ? submitAndDelete.delete : null}
               </View>
             );
           })}
+          {submitAndDelete.enter}
         </View>
 
         {/* Offscreen, capture-friendly share card. Rendered (not display:none)

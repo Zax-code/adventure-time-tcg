@@ -74,6 +74,7 @@ import {
 import { PageLoadingState } from "../../src/components/loading-state";
 import { Button } from "../../src/components/ui/button";
 import { Card } from "../../src/components/ui/card";
+import { glyphCenterStyle } from "../../src/components/ui/game/game-state";
 import { KeypadKey } from "../../src/components/ui/game/keypad-key";
 import { Notice } from "../../src/components/ui/notice";
 import { SegmentedControl } from "../../src/components/ui/segmented-control";
@@ -452,7 +453,11 @@ const BOARD_NUMBER_TEXT_CLASS = "text-[24px] leading-[29px]";
 function getBoardNumberTextStyle(value: number | string) {
   const length = String(value).length;
   const fontSize = length <= 3 ? 24 : length === 4 ? 19 : length === 5 ? 16 : 13;
-  return { fontSize, lineHeight: Math.round(fontSize * 1.2) };
+  return {
+    fontSize,
+    lineHeight: Math.round(fontSize * 1.2),
+    ...glyphCenterStyle(fontSize),
+  };
 }
 const BOARD_TILE_HEIGHT_CLASS = "h-[56px]";
 
