@@ -140,7 +140,7 @@ export function LoadoutCardDetailsContent({
           style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
         />
 
-        <View className="absolute left-4 top-4 rounded-xl px-3 py-1.5" style={{ backgroundColor: typeColor.dark }}>
+        <View className="absolute left-4 top-4 rounded-ds-sm px-3 py-1.5" style={{ backgroundColor: typeColor.dark }}>
           <Text className="font-nunito-bold text-xs text-white">
             {localizeTypeName(card.type, t)}
           </Text>
@@ -174,21 +174,21 @@ export function LoadoutCardDetailsContent({
         </View>
 
         <View className="flex-row gap-3">
-          <View className="flex-1 rounded-2xl bg-dangerTint p-3">
+          <View className="flex-1 rounded-ds-md bg-dangerTint p-3">
             <SwordsIcon size={18} color="#F43F5E" />
             <Text className="mt-2 font-nunito-extrabold text-lg text-dangerDark">
               {card.attack}
             </Text>
             <Text className="font-nunito text-xs text-dangerDark">{t("pvp.atk")}</Text>
           </View>
-          <View className="flex-1 rounded-2xl bg-infoTint p-3">
+          <View className="flex-1 rounded-ds-md bg-infoTint p-3">
             <Text className="font-nunito-extrabold text-base text-infoDark">DEF</Text>
             <Text className="mt-2 font-nunito-extrabold text-lg text-infoDark">
               {card.defense}
             </Text>
             <Text className="font-nunito text-xs text-infoDark">{t("pvp.def")}</Text>
           </View>
-          <View className="flex-1 rounded-2xl bg-successTint p-3">
+          <View className="flex-1 rounded-ds-md bg-successTint p-3">
             <Text className="font-nunito-extrabold text-base text-successDark">SPD</Text>
             <Text className="mt-2 font-nunito-extrabold text-lg text-successDark">
               {card.speed}
@@ -207,7 +207,7 @@ export function LoadoutCardDetailsContent({
               return (
                 <View
                   key={`${status.name}-${status.duration}-${status.magnitude ?? "none"}`}
-                  className={`rounded-2xl border p-3 ${debuff ? "border-dangerBorder bg-dangerTint" : "border-infoBorder bg-infoTint"}`}
+                  className={`rounded-ds-md border p-3 ${debuff ? "border-dangerBorder bg-dangerTint" : "border-infoBorder bg-infoTint"}`}
                 >
                   <View className="flex-row items-center gap-2">
                     <View className={`rounded-full px-2 py-1 ${debuff ? "bg-dangerBorder" : "bg-infoBorder"}`}>
@@ -237,7 +237,7 @@ export function LoadoutCardDetailsContent({
             return (
               <View
                 key={ability!.key}
-                className={`rounded-2xl border p-3 ${abilityCardClasses[ability!.type]}`}
+                className={`rounded-ds-md border p-3 ${abilityCardClasses[ability!.type]}`}
               >
                 <View className="mb-2 flex-row items-center gap-2">
                   <View className={`rounded-full px-2 py-1 ${abilityLabelClasses[ability!.type]}`}>
@@ -268,7 +268,7 @@ export function LoadoutCardDetailsContent({
           })}
 
           {abilities.length === 0 ? (
-            <View className="rounded-2xl border border-primaryTint bg-primaryBg p-3">
+            <View className="rounded-ds-md border border-primaryBorder bg-primaryBg p-3">
               <Text className="font-nunito text-sm text-fgMuted">{card.description}</Text>
             </View>
           ) : null}

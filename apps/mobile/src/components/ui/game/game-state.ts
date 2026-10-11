@@ -13,3 +13,13 @@ export const GAME_CELL_CLASS: Record<GameCellState, { container: string; text: s
   },
   absent: { container: "bg-muted border-muted", text: "text-white" },
 };
+
+export type KeypadKeyVariant = "default" | "selected" | "operator" | "used" | "action";
+
+export const KEYPAD_KEY_CLASS: Record<KeypadKeyVariant, { container: string; text: string }> = {
+  default: { container: "bg-surface border-primaryBorder", text: "text-fg" },
+  selected: { container: "bg-primary border-primary", text: "text-white" },
+  operator: { container: "bg-primaryTint border-primaryTint", text: "text-primaryText" },
+  used: { container: "bg-surface border-primaryBorder opacity-40", text: "text-fg" },
+  action: { container: "bg-accentTint border-accentBorder", text: "text-accentText" },
+};

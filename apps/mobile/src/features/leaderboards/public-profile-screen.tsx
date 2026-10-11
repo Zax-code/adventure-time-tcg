@@ -180,9 +180,9 @@ export function PublicProfileScreen() {
             {CROWN_FAMILIES.map(({ key, labelKey, icon: Icon }) => (
               <View
                 key={key}
-                className="w-[48.5%] flex-row items-center gap-3 rounded-[22px] border border-primaryBorder bg-surface px-3 py-4"
+                className="w-[48.5%] flex-row items-center gap-3 rounded-ds-lg border border-primaryBorder bg-surface px-3 py-4"
               >
-                <View className="size-11 items-center justify-center rounded-2xl bg-primaryTint">
+                <View className="size-11 items-center justify-center rounded-ds-md bg-primaryTint">
                   <Icon size={25} color={tc.primaryText} />
                 </View>
                 <View className="min-w-0 flex-1">
@@ -215,7 +215,7 @@ export function PublicProfileScreen() {
             {MEDALS.map(({ key, color, tint }) => (
               <View
                 key={key}
-                className="flex-1 items-center gap-2 rounded-[24px] border px-2 py-4"
+                className="flex-1 items-center gap-2 rounded-ds-lg border px-2 py-4"
                 style={{ borderColor: color + "66", backgroundColor: tint }}
               >
                 <MedalIcon size={40} color={color} />

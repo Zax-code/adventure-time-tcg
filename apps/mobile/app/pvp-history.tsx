@@ -7,11 +7,13 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
+import Swords from "lucide-react-native/icons/swords";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RADIUS } from "@adventure-time/theme";
 
 import { apiClient } from "../src/lib/api";
-import { Button } from "../src/components/ui/button";
+import { StatePanel } from "../src/components/ui/state-panel";
+import { StatTile } from "../src/components/ui/stat-tile";
 import { StackHeader } from "../src/components/ui/stack-header";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
@@ -20,12 +22,7 @@ import { useFocusedRefetchInterval } from "../src/hooks/use-focused-refetch-inte
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
-import {
-  ChevronRightIcon,
-  ClockIcon,
-  SwordsIcon,
-  TrophyIcon,
-} from "../src/components/icons";
+import { ChevronRightIcon, ClockIcon } from "../src/components/icons";
 
 const PVP_HISTORY_REFETCH_INTERVAL_MS = 5_000;
 
@@ -90,33 +87,30 @@ export default function PvpHistoryScreen() {
       </View>
 
       <View className="px-4 pt-5">
-        <View className="mb-6 rounded-2xl bg-primaryDark px-4 py-5">
-          <View className="flex-row justify-between">
-            <View className="items-center">
-              <Text className="font-nunito-extrabold text-3xl text-white">
-                {historyQueryData?.stats?.wins ?? 0}
-              </Text>
-              <Text className="font-nunito text-sm text-white/80">{t("pvp.wins")}</Text>
-            </View>
-            <View className="items-center">
-              <Text className="font-nunito-extrabold text-3xl text-white">
-                {historyQueryData?.stats?.losses ?? 0}
-              </Text>
-              <Text className="font-nunito text-sm text-white/80">{t("pvp.losses")}</Text>
-            </View>
-            <View className="items-center">
-              <Text className="font-nunito-extrabold text-3xl text-white">
-                {historyQueryData?.stats?.draws ?? 0}
-              </Text>
-              <Text className="font-nunito text-sm text-white/80">{t("pvp.draws")}</Text>
-            </View>
-            <View className="items-center">
-              <Text className="font-nunito-extrabold text-3xl text-white">
-                {historyQueryData?.stats?.winRate ?? 0}%
-              </Text>
-              <Text className="font-nunito text-sm text-white/80">{t("pvp.winRate")}</Text>
-            </View>
-          </View>
+        <View className="mb-ds-6 flex-row flex-wrap gap-ds-3">
+          <StatTile
+            className="grow basis-[45%]"
+            tone="success"
+            label={t("pvp.wins")}
+            value={historyQueryData?.stats?.wins ?? 0}
+          />
+          <StatTile
+            className="grow basis-[45%]"
+            tone="danger"
+            label={t("pvp.losses")}
+            value={historyQueryData?.stats?.losses ?? 0}
+          />
+          <StatTile
+            className="grow basis-[45%]"
+            label={t("pvp.draws")}
+            value={historyQueryData?.stats?.draws ?? 0}
+          />
+          <StatTile
+            className="grow basis-[45%]"
+            tone="info"
+            label={t("pvp.winRate")}
+            value={`${historyQueryData?.stats?.winRate ?? 0}%`}
+          />
         </View>
 
         {historyQueryIsLoading ? (
@@ -134,22 +128,15 @@ export default function PvpHistoryScreen() {
             }}
           />
         ) : completedMatches.length === 0 ? (
-          <View className="items-center rounded-2xl border border-primaryTint bg-surface p-8">
-            <SwordsIcon size={48} color={tc.primaryBorder} />
-            <Text className="mt-4 font-nunito-bold text-lg text-fg">
-              {t("pvp.noCompletedMatches")}
-            </Text>
-            <Text className="mt-2 text-center font-nunito text-sm text-fgMuted">
-              {t("pvp.noCompletedMatchesHint")}
-            </Text>
-            <Button
-              tone="primary"
-              onPress={() => router.push("/(tabs)/pvp")}
-              style={{ marginTop: 16 }}
-            >
-              {t("pvp.findBattle")}
-            </Button>
-          </View>
+          <StatePanel
+            icon={Swords}
+            title={t("pvp.noCompletedMatches")}
+            body={t("pvp.noCompletedMatchesHint")}
+            action={{
+              label: t("pvp.findBattle"),
+              onPress: () => router.push("/(tabs)/pvp"),
+            }}
+          />
         ) : (
           <View className="gap-3">
             {completedMatches.map((match) => {
@@ -188,7 +175,7 @@ export default function PvpHistoryScreen() {
                 >
                   <View className="flex-row items-center gap-4">
                     <View
-                      className={`h-14 w-14 items-center justify-center rounded-xl ${
+                      className={`h-14 w-14 items-center justify-center rounded-ds-sm ${
                         result.tone === "draw"
                           ? "bg-info"
                           : result.tone === "win"

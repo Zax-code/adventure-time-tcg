@@ -7,6 +7,8 @@ import {
   type ViewStyle,
 } from "react-native";
 
+import { RADIUS } from "@adventure-time/theme";
+
 import { useThemeStore } from "../stores/theme-store";
 import { getBackdropColor, getElevation } from "./ui/tokens";
 import { THEME_COLORS, THEME_VARS } from "../theme/themes";
@@ -62,11 +64,9 @@ export function ThemedModal({
             style={[
               {
                 width: "100%",
-                maxWidth: 440,
+                maxWidth: 342,
                 alignSelf: "center",
-                borderRadius: 28,
-                borderWidth: 1,
-                borderColor: tc.primaryBorder,
+                borderRadius: RADIUS.xl,
                 backgroundColor: tc.surface,
                 padding: 20,
                 boxShadow: getElevation(themeName, "overlay"),

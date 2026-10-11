@@ -82,7 +82,7 @@ export default function PvpSpectateScreen() {
             }}
           />
         ) : (spectateQueryData?.matches.length ?? 0) === 0 ? (
-          <View className="items-center rounded-2xl border border-primaryTint bg-surface p-8">
+          <View className="items-center rounded-ds-md border border-primaryBorder bg-surface p-8">
             <SwordsIcon size={48} color={tc.primaryBorder} />
             <Text className="mt-4 font-nunito-bold text-lg text-fg">
               {t("pvp.noOngoingMatches")}
