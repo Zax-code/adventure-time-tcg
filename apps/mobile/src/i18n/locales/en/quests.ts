@@ -140,6 +140,7 @@ const quests = {
     reward: "Reward",
     enter: "Submit",
     delete: "Delete",
+    clearRow: "Clear",
     helpButton: "How to play",
     helpTitle: "How to play",
     helpBody:
@@ -148,7 +149,7 @@ const quests = {
     helpPresent: "In the word, but in another spot.",
     helpAbsent: "Not in the word.",
     helpKeys:
-      "Press Submit to check a guess. Delete removes the last letter, or tap a letter in the current row to remove it.",
+      "Press Submit to check a guess. Delete removes the last letter, Clear empties the current row, or tap a letter in the current row to remove it.",
     helpClose: "Got it",
     wordLength: "Enter a 5-letter word.",
     wordNotFound: "Word not found in dictionary.",

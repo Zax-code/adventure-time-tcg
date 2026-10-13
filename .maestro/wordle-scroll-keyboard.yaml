@@ -20,6 +20,8 @@ tags:
     id: wordle-key-CLEAR
 - assertVisible:
     id: wordle-key-SUBMIT
+- assertVisible:
+    id: wordle-key-RESET
 
 - tapOn:
     id: wordle-key-Q
@@ -114,6 +116,23 @@ tags:
 # Delete is a backspace: remove each typed letter.
 - tapOn:
     id: wordle-key-CLEAR
+
+# Clear empties the whole current row in one tap, then disables itself.
+- tapOn:
+    id: wordle-key-Q
+- tapOn:
+    id: wordle-key-W
+- tapOn:
+    id: wordle-key-E
+- waitForAnimationToEnd
+- takeScreenshot: wordle-qwe-before-clear
+- tapOn:
+    id: wordle-key-RESET
+- waitForAnimationToEnd
+- takeScreenshot: wordle-row-after-clear
+- assertVisible:
+    id: wordle-key-RESET
+    enabled: false
 
 - tapOn:
     id: wordle-key-A

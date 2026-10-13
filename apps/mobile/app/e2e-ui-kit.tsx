@@ -278,7 +278,10 @@ function UiKit() {
             <GameKey label="T" state="absent" />
             <GameKey label="⌫" kind="delete" accessibilityLabel="Delete" />
           </View>
-          <GameKey label="Submit" kind="enter" />
+          <View className="flex-row gap-ds-2">
+            <GameKey label="Clear" kind="clear" />
+            <GameKey label="Submit" kind="enter" />
+          </View>
           <View className="flex-row flex-wrap gap-ds-2">
             <KeypadKey className="w-[80px]" label="7" />
             <KeypadKey className="w-[80px]" label="50" variant="selected" />
