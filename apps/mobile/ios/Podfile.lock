@@ -18,7 +18,7 @@ PODS:
   - EXJSONUtils (57.0.2)
   - EXManifests (57.0.2):
     - ExpoModulesCore
-  - Expo (57.0.27):
+  - Expo (57.0.28):
     - boost
     - DoubleConversion
     - ExpoModulesCore
@@ -50,17 +50,17 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - expo-dev-client (57.0.19):
+  - expo-dev-client (57.0.20):
     - EXManifests
     - expo-dev-launcher
     - expo-dev-menu
     - expo-dev-menu-interface
     - EXUpdatesInterface
-  - expo-dev-launcher (57.0.20):
+  - expo-dev-launcher (57.0.21):
     - boost
     - DoubleConversion
     - EXManifests
-    - expo-dev-launcher/Main (= 57.0.20)
+    - expo-dev-launcher/Main (= 57.0.21)
     - expo-dev-menu
     - expo-dev-menu-interface
     - ExpoModulesCore
@@ -93,7 +93,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - expo-dev-launcher/Main (57.0.20):
+  - expo-dev-launcher/Main (57.0.21):
     - boost
     - DoubleConversion
     - EXManifests
@@ -130,7 +130,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - expo-dev-launcher/Unsafe (57.0.20):
+  - expo-dev-launcher/Unsafe (57.0.21):
     - boost
     - DoubleConversion
     - EXManifests
@@ -166,10 +166,10 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - expo-dev-menu (57.0.18):
+  - expo-dev-menu (57.0.20):
     - boost
     - DoubleConversion
-    - expo-dev-menu/Main (= 57.0.18)
+    - expo-dev-menu/Main (= 57.0.20)
     - fast_float
     - fmt
     - glog
@@ -196,7 +196,7 @@ PODS:
     - SocketRocket
     - Yoga
   - expo-dev-menu-interface (57.0.0)
-  - expo-dev-menu/Main (57.0.18):
+  - expo-dev-menu/Main (57.0.20):
     - boost
     - DoubleConversion
     - EXManifests
@@ -242,7 +242,7 @@ PODS:
   - ExpoBackgroundTask (57.0.21):
     - ExpoModulesCore
     - ExpoTaskManager
-  - ExpoCrypto (57.0.3):
+  - ExpoCrypto (57.0.4):
     - ExpoModulesCore
   - ExpoDomWebView (57.0.1):
     - ExpoModulesCore
@@ -314,16 +314,16 @@ PODS:
     - RNWorklets
   - ExpoNotifications (57.0.22):
     - ExpoModulesCore
-  - ExpoRouter (57.0.25):
+  - ExpoRouter (57.0.26):
     - ExpoModulesCore
     - RNScreens
   - ExpoSecureStore (57.0.4):
     - ExpoModulesCore
   - ExpoSensors (57.0.3):
     - ExpoModulesCore
-  - ExpoSharing (57.0.22):
+  - ExpoSharing (57.0.23):
     - ExpoModulesCore
-  - ExpoSplashScreen (57.0.9):
+  - ExpoSplashScreen (57.0.10):
     - ExpoModulesCore
   - ExpoSymbols (57.0.3):
     - ExpoModulesCore
@@ -332,7 +332,7 @@ PODS:
   - ExpoTaskManager (57.0.21):
     - ExpoModulesCore
     - UMAppLoader
-  - ExpoUI (57.0.22):
+  - ExpoUI (57.0.23):
     - ExpoModulesCore
     - ExpoModulesWorklets
     - React-RCTFabric
@@ -3521,9 +3521,9 @@ DEPENDENCIES:
   - EXJSONUtils (from `../../../node_modules/expo-json-utils/ios`)
   - EXManifests (from `../../../node_modules/expo-manifests/ios`)
   - Expo (from `../../../node_modules/expo`)
-  - expo-dev-client (from `../../../node_modules/expo-dev-client/ios`)
-  - expo-dev-launcher (from `../../../node_modules/expo-dev-launcher`)
-  - expo-dev-menu (from `../../../node_modules/expo-dev-menu`)
+  - expo-dev-client (from `../node_modules/expo-dev-client/ios`)
+  - expo-dev-launcher (from `../node_modules/expo-dev-client/node_modules/expo-dev-launcher`)
+  - expo-dev-menu (from `../node_modules/expo-dev-client/node_modules/expo-dev-menu`)
   - expo-dev-menu-interface (from `../../../node_modules/expo-dev-menu-interface/ios`)
   - "ExpoAdapterGoogleSignIn (from `../../../node_modules/@react-native-google-signin/google-signin/expo/ios`)"
   - ExpoAppleAuthentication (from `../../../node_modules/expo-apple-authentication/ios`)
@@ -3549,8 +3549,8 @@ DEPENDENCIES:
   - ExpoRouter (from `../../../node_modules/expo-router/ios`)
   - ExpoSecureStore (from `../../../node_modules/expo-secure-store/ios`)
   - ExpoSensors (from `../../../node_modules/expo-sensors/ios`)
-  - ExpoSharing (from `../node_modules/expo-sharing/ios`)
-  - ExpoSplashScreen (from `../../../node_modules/expo-splash-screen/ios`)
+  - ExpoSharing (from `../../../node_modules/expo-sharing/ios`)
+  - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSymbols (from `../../../node_modules/expo-symbols/ios`)
   - ExpoSystemUI (from `../../../node_modules/expo-system-ui/ios`)
   - ExpoTaskManager (from `../node_modules/expo-task-manager/ios`)
@@ -3687,11 +3687,11 @@ EXTERNAL SOURCES:
   Expo:
     :path: "../../../node_modules/expo"
   expo-dev-client:
-    :path: "../../../node_modules/expo-dev-client/ios"
+    :path: "../node_modules/expo-dev-client/ios"
   expo-dev-launcher:
-    :path: "../../../node_modules/expo-dev-launcher"
+    :path: "../node_modules/expo-dev-client/node_modules/expo-dev-launcher"
   expo-dev-menu:
-    :path: "../../../node_modules/expo-dev-menu"
+    :path: "../node_modules/expo-dev-client/node_modules/expo-dev-menu"
   expo-dev-menu-interface:
     :path: "../../../node_modules/expo-dev-menu-interface/ios"
   ExpoAdapterGoogleSignIn:
@@ -3743,9 +3743,9 @@ EXTERNAL SOURCES:
   ExpoSensors:
     :path: "../../../node_modules/expo-sensors/ios"
   ExpoSharing:
-    :path: "../node_modules/expo-sharing/ios"
+    :path: "../../../node_modules/expo-sharing/ios"
   ExpoSplashScreen:
-    :path: "../../../node_modules/expo-splash-screen/ios"
+    :path: "../node_modules/expo-splash-screen/ios"
   ExpoSymbols:
     :path: "../../../node_modules/expo-symbols/ios"
   ExpoSystemUI:
@@ -3953,16 +3953,16 @@ SPEC CHECKSUMS:
   EXConstants: b4e9051547ee9b8337155565fbdbe66036865120
   EXJSONUtils: a49e3ef80dff762108e5690c7b2f360675dcf7f6
   EXManifests: 4c53b2602e03ccf44d0b4ff9c5d655b2c5acba3f
-  Expo: 47cb6a37c64f5eb04b7a92cadb7dbffe7a471043
-  expo-dev-client: 9cd43bb07fb625c51b436d4cb23be2fc932f8d26
-  expo-dev-launcher: 10c3b578e47ecba7c0b9fcf41c520116a8e1335d
-  expo-dev-menu: c69f22baa693753659042911482171670f60da33
+  Expo: 52ab64f3df2b3f539ae34756c621381e86c5849a
+  expo-dev-client: 2a2fe5cdd576b29c097356cb922d2403abe6df8d
+  expo-dev-launcher: 0d9d23f4b2ab227605fb1ac66c60392688e11311
+  expo-dev-menu: c229a8cf7022fbf7627aae99b16d385159ebf014
   expo-dev-menu-interface: 7a59e803916fbfd1b96c75ff91ea8dddac7e722f
   ExpoAdapterGoogleSignIn: cfc75819d7d2490488250ce5634f57f92c60a2b8
   ExpoAppleAuthentication: 16c2955d33ec7315e5a99d17fb5d62ed33cdb5b9
   ExpoAsset: b3999ffb3d4049b6c870708c60ea2209ace9f170
   ExpoBackgroundTask: 855f1e9d278e9396a8b837f68fe064d5636f5eae
-  ExpoCrypto: 3ba3d7fcf244a3ae8cb888c5759e0db70ecc236d
+  ExpoCrypto: 20c5dfad9f2c0b7831591fb75397d0c248cf7f8b
   ExpoDomWebView: beaec034e51bd028428b98bb1f2633ab79c6d095
   ExpoFileSystem: 28778f942725170102f7c6cf4dee05a526ddacd0
   ExpoFont: f8198a952ba2ff53c9b393b5269ea435f232cfc3
@@ -3979,15 +3979,15 @@ SPEC CHECKSUMS:
   ExpoModulesWorklets: 986cf72c18400743869b4642d243115f831e404d
   ExpoModulesWorkletsAdapter: 84a0ab8926ddfe980d64d7cf13c64cce4f67c592
   ExpoNotifications: b91c7c9e21df9b9649b382d8fbf297262c6c4c76
-  ExpoRouter: 72006aae54ac9e2b17b7211214fe3c7c29a39e97
+  ExpoRouter: 28d168cab7e3036b34eeafcb6c21ddf578f51650
   ExpoSecureStore: ff1fd5e073957417ba8f9dec0bebcbd55a60e747
   ExpoSensors: a2f4f23f3648c1124923be5356a0d1737d87bde6
-  ExpoSharing: 5cc46810cfba71e331f649d947660213082094c1
-  ExpoSplashScreen: e771da4f26d550ea4fd067d8fb942657e47bb846
+  ExpoSharing: a717847b4fff66f008f884329f1af9fe74c7f4ce
+  ExpoSplashScreen: 856060f5724dc4fca4d69a2d18a161e3baa37019
   ExpoSymbols: 37a3a6e5847edb08b83a5ee04d3b46525e205f00
   ExpoSystemUI: 05ee8d4aaba1b6af330f3621e19b39ff9f21e718
   ExpoTaskManager: ede265f5b4a6e075b422eb4d45c8cb393b0dc465
-  ExpoUI: 04f60b7b9789e2cdc337747546b892e3dd8c17d6
+  ExpoUI: 5279039354f0c6fbae840b61153f78f9224cd1be
   ExpoWebBrowser: a4d7c382116fbe33c1ec7f60293f02b7e97042e4
   EXUpdatesInterface: 4c96533f11c8cefe879bd506564cc2d537f56804
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6
