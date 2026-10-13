@@ -142,6 +142,7 @@ const quests = {
     reward: "Récompense",
     enter: "Valider",
     delete: "Effacer",
+    clearRow: "Tout effacer",
     helpButton: "Comment jouer",
     helpTitle: "Comment jouer",
     helpBody:
@@ -150,7 +151,7 @@ const quests = {
     helpPresent: "Dans le mot, mais à une autre place.",
     helpAbsent: "Absente du mot.",
     helpKeys:
-      "Appuie sur Valider pour vérifier un essai. Effacer retire la dernière lettre ; tu peux aussi toucher une lettre de la ligne en cours pour la retirer.",
+      "Appuie sur Valider pour vérifier un essai. Effacer retire la dernière lettre, Tout effacer vide la ligne en cours ; tu peux aussi toucher une lettre de la ligne en cours pour la retirer.",
     helpClose: "Compris",
     wordLength: "Entre un mot de 5 lettres.",
     wordNotFound: "Mot introuvable dans le dictionnaire.",

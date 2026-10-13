@@ -8729,7 +8729,8 @@
               "content": "Every control below is a reusable component with tone/size variants. Screens in board 04 are composed only from these. Names map 1:1 to the proposed shared components in apps/mobile/src/components and apps/web/src/components/ui.tsx.",
               "lineHeight": 1.5,
               "fontFamily": "$font",
-              "fontSize": 15
+              "fontSize": 15,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -8761,7 +8762,8 @@
               "content": "One component, 4 tones x 3 sizes. Pill radius everywhere (replaces the 9 button specs found in the inventory). Primary = main action, one per section. Secondary (yellow) only for coins/rewards. Ghost = cancel/back/low emphasis. Danger = destructive. Label 15/700 (sm: 13/700). Heights 52 / 44 / 36.",
               "lineHeight": 1.5,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -9161,7 +9163,8 @@
                   "fill": "#7A6A5E",
                   "content": "Icon Button: 40 circle, 20 icon, surface + primaryBorder. Used for back, close, header actions. Replaces the 4 back-button styles.",
                   "fontFamily": "$font",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -9195,7 +9198,8 @@
               "content": "One pill shape, 28 high, 12/700 label, optional 14 icon. Tone carries meaning: neutral = metadata, primary = selected/filter, secondary = coins & rewards, accent = rarity & admin, success = ready/live, info = system/stat, danger = errors/penalties. Never uppercase (removes ARCHIVE / LIVE · PROVISIONAL style).",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -9412,7 +9416,8 @@
               "content": "Single shape for every mode switch (Daily/Weekly/History, This week/Last week, Owned/Not owned, Received/Sent/All, French/English, Daily quest/Training, Abilities/Assignments, Sign in/Register). Container: surface, 1px primaryBorder, pill, 4 padding, 44 high. Active segment: primary fill, white label. Counts go inside the label (\"Owned · 105\"), never as a second line.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -9571,7 +9576,8 @@
               "content": "Icon Tile: 40 (sm 32) rounded-16 tinted square with a 20 icon; tone matches the feature. Stat Tile: one layout for Home, Gifts, PvP hub, Match History, Admin, Card Details and Profile. Label 12/700 on top, value 24/800 below, optional caption 12/400. Neutral tile = surface + primaryBorder; tinted tiles use the tone's tint and text colors.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -9709,7 +9715,8 @@
                       "fill": "$fgMuted",
                       "content": "of 105 collected",
                       "fontFamily": "$font",
-                      "fontSize": 12
+                      "fontSize": 12,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -9831,7 +9838,8 @@
               "content": "Card: the only content container. surface fill, radius 24, padding 16, 1px primaryBorder, no shadow (shadow is reserved for floating chrome: tab bar, dialog, sheet). Tinted cards (reward, warning) swap fill/stroke to a tone tint/border but keep the same radius and padding. Section Header: 22/800 title, optional 13 subtitle, optional trailing ghost-sm button. Sits in the page, never inside a card. Exception: collectible cards (card art with its rarity outline) are never wrapped in a Card or a captioned tile; the collectible itself is the grid item, as in today's Collection.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -9883,7 +9891,8 @@
                           "content": "Body copy 15/400 fgMuted. Cards hold one idea: a status, a list, or a form group.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -9947,7 +9956,8 @@
                       "content": "Start, continue, or collect a reward.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -10000,7 +10010,8 @@
               "content": "Replaces AdminNotice, ToastBanner, the pink rule banners in sheets and the mint 'Nothing waiting' pills. Icon Tile sm (32) + 15/800 title + 13/400 body, radius 16, tone tint fill + tone border. Tones: info (guidance), warning (limits reached, uses secondary), success (ready/live), danger (errors).",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -10070,7 +10081,8 @@
                           "content": "Lock in the card basics first, then set the role and rarity.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -10171,7 +10183,8 @@
               "content": "List Row: Icon Tile + title 15/700 + meta 13 + trailing (chevron, chip or value). 56 min height, 12 vertical padding, hairline primaryBorder between rows, used inside a Card. Input: 48 high, radius 16, 1px primaryBorder, 15 text, optional leading icon (search). Progress: 8 high pill track primaryTint, fill primary (success when complete).",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -10247,7 +10260,8 @@
                               "content": "Two languages · 0 / 2 done",
                               "lineHeight": 1.45,
                               "fontFamily": "$font",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -10377,7 +10391,8 @@
                           "fill": "$muted",
                           "content": "Search by name or character",
                           "fontFamily": "$font",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -10481,7 +10496,8 @@
               "content": "Three headers only. App Header (tab screens): coin Chip left, Icon Buttons right, 56 high, transparent; below it a Page Title block (28/800 fg, left aligned, 15 subtitle) replaces centered pink titles, hero cards and icon-titles. Stack Header (pushed screens): back Icon Button, centered 17/800 title, optional trailing Icon Button, 56 high, same transparent background (no white band). Sheet Header (route and inline sheets): 40x4 handle, centered 22/800 title, 13 subtitle, hairline divider.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -10611,7 +10627,8 @@
                       "content": "Your challenges, progress, and rewards in one place.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -10746,7 +10763,8 @@
                       "lineHeight": 1.45,
                       "textAlign": "center",
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -10782,7 +10800,8 @@
               "content": "Floating pill dock, 68 high, surface fill, shadow, 6 items. Label raised from 9 to 11/700. Active item: primaryTint pill + primaryText icon and label; inactive: fgMuted. Same component on web (dock) with the same 6 members and order: Home, Packs, PvP, Quests, Collection, Rankings. Gifts stays a header action on both platforms.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -11051,7 +11070,8 @@
               "content": "Dialog: centered, 342 wide, radius 28, surface, 20 padding, title 20/800 centered, body 15 fgMuted, actions in a row (Ghost + Primary) or a single full-width Primary. One backdrop color token for every overlay. State Panel: one layout for empty, error and loading (Gifts, Match history, Spectate, Run history, Admin empty states): Icon Tile 48, title 17/800, body 15, optional Primary-sm action.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -11130,7 +11150,8 @@
                           "lineHeight": 1.45,
                           "textAlign": "center",
                           "fontFamily": "$font",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -11228,7 +11249,8 @@
                       "lineHeight": 1.45,
                       "textAlign": "center",
                       "fontFamily": "$font",
-                      "fontSize": 15
+                      "fontSize": 15,
+                      "fontWeight": "normal"
                     },
                     {
                       "id": "gfQk5",
@@ -11309,7 +11331,8 @@
               "content": "The four quest games and the battle board share one control kit. Game Tile: 56 square, radius 16, 24/800 letter; states empty / filled / correct (success) / present (secondary) / absent (muted). Game Key: 32x44 radius 12 surface key with 15/800 label, same four states; Delete is 44 wide; Submit is a full-width primary key under the keyboard. Tile letters and digits get a 0.1em downward nudge on iOS to sit on the optical center. Keypad Key: 56 high, radius 16, 24/800, for Daily Numbers numbers, operators and the Speed Calculus pad; a selected key uses primary. Game HUD: a Card with timer / counter Stat Tiles, a Progress bar and a Ghost-sm Pause. Results use the shared Dialog.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -11407,7 +11430,8 @@
                   "fill": "#7A6A5E",
                   "content": "Game Tile states: empty · filled · correct · present · absent",
                   "fontFamily": "$font",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -11440,7 +11464,7 @@
                       "fill": "$fg",
                       "content": "Q",
                       "fontFamily": "$font",
-                      "fontSize": 15,
+                      "fontSize": 18,
                       "fontWeight": "800"
                     }
                   ]
@@ -11543,7 +11567,8 @@
                   "fill": "#7A6A5E",
                   "content": "Game Key: letters 32 wide, Delete 44, Submit full width under the keyboard; same states as tiles",
                   "fontFamily": "$font",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -11644,7 +11669,8 @@
                   "fill": "#7A6A5E",
                   "content": "Keypad Key: default · selected · operator · used (40%) · action",
                   "fontFamily": "$font",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -11784,7 +11810,8 @@
                   "content": "Game HUD: left stat, right stat, Ghost-sm Pause, Progress. Replaces the hand-built Speed Calculus panel header and the Wordle 'Attempts left 6 / 6' line (left = attempts, right = language, no pause).",
                   "lineHeight": 1.45,
                   "fontFamily": "$font",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -11843,7 +11870,8 @@
               "content": "Tokens are the existing 39 colors of packages/theme (candy, ice, nightosphere) made the single source for mobile and web, plus the scales the code is missing today: radius, spacing, type, control heights, shadow and backdrop. Every value in this file is a $variable with a theme axis; the three swatch columns below are the same frame rendered under each theme.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 15
+              "fontSize": 15,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -11875,7 +11903,8 @@
               "content": "Semantic groups, each with base / dark / text / tint / border. primary = brand & selection, secondary = coins & rewards (never a second CTA), accent = rarity & admin, success = ready/live, info = system & stats, danger = destructive & penalties. Drop the dead pinkLight…lavender tokens and the per-file card/rarity palettes in src/components/theme.ts in favor of these.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -16185,7 +16214,8 @@
               "content": "Nunito only, weights 400 / 600 / 700 / 800 (web currently asks for 900, which is not loaded). Eight roles replace the 30+ sizes in use. Line height 1.2 for titles, 1.45 for body. Overline is the only uppercase style and only for eyebrows (TODAY'S ADVENTURE).",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -16236,7 +16266,8 @@
                           "fill": "#7A6A5E",
                           "content": "34 / 800",
                           "fontFamily": "$font",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16268,7 +16299,8 @@
                       "content": "Login title, hero numbers",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -16313,7 +16345,8 @@
                           "fill": "#7A6A5E",
                           "content": "28 / 800",
                           "fontFamily": "$font",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16345,7 +16378,8 @@
                       "content": "Page Title on tab screens, admin hero",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -16390,7 +16424,8 @@
                           "fill": "#7A6A5E",
                           "content": "22 / 800",
                           "fontFamily": "$font",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16422,7 +16457,8 @@
                       "content": "Section Header, sheet & dialog titles",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -16467,7 +16503,8 @@
                           "fill": "#7A6A5E",
                           "content": "17 / 800",
                           "fontFamily": "$font",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16499,7 +16536,8 @@
                       "content": "Card titles, stack header title, list emphasis",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -16544,7 +16582,8 @@
                           "fill": "#7A6A5E",
                           "content": "15 / 400",
                           "fontFamily": "$font",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16561,7 +16600,8 @@
                           "fill": "#4A3728",
                           "content": "Your daily challenges, progress, and rewards.",
                           "fontFamily": "$font",
-                          "fontSize": 15
+                          "fontSize": 15,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16575,7 +16615,8 @@
                       "content": "Paragraphs, button labels (700), inputs",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -16620,7 +16661,8 @@
                           "fill": "#7A6A5E",
                           "content": "13 / 400",
                           "fontFamily": "$font",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16637,7 +16679,8 @@
                           "fill": "#4A3728",
                           "content": "Two languages · 0 / 2 done",
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16651,7 +16694,8 @@
                       "content": "Meta, notes, segment labels (700)",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -16696,7 +16740,8 @@
                           "fill": "#7A6A5E",
                           "content": "12 / 700",
                           "fontFamily": "$font",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16728,7 +16773,8 @@
                       "content": "Stat labels, chips, captions",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -16773,7 +16819,8 @@
                           "fill": "#7A6A5E",
                           "content": "11 / 700",
                           "fontFamily": "$font",
-                          "fontSize": 12
+                          "fontSize": 12,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16806,7 +16853,8 @@
                       "content": "Eyebrows and tab labels; letter-spacing 1",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -16842,7 +16890,8 @@
               "content": "Five radii instead of ~20: sm 12 (swatches, keys), md 16 (inputs, tiles, notices, icon tiles), lg 24 (cards), xl 28 (sheets, dialogs, panels), pill (buttons, chips, segmented, tab bar). Spacing on a 4-point scale; screen gutter 16, card padding 16, gap between cards 12, between sections 24. Control heights 52 / 44 / 36; icon buttons 40; inputs 48; tab bar 68; headers 56.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -17380,7 +17429,8 @@
               "content": "Replace the 43 hand-coded SVGs (97 raw hex values, not theme-aware) with one outline set at 20 / 24 (lucide-style, 1.75 stroke), colored only by tone text tokens. Feature icons map 1:1: Home house, Packs package, PvP swords, Quests scroll-text, Collection layers, Rankings trophy, Gifts gift, Admin shield, Settings settings, Wordle grid-3x3, Daily Numbers hash, Speed Calculus timer, Perfect Timing clock, Steps footprints, Coins coins, Dust sparkles, Crowns crown.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -18221,7 +18271,8 @@
               "content": "Source: the 50 iOS captures in docs/design/view-inventory.pen (main @ a404cfa) plus the shared component code (apps/mobile/src/components, apps/web/src/components/ui.tsx, apps/web/src/styles.css, packages/theme). Each finding names where it shows up and which component in board 02 replaces it. Thumbnails are the real captures.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 15
+              "fontSize": 15,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -18325,7 +18376,8 @@
                           "content": "Home has no title (coins only). Collection: centered pink 30. Quests: left brown 28. Rankings: left brown + trophy icon. PvP and Gifts: hero card with icon tile and subtitle. Loadouts: left pink 36 + sword icon on a white band. Spectate: indigo title. Match history: pink 28 + subtitle.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -18693,7 +18745,8 @@
                           "content": "Quest screens: pink-outlined rounded square. Loadouts / History / Spectate: bare grey chevron on a white band. Public profile: grey filled circle. Perfect Timing: same button but the whole header sits 50px lower than Speed Calculus.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -18987,7 +19040,8 @@
                           "content": "Pill gradient (Claim!), yellow pill (Go to settings), dark-magenta rounded-12 rect (Start Daily Wordle), flat pink rect (Start, Perfect Timing), yellow rect (Open training mode), outline rect (Submit result), radius-22 58-high auth CTA, full-width red/pink bars (Save card / Archive card), radius-16 13/800 AdminButton, 48 circles in battle.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -19355,7 +19409,8 @@
                           "content": "Rankings stacks two different ones (filled pill, then plain text tabs). Collection uses three bordered cards with counts. Gifts uses tiles with subtitles. Wordle: tinted outline buttons in a card. Perfect Timing: text tabs in a white pill. Admin: dark-pink radius-16. Login: pink pills.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -19723,7 +19778,8 @@
                           "content": "Home: big value on top in yellow/purple tiles. Gifts: label on top, three tints. PvP hub: bare numbers. Match history: dark-pink banner with white numbers. Admin: value + UPPERCASE label, radius 22. Card Details: label top, four tints. Profile: bordered white tiles with icon.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -20091,7 +20147,8 @@
                           "content": "Mobile mixes rounded-xl/2xl/3xl, [16]…[34] with and without px, and inline 8…42. Cards alone use 16, 22, 24, 28, 30, 32 and 34. Web defines four radius variables but references them 4 times against ~200 hardcoded values.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -20385,7 +20442,8 @@
                           "content": "Six hero-title specs between 24 and 36. Over 30 distinct text sizes on mobile, tab labels at 9px, body copy at 13/14/15. Some cards use letter-spaced uppercase eyebrows (TODAY'S ADVENTURE, RULES, TRAINING MODE), others don't. Web requests weight 900 which isn't loaded.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -20679,7 +20737,8 @@
                           "content": "Yellow = coins, reward cards, warnings (Showcase is full), Legendary, the ARCHIVE pill and the training card border. Purple = admin, Epic, theme tile, Daily Numbers target, Spectate title. Dark magenta = quest CTA, history banner, admin segmented. Mint = ready states, training CTA, success notice and card detail tiles.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -21010,7 +21069,8 @@
                           "content": "Route sheets: handle + centered title + subtitle + divider. Dust guide: yellow header with icon tile, left aligned. Quest launch / order sheets: centered title, no divider. Dialogs: Stats/Sort (white, pink gradient Close), Time's up (icon + one CTA), PvP modals (landscape, X button). Backdrops: rgba(0,0,0,.4), rgba(6,1,10,.84), primaryStrong@33%, web 68%.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -21378,7 +21438,8 @@
                           "content": "ARCHIVE and LIVE · PROVISIONAL are uppercase; Fresh, Epic (15), 1 ready, Non-tradable, HASTE are not. Heights range 20 to 36, fonts 10 to 16, some with borders, some without.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -21709,7 +21770,8 @@
                           "content": "Gifts: icon tile + title + body in a card. Speed Calculus run history: plain sentence. Match history and Spectate: nothing below the list. Admin users: mint notice with icon.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22003,7 +22065,8 @@
                           "content": "Web theme.css hand-copies 116 hex values from packages/theme. Modal radius is 32 on web, 28 in ThemedModal, 30 in AdminModal. The web dock has Gifts and no Rankings in a different order from the mobile tab bar. 43 hand-coded SVG icons carry 97 raw hex values and ignore the theme.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 14
+                          "fontSize": 14,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22186,7 +22249,8 @@
               "content": "How the components combine. These rules are what make 69 views feel like one app: which surface a view lives on, how a screen is stacked, what each color tone is allowed to mean, and how buttons rank.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 15
+              "fontSize": 15,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -22218,7 +22282,8 @@
               "content": "Six surfaces cover all 23 overlays and every screen. A view picks one; the surface decides its header, radius, dismissal and backdrop.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -22414,7 +22479,8 @@
                           "content": "App Header + Tab Bar, bg fill",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22434,7 +22500,8 @@
                           "content": "Page Title (h1) in content",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22454,7 +22521,8 @@
                           "content": "—",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22474,7 +22542,8 @@
                           "content": "none",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22494,7 +22563,8 @@
                           "content": "Home, Packs, Quests, PvP, Rankings, Collection, Gifts (via header), Admin tabs",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -22553,7 +22623,8 @@
                           "content": "Stack Header, bg fill",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22573,7 +22644,8 @@
                           "content": "Back + centered h3 + optional trailing",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22593,7 +22665,8 @@
                           "content": "Back",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22613,7 +22686,8 @@
                           "content": "none",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22633,7 +22707,8 @@
                           "content": "Daily Numbers play/history, Speed Calculus (+training), Wordle, Perfect Timing, Loadouts, Match history, Spectate list, Public profile",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -22692,7 +22767,8 @@
                           "content": "transparentModal + ModalSheetRoute",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22712,7 +22788,8 @@
                           "content": "Sheet Header (handle, h2, subtitle)",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22732,7 +22809,8 @@
                           "content": "Drag, scrim",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22752,7 +22830,8 @@
                           "content": "xl 28 top / $backdrop",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22772,7 +22851,8 @@
                           "content": "Settings, Card detail, PvP card details, PvP mechanics, Combat reference, Leaderboard help, Admin card / ability / user editor",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -22831,7 +22911,8 @@
                           "content": "ModalBottomSheet in screen",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22851,7 +22932,8 @@
                           "content": "Sheet Header (same component)",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22871,7 +22953,8 @@
                           "content": "Drag, scrim",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22891,7 +22974,8 @@
                           "content": "xl 28 top / $backdrop",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22911,7 +22995,8 @@
                           "content": "Dust guide, Quest launch, Quest order, Pack preview",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -22970,7 +23055,8 @@
                           "content": "Centered 342 card",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -22990,7 +23076,8 @@
                           "content": "Icon Tile + h3 title",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23010,7 +23097,8 @@
                           "content": "Actions only",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23030,7 +23118,8 @@
                           "content": "xl 28 / $backdrop",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23050,7 +23139,8 @@
                           "content": "Collection stats, Sort by, Time's up, confirmations",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -23106,7 +23196,8 @@
                           "content": "Full screen, own chrome",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23126,7 +23217,8 @@
                           "content": "Compact top bar: energy chip, name, Icon Buttons",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23146,7 +23238,8 @@
                           "content": "Explicit close/back",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23166,7 +23259,8 @@
                           "content": "none",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23186,7 +23280,8 @@
                           "content": "PvP match / replay / spectate (landscape), Pack opening ready / reveal / summary, Speed Calculus run panel, Combat log, Action & Card info panels (landscape dialogs)",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -23224,7 +23319,8 @@
               "content": "Tab page, top to bottom. Pushed screens swap App Header + Page Title for a Stack Header; everything below is identical.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -23363,7 +23459,8 @@
                           "content": "safe area + 56",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23383,7 +23480,8 @@
                           "content": "Coins Chip left, up to three Icon Buttons right. Transparent over bg. Never contains a title.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -23442,7 +23540,8 @@
                           "content": "h1 28 + 15 subtitle, 16 gutter",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23462,7 +23561,8 @@
                           "content": "Left aligned, fg color. One per screen. Optional trailing Ghost-sm action aligned to the title baseline.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -23521,7 +23621,8 @@
                           "content": "gutter 16, section gap 24, card gap 12",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23541,7 +23642,8 @@
                           "content": "Cards (lg 24) stack vertically; two Stat Tiles per row with 12 gap; Section Header before each list. Never a card inside a card.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -23600,7 +23702,8 @@
                           "content": "Button lg 52, full width",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23620,7 +23723,8 @@
                           "content": "Lives in the first card (Claim, Start, Create). One per screen; others are md Ghost or List Row chevrons.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -23676,7 +23780,8 @@
                           "content": "68 + 16 inset + safe area",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -23696,7 +23801,8 @@
                           "content": "Floating pill, 6 members. Content scroll ends with 100 bottom padding so the last card clears it.",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -23734,7 +23840,8 @@
               "content": "Tone = fill tint + border + text color from one semantic group. A screen uses primary plus at most two other tones.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -23790,7 +23897,8 @@
                       "content": "Never: Status meaning (ready, error)",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 11
+                      "fontSize": 11,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -23841,7 +23949,8 @@
                       "content": "Never: Second CTA next to a primary one; archive or history labels",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 11
+                      "fontSize": 11,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -23892,7 +24001,8 @@
                       "content": "Never: Page titles, generic highlights",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 11
+                      "fontSize": 11,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -23943,7 +24053,8 @@
                       "content": "Never: Decorative tints on neutral cards",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 11
+                      "fontSize": 11,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -23994,7 +24105,8 @@
                       "content": "Never: Titles (the indigo Spectate title)",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 11
+                      "fontSize": 11,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -24045,7 +24157,8 @@
                       "content": "Never: Any non-destructive emphasis",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 11
+                      "fontSize": 11,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -24081,7 +24194,8 @@
               "content": "Fixed assignments so a color always points at the same thing across Collection, Packs, PvP, Rankings and Admin.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -24566,7 +24680,8 @@
                           "content": "Primary lg / md",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24586,7 +24701,8 @@
                           "content": "The one thing to do on this screen or in this dialog (Claim, Start run, Create, Save)",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24606,7 +24722,8 @@
                           "content": "Full width in the lead card; right side of dialog actions; bottom bar of editors",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -24665,7 +24782,8 @@
                           "content": "Secondary md",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24685,7 +24803,8 @@
                           "content": "Coin or reward transactions only (Open pack · 150, Craft · −500)",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24705,7 +24824,8 @@
                           "content": "Inline where the price is shown, never beside a Primary",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -24764,7 +24884,8 @@
                           "content": "Ghost md / sm",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24784,7 +24905,8 @@
                           "content": "Cancel, Back, Edit order, Reset, See all, filters",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24804,7 +24926,8 @@
                           "content": "Left of Primary in action rows; trailing slot of Section Header (sm)",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -24863,7 +24986,8 @@
                           "content": "Danger md",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24883,7 +25007,8 @@
                           "content": "Archive, Delete, Concede, Remove",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24903,7 +25028,8 @@
                           "content": "Separated from Primary by a Ghost; always confirmed by a Dialog",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -24959,7 +25085,8 @@
                           "content": "Icon Button",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24979,7 +25106,8 @@
                           "content": "Navigation and header actions only",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -24999,7 +25127,8 @@
                           "content": "Header slots; never as a form action",
                           "lineHeight": 1.45,
                           "fontFamily": "$font",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -25062,7 +25191,8 @@
               "content": "Left: today's iOS capture. Right: the same view rebuilt only from board 02 components and board 03 rules, same content and features. Nothing is removed from the product; only the chrome, hierarchy and controls are unified. Candy theme shown; switch the screen frame's theme to ice or nightosphere to preview the others.",
               "lineHeight": 1.45,
               "fontFamily": "$font",
-              "fontSize": 15
+              "fontSize": 15,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -25107,7 +25237,8 @@
                       "content": "Notification prompt becomes a Notice with inline actions; Reward and Collection progress become Cards with Stat Tiles; Quick actions are List Rows. One Primary (Claim).",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -25400,7 +25531,8 @@
                                               "fill": "$fgMuted",
                                               "content": "Claim 50 coins!",
                                               "fontFamily": "$font",
-                                              "fontSize": 15
+                                              "fontSize": 15,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -25796,7 +25928,8 @@
                       "content": "Page Title replaces the oversized hero title; the dark-magenta CTA becomes the Primary button inside the lead card; quest list uses List Rows with Progress; status chips keep sentence case.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -26034,7 +26167,8 @@
                                               "fill": "$fgMuted",
                                               "content": "/ 8 quests finished today",
                                               "fontFamily": "$font",
-                                              "fontSize": 15
+                                              "fontSize": 15,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -26388,7 +26522,8 @@
                       "content": "The capture has no accepted results, so the first After mirrors that empty state (State Panel instead of the empty gap). The second After shows the same screen with standings, since that is the state most players see; no capture of it exists yet. Both: two Segmented Controls replace the two stacked switch styles, family picker becomes Chips, help link is a Ghost button.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -26729,7 +26864,8 @@
                                           "content": "Results update as accepted games arrive. Closes in 1d 16h 9m.",
                                           "lineHeight": 1.45,
                                           "fontFamily": "$font",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -27137,7 +27273,8 @@
                                           "content": "Results update as accepted games arrive. Closes in 1d 16h 9m.",
                                           "lineHeight": 1.45,
                                           "fontFamily": "$font",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -27224,7 +27361,8 @@
                                               "fill": "$fgMuted",
                                               "content": "4 crowns",
                                               "fontFamily": "$font",
-                                              "fontSize": 13
+                                              "fontSize": 13,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -27308,7 +27446,8 @@
                                               "fill": "$fgMuted",
                                               "content": "4 crowns",
                                               "fontFamily": "$font",
-                                              "fontSize": 13
+                                              "fontSize": 13,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -27389,7 +27528,8 @@
                                               "fill": "$fgMuted",
                                               "content": "You · 5 crowns",
                                               "fontFamily": "$font",
-                                              "fontSize": 13
+                                              "fontSize": 13,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -27533,7 +27673,8 @@
                       "content": "Centered pink title becomes the Page Title; dust and stats pills become Stat Tiles; the three card-buttons become a Segmented Control; rarity filter chips keep the rarity tone mapping; sort is a Ghost-sm action in the Section Header. Cards stay exactly as today: the card itself is the grid item, never wrapped in a tile or captioned box (this is the one place the Card container must not be used).",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -28190,7 +28331,8 @@
                       "content": "Hero card becomes Page Title; the three tinted counters become Stat Tiles; the tile switch becomes a Segmented Control; the empty state uses the State Panel; the send action is the one Primary.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -28554,7 +28696,8 @@
                                                   "fill": "$fgMuted",
                                                   "content": "Pick a friend and a card you own twice.",
                                                   "fontFamily": "$font",
-                                                  "fontSize": 13
+                                                  "fontSize": 13,
+                                                  "fontWeight": "normal"
                                                 }
                                               ]
                                             }
@@ -28690,7 +28833,8 @@
                       "content": "Hero card becomes Page Title; bare numbers become Stat Tiles; the four navigation cards become List Rows; the active battle gets a success Notice; one Primary (Send challenge).",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -28987,7 +29131,8 @@
                                               "content": "Pick a ready loadout and challenge a friend in one step.",
                                               "lineHeight": 1.45,
                                               "fontFamily": "$font",
-                                              "fontSize": 15
+                                              "fontSize": 15,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -29310,7 +29455,8 @@
                       "content": "Stack Header replaces the pink-square back button; the uppercase RULES / TRAINING MODE eyebrows become Notice and Card titles; yellow and gradient CTAs collapse to one Primary plus a Ghost; run history empty state uses the State Panel.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -29654,7 +29800,8 @@
                                                   "content": "Unlimited practice with fresh seeds. Never uses attempts, rewards or history.",
                                                   "lineHeight": 1.45,
                                                   "fontFamily": "$font",
-                                                  "fontSize": 13
+                                                  "fontSize": 13,
+                                                  "fontWeight": "normal"
                                                 }
                                               ]
                                             }
@@ -29770,7 +29917,8 @@
                       "content": "Pink title on a white band becomes a Stack Header; the dark-pink banner becomes four Stat Tiles; the match becomes a List Row with a danger chip for Conceded and a chevron to the replay.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -30160,7 +30308,8 @@
                       "content": "Sheet Header is unchanged in spirit but now shared with inline sheets; profile summary uses Stat Tiles; Language and Theme pickers become Segmented Control and List Rows with a check, instead of two more card styles.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -30400,7 +30549,8 @@
                                                       "fill": "$fgMuted",
                                                       "content": "design-inventory@leaetzak.love",
                                                       "fontFamily": "$font",
-                                                      "fontSize": 13
+                                                      "fontSize": 13,
+                                                      "fontWeight": "normal"
                                                     }
                                                   ]
                                                 },
@@ -30753,7 +30903,8 @@
                       "content": "Collection stays visible behind the one $backdrop token; the dialog uses the shared Dialog with List Rows for options; actions follow the Ghost + Primary rule instead of a lone gradient Close.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -31114,7 +31265,8 @@
                       "content": "Admin already follows a pattern; it is kept and expressed with the shared parts: App Header (coins + admin + settings), Page Title, Card with Section Header action, Stat Tiles with sentence-case labels, Input, Notice. Admin tab bar reuses the Tab Bar component.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -31665,10 +31817,11 @@
                       "fill": "#7A6A5E",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "Stack Header replaces the pink-square back; the language picker card becomes a Segmented Control; 'Attempts left 6 / 6' becomes the Game HUD; the board and keyboard use Game Tile and Game Key with the shared correct / present / absent tones. Shown mid-game, a state the inventory has not captured yet.",
+                      "content": "Stack Header replaces the pink-square back; the language picker card becomes a Segmented Control; 'Attempts left 6 / 6' becomes the Game HUD; the board and keyboard use Game Tile and Game Key with the shared correct / present / absent tones. Shown mid-game, a state the inventory has not captured yet. Revision 2026-10-13: letter labels grow from 15 to 18; a Clear key (FR 'Tout effacer') empties the current row and shares the bottom row 50/50 with Submit.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -32064,10 +32217,10 @@
                                           "width": 50,
                                           "height": 50,
                                           "fill": "$surface",
-                                          "stroke": "$primaryBorder",
+                                          "stroke": "$primary",
                                           "descendants": {
                                             "T6wYzW": {
-                                              "content": "",
+                                              "content": "P",
                                               "fill": "$fg"
                                             }
                                           }
@@ -32080,10 +32233,10 @@
                                           "width": 50,
                                           "height": 50,
                                           "fill": "$surface",
-                                          "stroke": "$primaryBorder",
+                                          "stroke": "$primary",
                                           "descendants": {
                                             "T6wYzW": {
-                                              "content": "",
+                                              "content": "L",
                                               "fill": "$fg"
                                             }
                                           }
@@ -32870,21 +33023,47 @@
                                       ]
                                     },
                                     {
-                                      "id": "FNUPV",
-                                      "type": "ref",
-                                      "ref": "ksoEY",
-                                      "name": "Key Submit",
+                                      "type": "frame",
+                                      "id": "bu9b8",
+                                      "name": "Action Row",
                                       "width": "fill_container",
-                                      "height": 44,
-                                      "fill": "$primary",
-                                      "stroke": "$primary",
-                                      "descendants": {
-                                        "Ml5G7": {
-                                          "content": "Submit",
-                                          "fill": "$onPrimary",
-                                          "fontSize": 15
+                                      "gap": 8,
+                                      "children": [
+                                        {
+                                          "id": "s26vo",
+                                          "type": "ref",
+                                          "ref": "ksoEY",
+                                          "name": "Key Clear",
+                                          "width": "fill_container",
+                                          "height": 44,
+                                          "fill": "$surface",
+                                          "stroke": "$primaryBorder",
+                                          "descendants": {
+                                            "Ml5G7": {
+                                              "content": "Clear",
+                                              "fill": "$fg",
+                                              "fontSize": 15
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "id": "FNUPV",
+                                          "type": "ref",
+                                          "ref": "ksoEY",
+                                          "name": "Key Submit",
+                                          "width": "fill_container",
+                                          "height": 44,
+                                          "fill": "$primary",
+                                          "stroke": "$primary",
+                                          "descendants": {
+                                            "Ml5G7": {
+                                              "content": "Submit",
+                                              "fill": "$onPrimary",
+                                              "fontSize": 15
+                                            }
+                                          }
                                         }
-                                      }
+                                      ]
                                     }
                                   ]
                                 }
@@ -32933,7 +33112,8 @@
                       "content": "Stack Header with the history as trailing action; the three mode tiles become a Segmented Control; target and bests become Stat Tiles; selection, numbers and operators use Keypad Keys; Submit is the Primary button (disabled until the selection is complete).",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -33663,7 +33843,8 @@
                       "content": "The uppercase yellow ARCHIVE pill becomes an info Notice; each day is a Card with a Section-style title and three Stat Tiles (mode, status, result) instead of bordered mini-buttons; played days get a success tint.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -33870,7 +34051,8 @@
                                               "fill": "$fgMuted",
                                               "content": "Archive date 2026-10-09",
                                               "fontFamily": "$font",
-                                              "fontSize": 12
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -33997,7 +34179,8 @@
                                               "fill": "$fgMuted",
                                               "content": "Archive date 2026-10-08",
                                               "fontFamily": "$font",
-                                              "fontSize": 12
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -34124,7 +34307,8 @@
                                               "fill": "$fgMuted",
                                               "content": "Archive date 2026-10-07",
                                               "fontFamily": "$font",
-                                              "fontSize": 12
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -34258,7 +34442,8 @@
                       "content": "Header sits at the same height as every other stack screen; the white text-tab pill becomes a Segmented Control; target and attempts become a tinted Card with Stat Tiles; the flat pink rectangle becomes the Primary lg button. Running and result states use the same Card plus the shared Dialog.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -34416,7 +34601,8 @@
                                   "lineHeight": 1.45,
                                   "textAlign": "center",
                                   "fontFamily": "$font",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 },
                                 {
                                   "id": "esYki",
@@ -34630,7 +34816,8 @@
                                               "fill": "$fgMuted",
                                               "content": "Timer hides after one second",
                                               "fontFamily": "$font",
-                                              "fontSize": 12
+                                              "fontSize": 12,
+                                              "fontWeight": "normal"
                                             }
                                           ]
                                         },
@@ -34708,7 +34895,8 @@
                       "content": "The hand-built header becomes the Game HUD (timer, run, correct count, Pause, Progress); the question is a Card with overline + display number; the answer is the shared Input; the pad uses Keypad Keys; Clear is Ghost, Submit is Primary lg. The tinted pink keys and the yellow Submit disappear.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -35253,7 +35441,8 @@
                       "content": "Inline sheets get the same Sheet Header as route sheets; each quest is a row with its family Icon Tile, name and priority chip; the Up / Down text buttons become Icon Buttons; Reset is a Ghost button. The quest launch sheet follows the same structure with List Rows.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -35954,7 +36143,8 @@
                       "content": "Board, card art and HP bars are unchanged. The chrome is swapped: back, timer and close become Icon Buttons; energy and turn become Chips; the action strip is a Card with a Primary-sm GO; type labels use the rarity/type Chip; confirm and swap are Icon Buttons with the primary one filled.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -37057,7 +37247,8 @@
                                       "fill": "$fgMuted",
                                       "content": "Expires 11 Oct, 4:25 PM · 23h 33m left",
                                       "fontFamily": "$font",
-                                      "fontSize": 11
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -41156,7 +41347,8 @@
                                       "fill": "$fgMuted",
                                       "content": "Claim 50 coins!",
                                       "fontFamily": "$font",
-                                      "fontSize": 15
+                                      "fontSize": 15,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },

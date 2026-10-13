@@ -11,7 +11,7 @@ import { ON_PRIMARY } from "@adventure-time/theme";
 import { type IconSlot, SlotIcon, useThemePalette } from "../tokens";
 import { GAME_CELL_CLASS, type GameCellState, glyphCenterStyle } from "./game-state";
 
-export type GameKeyKind = "letter" | "enter" | "delete";
+export type GameKeyKind = "letter" | "enter" | "clear" | "delete";
 
 export interface GameKeyProps {
   label: string;
@@ -33,12 +33,14 @@ export interface GameKeyProps {
 
 const KIND_WIDTH: Record<GameKeyKind, string> = {
   letter: "w-[32px]",
-  enter: "w-full",
+  enter: "flex-1",
+  clear: "flex-1",
   delete: "w-[44px]",
 };
 
-// 44 high, radius 12, 15/800 label. Enter is the full-width primary
-// "Submit" key under the keyboard.
+// 44 high, radius 12. Letter keys use an 18/800 label; Clear and Enter are
+// the 15/800 command keys that share the row under the keyboard, with Enter
+// as the primary "Submit".
 export function GameKey({
   label,
   state = "empty",
@@ -54,6 +56,7 @@ export function GameKey({
   testID,
 }: GameKeyProps) {
   const tc = useThemePalette();
+  const isCommand = kind === "enter" || kind === "clear";
   const classes =
     kind === "enter"
       ? { container: "bg-primary border-primary", text: "text-white" }
@@ -79,8 +82,10 @@ export function GameKey({
         <SlotIcon icon={icon} color={kind === "enter" ? ON_PRIMARY : tc.fg} size={18} />
       ) : (
         <Text
-          className={`font-nunito-extrabold text-ds-body ${classes.text}`}
-          style={kind === "enter" ? undefined : glyphCenterStyle(15)}
+          className={`font-nunito-extrabold ${
+            isCommand ? "text-ds-body" : "text-[18px] leading-[22px]"
+          } ${classes.text}`}
+          style={isCommand ? undefined : glyphCenterStyle(18)}
         >
           {label}
         </Text>

@@ -690,6 +690,34 @@ function useWordleScreenView() {
     [inputLocked, handleRemoveAnimationEnd, replaceCurrentGuess],
   );
 
+  // Clear empties the whole current row at once, with every filled tile
+  // playing the same remove animation as a single Delete.
+  const clearRow = useCallback(() => {
+    if (inputLocked) return;
+
+    const guessSnapshot = currentGuessRef.current;
+    const removed: Record<number, string> = {};
+    guessSnapshot.forEach((letter, colIndex) => {
+      if (letter) removed[colIndex] = letter.toUpperCase();
+    });
+    const removedIndexes = Object.keys(removed).map(Number);
+    if (removedIndexes.length === 0) return;
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setRemovingCells((previous) => ({ ...previous, ...removed }));
+    replaceCurrentGuess(Array(WORD_LENGTH).fill(null));
+
+    removedIndexes.forEach((colIndex) => {
+      if (removeAnimationTimersRef.current[colIndex]) {
+        clearTimeout(removeAnimationTimersRef.current[colIndex]);
+      }
+      removeAnimationTimersRef.current[colIndex] = setTimeout(
+        () => handleRemoveAnimationEnd(colIndex),
+        WORDLE_REMOVE_MS,
+      );
+    });
+  }, [inputLocked, handleRemoveAnimationEnd, replaceCurrentGuess]);
+
   const patchWordleCaches = useCallback(
     (result: WordleSubmitResponse, nextGuesses: GuessResult[]) => {
       const questId = questVersionRef.current;
@@ -998,6 +1026,9 @@ function useWordleScreenView() {
         // haptic and the tile remove animation.
         if (rowClearDisabled) return;
         removeLetter();
+      } else if (keyId === "RESET") {
+        if (rowClearDisabled) return;
+        clearRow();
       } else if (keyId === "SUBMIT") {
         if (submitLocked) return;
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -1013,6 +1044,7 @@ function useWordleScreenView() {
       submitLocked,
       inputLocked,
       removeLetter,
+      clearRow,
       submitGuess,
       addLetter,
     ],
@@ -1180,8 +1212,30 @@ function useWordleScreenView() {
       : undefined;
     const enterPressed = activeKeySet.has("SUBMIT") && !submitLocked;
     const deletePressed = activeKeySet.has("CLEAR") && !rowClearDisabled;
+    const resetPressed = activeKeySet.has("RESET") && !rowClearDisabled;
 
     return {
+      reset: (
+        <GameKey
+          key="RESET"
+          kind="clear"
+          label={t("quests.wordle.clearRow")}
+          accessibilityLabel="wordle-key-RESET"
+          disabled={rowClearDisabled}
+          hitSlop={KEY_HIT_SLOP}
+          onPress={() => {
+            activateKey("RESET");
+          }}
+          onPressIn={() => {
+            setKeyPressed("RESET", true);
+          }}
+          onPressOut={() => {
+            setKeyPressed("RESET", false);
+          }}
+          style={keyPressStyle(resetPressed, undefined)}
+          testID="wordle-key-RESET"
+        />
+      ),
       enter: (
         <GameKey
           key="SUBMIT"
@@ -1228,7 +1282,7 @@ function useWordleScreenView() {
     };
   };
 
-  const submitAndDelete = renderActionKeys();
+  const actionKeys = renderActionKeys();
 
   const showStatus =
     message !== null ||
@@ -1440,11 +1494,14 @@ function useWordleScreenView() {
             return (
               <View key={row} className="flex-row justify-center gap-ds-1">
                 {letterKeys}
-                {isLastRow ? submitAndDelete.delete : null}
+                {isLastRow ? actionKeys.delete : null}
               </View>
             );
           })}
-          {submitAndDelete.enter}
+          <View className="flex-row gap-ds-2">
+            {actionKeys.reset}
+            {actionKeys.enter}
+          </View>
         </View>
 
         {/* Offscreen, capture-friendly share card. Rendered (not display:none)
